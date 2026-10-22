@@ -1,10 +1,18 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { UiAlert, UiBadge, UiButton, UiCard, UiDialog, UiField } from '../../../shared/components'
+import { UiAlert, UiBadge, UiButton, UiCard, UiDialog, UiEmptyState, UiField, UiSkeleton, UiSpinner, UiToast } from '../../../shared/components'
 import { useTheme } from '../../../shared/composables/useTheme'
 import type { AlumnoCaja, ConceptoCatalogo, DetalleConceptoRecibo, EstadoRecibo, MetodoPago, ReciboCaja } from '../types/caja'
 
 const { dark } = useTheme()
+
+// ==========================================
+// Notificaciones Toast y Estados de Carga Asíncrona
+// ==========================================
+const toastRef = ref<InstanceType<typeof UiToast>>()
+const isBuscandoAlumno = ref(false)
+const isGuardandoCobro = ref(false)
+const isCargandoHistorial = ref(false)
 
 // ==========================================
 // 1. Datos del Cajero y Turno Operativo (En blanco para BD)
@@ -71,13 +79,41 @@ const sugerenciasEstudiantes = computed(() => {
   )
 })
 
-function seleccionarEstudiante(est: typeof catalogoEstudiantesMuestra[0]): void {
+function seleccionarEstudiante(est: typeof catalogoEstudiantesMuestra[0], showNotification = true): void {
   alumno.value.matricula = est.matricula
   alumno.value.nombreCompleto = est.nombreCompleto
   alumno.value.carrera = est.carrera
   alumno.value.semestre = est.semestre
   alumno.value.estatus = 'Inscrito'
   busquedaMatricula.value = est.matricula
+  if (showNotification) {
+    toastRef.value?.success(`Expediente seleccionado: ${est.nombreCompleto}`)
+  }
+}
+
+async function buscarEstudiante(): Promise<void> {
+  const q = busquedaMatricula.value.trim().toLowerCase()
+  if (!q) {
+    toastRef.value?.warning('Ingresa una matrícula o nombre para realizar la búsqueda.')
+    return
+  }
+
+  isBuscandoAlumno.value = true
+  // Simulación de consulta asíncrona a la base de datos
+  await new Promise(resolve => setTimeout(resolve, 600))
+
+  const encontrado = catalogoEstudiantesMuestra.find(
+    est => est.matricula.toLowerCase() === q || est.nombreCompleto.toLowerCase().includes(q)
+  )
+
+  isBuscandoAlumno.value = false
+
+  if (encontrado) {
+    seleccionarEstudiante(encontrado, false)
+    toastRef.value?.success(`Alumno localizado con éxito: ${encontrado.nombreCompleto}`)
+  } else {
+    toastRef.value?.error(`No se encontró ningún registro para "${busquedaMatricula.value}".`)
+  }
 }
 
 const opcionesTurnos = [
@@ -123,10 +159,15 @@ function agregarConcepto(): void {
     descuentoBeca: descuento,
     importeTotal: importe,
   })
+  toastRef.value?.info(`Concepto añadido: ${itemCatalogo.descripcion}`)
 }
 
 function eliminarPartida(id: string): void {
+  const item = partidas.value.find(p => p.id === id)
   partidas.value = partidas.value.filter(p => p.id !== id)
+  if (item) {
+    toastRef.value?.info(`Concepto "${item.descripcion}" eliminado del recibo`)
+  }
 }
 
 // ==========================================
@@ -177,6 +218,7 @@ function abrirModalCancelar(): void {
 function confirmarCancelacion(): void {
   if (!motivoCancelacion.value.trim() || motivoCancelacion.value.length < 5) {
     errorCancelacion.value = 'Debes ingresar un motivo administrativo válido (mínimo 5 caracteres).'
+    toastRef.value?.error('Ingresa una justificación válida de al menos 5 caracteres.')
     return
   }
 
@@ -190,6 +232,7 @@ function confirmarCancelacion(): void {
     rec.motivoCancelacion = motivoCancelacion.value
     rec.fechaCancelacion = new Date().toISOString()
   }
+  toastRef.value?.warning(`Recibo #${numeroRecibo.value} cancelado formalmente`)
 }
 
 const mostrarModalImprimir = ref(false)
@@ -222,7 +265,20 @@ function limpiarFormulario(): void {
   partidas.value = []
 }
 
-function registrarCobro(): void {
+async function registrarCobro(): Promise<void> {
+  if (!alumno.value.matricula.trim() || !alumno.value.nombreCompleto.trim()) {
+    toastRef.value?.error('Debes ingresar la matrícula y datos del estudiante antes de registrar el cobro.')
+    return
+  }
+  if (partidas.value.length === 0) {
+    toastRef.value?.error('Debes agregar al menos un concepto de cobro.')
+    return
+  }
+
+  isGuardandoCobro.value = true
+  // Simular operación asíncrona de guardado en servidor
+  await new Promise(resolve => setTimeout(resolve, 700))
+
   estadoRecibo.value = 'REGISTRADO'
   const nuevoRecibo: ReciboCaja = {
     id: `rec-${numeroRecibo.value}`,
@@ -242,6 +298,9 @@ function registrarCobro(): void {
   }
 
   historialTurno.value.unshift(nuevoRecibo)
+  isGuardandoCobro.value = false
+
+  toastRef.value?.success(`Recibo #${nuevoRecibo.numeroRecibo} registrado con éxito ($${nuevoRecibo.total.toFixed(2)})`)
   abrirImpresion()
 }
 </script>
@@ -312,6 +371,7 @@ function registrarCobro(): void {
                 label="Buscar por Matrícula o Nombre"
                 placeholder="Escribe para buscar (ej. 23050...)"
                 hint="Al escribir se muestran sugerencias en base a matrícula y nombre"
+                @keyup.enter="buscarEstudiante"
               />
               <!-- Sugerencias de autocompletado en texto tenue / bajito -->
               <div v-if="sugerenciasEstudiantes.length > 0" class="suggestions-dropdown">
@@ -327,15 +387,49 @@ function registrarCobro(): void {
                 </div>
               </div>
             </div>
-            <UiButton variant="primary" class="btn-search">
-              Localizar Alumno
+            <UiButton
+              variant="primary"
+              class="btn-search"
+              :disabled="isBuscandoAlumno"
+              @click="buscarEstudiante"
+            >
+              <UiSpinner v-if="isBuscandoAlumno" size="sm" class="btn-spinner" />
+              <span>{{ isBuscandoAlumno ? 'Consultando...' : 'Localizar Alumno' }}</span>
             </UiButton>
           </div>
         </UiCard>
 
         <!-- 2. Datos del Estudiante -->
         <UiCard title="Datos del Estudiante" description="Información académica y administrativa asociada a los cobros">
-          <div class="student-form-grid">
+          <!-- Indicador visual Skeleton durante consulta de datos -->
+          <div v-if="isBuscandoAlumno" class="student-form-skeleton" aria-busy="true" aria-label="Cargando expediente...">
+            <div class="skeleton-field">
+              <UiSkeleton width="70px" height="12px" />
+              <UiSkeleton width="100%" height="40px" rounded="8px" />
+            </div>
+            <div class="skeleton-field col-span-2">
+              <UiSkeleton width="120px" height="12px" />
+              <UiSkeleton width="100%" height="40px" rounded="8px" />
+            </div>
+            <div class="skeleton-field">
+              <UiSkeleton width="65px" height="12px" />
+              <UiSkeleton width="100%" height="40px" rounded="8px" />
+            </div>
+            <div class="skeleton-field col-carrera">
+              <UiSkeleton width="80px" height="12px" />
+              <UiSkeleton width="100%" height="40px" rounded="8px" />
+            </div>
+            <div class="skeleton-field">
+              <UiSkeleton width="60px" height="12px" />
+              <UiSkeleton width="100%" height="40px" rounded="8px" />
+            </div>
+            <div class="skeleton-field">
+              <UiSkeleton width="90px" height="12px" />
+              <UiSkeleton width="100%" height="40px" rounded="8px" />
+            </div>
+          </div>
+
+          <div v-else class="student-form-grid">
             <div class="form-col col-matricula">
               <UiField
                 v-model="alumno.matricula"
@@ -423,7 +517,11 @@ function registrarCobro(): void {
               <tbody>
                 <tr v-if="partidas.length === 0">
                   <td colspan="6" class="empty-items-cell">
-                    No hay conceptos añadidos a este recibo.
+                    <UiEmptyState
+                      variant="cart"
+                      title="No hay conceptos añadidos al recibo"
+                      description="Selecciona una cuota o concepto en la barra superior y presiona '+ Agregar Concepto' para calcular los importes."
+                    />
                   </td>
                 </tr>
                 <tr v-for="item in partidas" :key="item.id" class="item-row">
@@ -533,15 +631,16 @@ function registrarCobro(): void {
           <div class="action-buttons-left">
             <UiButton
               variant="primary"
-              :disabled="partidas.length === 0 || estadoRecibo === 'CANCELADO'"
+              :disabled="partidas.length === 0 || estadoRecibo === 'CANCELADO' || isGuardandoCobro"
               @click="registrarCobro"
             >
-              ✓ Registrar Cobro
+              <UiSpinner v-if="isGuardandoCobro" size="sm" class="btn-spinner" />
+              <span>{{ isGuardandoCobro ? 'Guardando e Imprimiendo...' : '✓ Registrar Cobro' }}</span>
             </UiButton>
 
             <UiButton
               variant="secondary"
-              :disabled="partidas.length === 0"
+              :disabled="partidas.length === 0 || isGuardandoCobro"
               @click="estadoRecibo = 'PREVIO'"
             >
               📄 Recibo Previo
@@ -549,7 +648,7 @@ function registrarCobro(): void {
 
             <UiButton
               variant="secondary"
-              :disabled="partidas.length === 0"
+              :disabled="partidas.length === 0 || isGuardandoCobro"
               @click="abrirImpresion"
             >
               🖨️ Imprimir
@@ -557,7 +656,7 @@ function registrarCobro(): void {
 
             <UiButton
               variant="danger"
-              :disabled="estadoRecibo === 'CANCELADO'"
+              :disabled="estadoRecibo === 'CANCELADO' || isGuardandoCobro"
               @click="abrirModalCancelar"
             >
               🚫 Cancelar Recibo
@@ -565,7 +664,7 @@ function registrarCobro(): void {
           </div>
 
           <div class="action-buttons-right">
-            <UiButton variant="secondary" @click="limpiarFormulario">
+            <UiButton variant="secondary" :disabled="isGuardandoCobro" @click="limpiarFormulario">
               Limpiar
             </UiButton>
           </div>
@@ -587,10 +686,32 @@ function registrarCobro(): void {
           </div>
 
           <div class="recent-receipts-list">
-            <div v-if="historialTurno.length === 0" class="empty-recent-msg">
-              No hay movimientos registrados en esta sesión.
+            <!-- Indicador visual Skeleton al consultar historial -->
+            <div v-if="isCargandoHistorial" class="recent-skeleton-list" aria-busy="true">
+              <div v-for="i in 3" :key="i" class="recent-skeleton-card">
+                <div class="skeleton-top">
+                  <UiSkeleton width="40%" height="16px" />
+                  <UiSkeleton width="25%" height="16px" rounded="12px" />
+                </div>
+                <UiSkeleton width="80%" height="14px" />
+                <div class="skeleton-bottom">
+                  <UiSkeleton width="35%" height="12px" />
+                  <UiSkeleton width="30%" height="16px" />
+                </div>
+              </div>
             </div>
+
+            <!-- Diseño de estado vacío con mensaje ilustrativo cuando no hay registros de ingresos -->
+            <UiEmptyState
+              v-else-if="historialTurno.length === 0"
+              variant="receipt"
+              title="Sin registros de ingresos disponibles"
+              description="Aún no se han emitido movimientos en este turno operativo. Al registrar cobros, los recibos aparecerán listados aquí en tiempo real."
+            />
+
+            <!-- Lista de recibos emitidos -->
             <div
+              v-else
               v-for="rec in historialTurno"
               :key="rec.id"
               class="recent-receipt-card"
@@ -719,6 +840,9 @@ function registrarCobro(): void {
         </UiButton>
       </div>
     </UiDialog>
+
+    <!-- Sistema de Notificaciones Flotantes (Toasts) -->
+    <UiToast ref="toastRef" />
   </div>
 </template>
 
@@ -954,7 +1078,37 @@ function registrarCobro(): void {
   margin-bottom: 2px;
 }
 
-/* 4. Formulario del estudiante */
+.btn-spinner {
+  margin-right: 8px;
+}
+
+/* 4. Formulario del estudiante y estados de carga */
+.student-form-skeleton {
+  display: grid;
+  grid-template-columns: 160px 1fr 140px;
+  gap: 14px;
+  padding: 4px 0;
+}
+
+.skeleton-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skeleton-field.col-span-2 {
+  grid-column: span 2;
+}
+
+@media (max-width: 768px) {
+  .student-form-skeleton {
+    grid-template-columns: 1fr;
+  }
+  .skeleton-field.col-span-2 {
+    grid-column: span 1;
+  }
+}
+
 .student-form-grid {
   display: grid;
   grid-template-columns: 160px 1fr 140px;
@@ -1245,6 +1399,29 @@ function registrarCobro(): void {
   gap: 10px;
   max-height: 520px;
   overflow-y: auto;
+}
+
+.recent-skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.recent-skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--color-border, #E2E8F0);
+  border-radius: 8px;
+  background: var(--color-surface-white, #FFFFFF);
+}
+
+.skeleton-top,
+.skeleton-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .empty-recent-msg {
