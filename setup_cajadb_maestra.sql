@@ -128,21 +128,35 @@ CREATE INDEX idx_alumnos_estatus ON alumnos(estatus);
 
 INSERT INTO alumnos (matricula, nombre_completo, nombres, apellidos, sexo, id_carrera, carrera, semestre, turno, numero_ficha, cuenta_a, estatus, tiene_beca, porcentaje_beca)
 VALUES
+    -- Hoja ALUMNOS
     ('G2605048',  'MARTINEZ SILVA MARIA JOSE',           'MARIA JOSE',           'MARTINEZ SILVA',          'F', 70, 'Ing. Gestión Emp.',         1, 'Matutino',   'F-2026-001', 24468, 'Inscrito', false, 0.00),
     ('M2505057',  'PALOS DIAZ MARIA FERNADA',            'MARIA FERNANDA',       'PALOS DIAZ',              'F', 67, 'Ing. Industrial',           1, 'Matutino',   'F-2025-089', 23877, 'Inscrito', false, 0.00),
     ('N2305000',  'CHAPOY LIMON CARLOS',                 'CARLOS',               'CHAPOY LIMON',            'M', 67, 'Ing. Industrial',           7, 'Matutino',   'F-2023-014', 11670, 'Inscrito', false, 0.00),
     ('120050011', 'DE LA TORRE CAMPOS DANIEL ARTURO',    'DANIEL ARTURO',        'DE LA TORRE CAMPOS',      'M', 69, 'Ing. Informática',          8, 'Matutino',   'F-2020-050', 12121, 'Inscrito', false, 0.00),
     ('120050012', 'DEL TORO LIRA FERNANDA',              'FERNANDA',             'DEL TORO LIRA',           'F', 69, 'Ing. Informática',          8, 'Matutino',   'F-2020-051', 11671, 'Inscrito', false, 0.00),
     ('120050013', 'DIAZ COSTILLA ANGEL GABRIEL',         'ANGEL GABRIEL',        'DIAZ COSTILLA',           'M', 69, 'Ing. Informática',          8, 'Matutino',   'F-2020-052', 12122, 'Inscrito', false, 0.00),
+    ('120050023', 'MARINES YAÑEZ MARIO CUAUHTEMOC',      'MARIO CUAUHTEMOC',     'MARINES YAÑEZ',           'M', 69, 'Ing. Informática',          8, 'Matutino',   'F-2020-053', 11672, 'Inscrito', false, 0.00),
+    ('120050032', 'RAMIREZ GONZALEZ ESTEFANIA ARISBETH', 'ESTEFANIA ARISBETH',   'RAMIREZ GONZALEZ',        'F', 69, 'Ing. Informática',          8, 'Matutino',   'F-2020-054', 11673, 'Inscrito', false, 0.00),
+    ('120050040', 'TORRES TREJO VICTORIA ALEJANDRA',     'VICTORIA ALEJANDRA',   'TORRES TREJO',            'F', 69, 'Ing. Informática',          8, 'Matutino',   'F-2020-055', 11674, 'Inscrito', false, 0.00),
+    ('120050041', 'TOVAR COVARRUBIAS JARED ISRAEL',      'JARED ISRAEL',         'TOVAR COVARRUBIAS',       'M', 69, 'Ing. Informática',          8, 'Matutino',   'F-2020-056', 11675, 'Inscrito', false, 0.00),
+    -- Hoja PREVIO
     ('N13050045', 'PEREZ SIFUENTES ALDO ULISES',         'ALDO ULISES',          'PEREZ SIFUENTES',         'M', 67, 'Ing. Industrial',           6, 'Matutino',   'F-2019-112', NULL,  'Inscrito', false, 0.00),
     ('N13050041', 'ORTIZ DURON LUIS MANUEL',             'LUIS MANUEL',          'ORTIZ DURON',             'M', 67, 'Ing. Industrial',           6, 'Matutino',   'F-2019-110', NULL,  'Inscrito', false, 0.00),
     ('G13050156', 'DAVILA HERNANDEZ ANA PATRICIA',       'ANA PATRICIA',         'DAVILA HERNANDEZ',        'F', 70, 'Ing. Gestión Emp.',         5, 'Matutino',   'F-2019-215', NULL,  'Inscrito', false, 0.00),
     ('E15050004', 'REQUENA RODRIGUEZ NESTOR OMAR',       'NESTOR OMAR',          'REQUENA RODRIGUEZ',       'M', 68, 'Ing. Electrónica',          3, 'Nocturno',   'F-2021-004', NULL,  'Inscrito', false, 0.00),
     ('N12050104', 'BARRERA TOVAR JESUS ENRIQUE',         'JESUS ENRIQUE',        'BARRERA TOVAR',           'M', 67, 'Ing. Industrial',           8, 'Nocturno',   'F-2018-090', NULL,  'Inscrito', false, 0.00),
+    ('G13050219', 'HERNANDEZ CASTILLO ARELY SARAHI',     'ARELY SARAHI',         'HERNANDEZ CASTILLO',      'F', 70, 'Ing. Gestión Emp.',         6, 'Matutino',   'F-2019-219', NULL,  'Inscrito', false, 0.00),
+    ('G14050252', 'MUÑOZ DE LEON ILSE ARACELI',          'ILSE ARACELI',          'MUÑOZ DE LEON',           'F', 70, 'Ing. Gestión Emp.',         4, 'Matutino',   'F-2020-252', NULL,  'Inscrito', false, 0.00),
+    ('N15050011', 'VILLASTRIGO GARCIA SABINO EMMANUEL',  'SABINO EMMANUEL',      'VILLASTRIGO GARCIA',      'M', 67, 'Ing. Industrial',           2, 'Matutino',   'F-2021-011', NULL,  'Inscrito', false, 0.00),
+    ('G13050164', 'GUTIERREZ SALAZAR CLAUDIA MONSERRAT', 'CLAUDIA MONSERRAT',    'GUTIERREZ SALAZAR',       'F', 70, 'Ing. Gestión Emp.',         6, 'Matutino',   'F-2019-164', NULL,  'Inscrito', false, 0.00),
+    ('N12050487', 'IBARRA MARTINEZ JULIO CESAR',         'JULIO CESAR',          'IBARRA MARTINEZ',         'M', 67, 'Ing. Industrial',           8, 'Nocturno',   'F-2018-487', NULL,  'Inscrito', false, 0.00),
+    -- Hoja RECIBO
     ('I11050186', 'GUZMAN GUAJARDO BRANDO ISRAEL',       'BRANDO ISRAEL',        'GUZMAN GUAJARDO',         'M', 69, 'Ing. Informática',          2, 'Matutino',   'F-2017-040', NULL,  'Inscrito', false, 0.00),
     ('I11050180', 'DELGADILLO GELACIO IRMA BERENICE',    'IRMA BERENICE',        'DELGADILLO GELACIO',      'F', 69, 'Ing. Informática',          1, 'Nocturno',   'F-2017-038', NULL,  'Inscrito', true,  50.00),
     ('I11050199', 'OROZCO ALVARADO KAREN',               'KAREN',                'OROZCO ALVARADO',         'F', 69, 'Ing. Informática',          1, 'Matutino',   'F-2017-062', NULL,  'Inscrito', true,  25.00),
     ('E11050286', 'MARTINEZ ALFARO LUIS ANGEL',          'LUIS ANGEL',           'MARTINEZ ALFARO',         'M', 68, 'Ing. Electrónica',          1, 'Matutino',   'F-2017-080', NULL,  'Baja Temporal', false, 0.00),
+    ('E11050559', 'FLORES EVANGELISTA ESTEBAN DAMIAN',   'ESTEBAN DAMIAN',       'FLORES EVANGELISTA',      'M', 68, 'Ing. Electrónica',          1, 'Nocturno',   'F-2017-559', NULL,  'Inscrito', true,  25.00),
+    -- Alumnos adicionales de prueba
     ('23050243',  'ORTEGON HERNANDEZ KLEBER',            'KLEBER',               'ORTEGON HERNANDEZ',       'M', 67, 'Ing. Industrial',           4, 'Matutino',   'F-2023-243', 23050, 'Inscrito', false, 0.00),
     ('23050118',  'GARCIA ZAVALA LUIS FERNANDO',         'LUIS FERNANDO',        'GARCIA ZAVALA',           'M', 74, 'Ing. Mecatrónica',          3, 'Matutino',   'F-2023-118', 23051, 'Inscrito', false, 0.00),
     ('22050890',  'LOPEZ SANCHEZ MARIANA',               'MARIANA',              'LOPEZ SANCHEZ',           'F', 70, 'Ing. Gestión Emp.',         6, 'Matutino',   'F-2022-890', 22050, 'Inscrito', true,  50.00),
