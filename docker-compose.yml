@@ -1,48 +1,14 @@
 services:
   # ============================================================================
-  # 1. Base de Datos Relacional (PostgreSQL 17)
-  # ============================================================================
-  postgres:
-    image: postgres:17-alpine
-    container_name: tecnm_caja_db
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: tecnm_caja
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgrespassword123
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./database.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
-    networks:
-      - db-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d tecnm_caja"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  # ============================================================================
-  # 2. Administrador Gráfico de Base de Datos (pgAdmin 4)
-  # ============================================================================
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: tecnm_caja_pgadmin
-    restart: unless-stopped
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@tecnm.mx
-      PGADMIN_DEFAULT_PASSWORD: adminpassword123
-    ports:
-      - "5050:80"
-    networks:
-      - db-network
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  # ============================================================================
-  # 3. Backend Web API (.NET 10 / C#)
+  # 1. Backend Web API (.NET 10 / C#)
+  #
+  # ARQUITECTURA DEL EQUIPO:
+  #   - Base de Datos: PostgreSQL 18 instalado localmente en Windows (NO Docker).
+  #                    Tu compañera DB la administra en su máquina local.
+  #   - Backend + Frontend: Corren en Docker en las laptops del equipo.
+  #
+  # La variable host.docker.internal permite que el backend dentro de Docker
+  # alcance el PostgreSQL 18 que corre en Windows (fuera de Docker).
   # ============================================================================
   backend:
     build:
@@ -50,26 +16,29 @@ services:
       dockerfile: Dockerfile
     container_name: tecnm_caja_backend
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=tecnm_caja;Username=postgres;Password=postgrespassword123
+      # -------------------------------------------------------------------------
+      # Conexión a PostgreSQL 18 LOCAL (Windows) desde dentro de Docker.
+      # host.docker.internal resuelve a la IP del equipo anfitrión automáticamente.
+      # El nombre de la base de datos es 'cajadb' (creada por la especialista DB).
+      # -------------------------------------------------------------------------
+      - ConnectionStrings__DefaultConnection=Host=host.docker.internal;Port=5432;Database=cajadb;Username=postgres;Password=postgrespassword123
       - Jwt__SecretKey=TecNM_Monclova_SuperSecretKey_2026_Min32Bytes!
       - Jwt__Issuer=TecNM.Api
       - Jwt__Audience=TecNM.Frontend
       - Jwt__LifetimeHours=8
-      - Cors__AllowedOrigin=https://localhost:5173
+      - Cors__AllowedOrigin=http://localhost:5173
     ports:
       - "7001:8080"
     networks:
-      - db-network
       - app-network
-    depends_on:
-      postgres:
-        condition: service_healthy
 
   # ============================================================================
-  # 4. Frontend SPA (Vue 3 + Vite + TypeScript)
+  # 2. Frontend SPA (Vue 3 + Vite + TypeScript)
   # ============================================================================
   frontend:
     build:
@@ -78,7 +47,7 @@ services:
     container_name: tecnm_caja_frontend
     restart: unless-stopped
     environment:
-      - VITE_BACKEND_URL=http://backend:8080
+      - VITE_BACKEND_URL=http://localhost:7001
     ports:
       - "5173:5173"
     volumes:
@@ -88,12 +57,6 @@ services:
     depends_on:
       - backend
 
-# Redes separadas para aislar la base de datos del frontend (Seguridad por diseño)
 networks:
-  db-network:
-    driver: bridge
   app-network:
     driver: bridge
-
-volumes:
-  pgdata:

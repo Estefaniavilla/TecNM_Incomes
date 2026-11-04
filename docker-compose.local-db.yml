@@ -1,0 +1,52 @@
+services:
+  # ============================================================================
+  # Backend Web API (.NET 10 / C#)
+  #
+  # Archivo de desarrollo local para quien ya tiene PostgreSQL 18 instalado
+  # en Windows con la base de datos 'cajadb' configurada.
+  # ============================================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tecnm_caja_backend
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Host=host.docker.internal;Port=5432;Database=cajadb;Username=postgres;Password=postgrespassword123
+      - Jwt__SecretKey=TecNM_Monclova_SuperSecretKey_2026_Min32Bytes!
+      - Jwt__Issuer=TecNM.Api
+      - Jwt__Audience=TecNM.Frontend
+      - Jwt__LifetimeHours=8
+      - Cors__AllowedOrigin=http://localhost:5173
+    ports:
+      - "7001:8080"
+    networks:
+      - app-network
+
+  # ============================================================================
+  # Frontend SPA (Vue 3 + Vite + TypeScript)
+  # ============================================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: tecnm_caja_frontend
+    restart: unless-stopped
+    environment:
+      - VITE_BACKEND_URL=http://localhost:7001
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend/src:/app/src
+    networks:
+      - app-network
+    depends_on:
+      - backend
+
+networks:
+  app-network:
+    driver: bridge

@@ -77,7 +77,7 @@ public sealed class AuthService(
             || string.IsNullOrWhiteSpace(username)
             || string.IsNullOrWhiteSpace(email)
             || string.IsNullOrWhiteSpace(name)
-            || role is not ("Admin" or "User"))
+            || role is not ("Admin" or "User" or "Cajero" or "Auditor"))
         {
             return null;
         }
