@@ -1,0 +1,2 @@
+export { catalogosRoutes } from './routes'
+

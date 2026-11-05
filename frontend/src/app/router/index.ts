@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 import { authRoutes, authenticatedAuthRoutes } from '../../modules/auth'
 import { cajaRoutes } from '../../modules/caja'
+import { catalogosRoutes } from '../../modules/catalogos'
 import {
   clearSessionMarker,
   hasActiveSession,
@@ -14,13 +15,16 @@ const router = createRouter({
     {
       path: '/',
       component: () => import('../layouts/MainLayout.vue'),
+      meta: { requiresAuth: true },
       children: [
         {
           path: '',
-          name: 'caja-home',
-          component: () => import('../../modules/caja/views/CajaPrincipalView.vue'),
+          name: 'home',
+          component: () => import('../../modules/home/views/HomeView.vue'),
+          meta: { requiresAuth: true },
         },
         ...cajaRoutes,
+        ...catalogosRoutes,
         ...authenticatedAuthRoutes,
       ],
     },
@@ -31,9 +35,15 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
-  if (!to.meta.requiresAuth) return true
+  const isAuthenticated = hasActiveSession()
 
-  if (!hasActiveSession()) {
+  // Si el usuario ya inició sesión y visita /login, enviar a la página principal
+  if (to.name === 'login' && isAuthenticated) {
+    return { path: '/' }
+  }
+
+  // Si la ruta requiere autenticación y no hay sesión activa, redirigir siempre al login
+  if (to.matched.some((record) => record.meta.requiresAuth) && !isAuthenticated) {
     clearSessionMarker()
     return {
       name: 'login',

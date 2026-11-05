@@ -1,10 +1,121 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { UiAlert, UiBadge, UiButton, UiCard, UiDialog, UiEmptyState, UiField, UiSkeleton, UiSpinner, UiToast } from '../../../shared/components'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { UiAlert, UiBadge, UiButton, UiCard, UiDialog, UiEmptyState, UiField, UiSkeleton, UiSpinner, UiToast, UiToggle } from '../../../shared/components'
 import { useTheme } from '../../../shared/composables/useTheme'
 import type { AlumnoCaja, ConceptoCatalogo, DetalleConceptoRecibo, EstadoRecibo, MetodoPago, ReciboCaja } from '../types/caja'
+import ModalCuentas from '../../catalogos/components/ModalCuentas.vue'
+import ModalEmpleados from '../../catalogos/components/ModalEmpleados.vue'
+import ModalImprimeVerano from '../components/ModalImprimeVerano.vue'
+import ModalPolizaIngresos from '../components/ModalPolizaIngresos.vue'
+import ModalReporteIngresos from '../components/ModalReporteIngresos.vue'
+import { logout, me } from '../../auth/api/authApi'
+import { clearSessionMarker } from '../../../shared/utils/sessionCookie'
 
+const route = useRoute()
+const router = useRouter()
 const { dark } = useTheme()
+
+// ==========================================
+// Cerrar Sesión
+// ==========================================
+const isCerrandoSesion = ref(false)
+
+async function endSession(): Promise<void> {
+  isCerrandoSesion.value = true
+  try {
+    await logout()
+  } catch {
+    // Si el API falla igual limpiamos la sesión local
+  } finally {
+    clearSessionMarker()
+    await router.replace({ name: 'login' })
+    isCerrandoSesion.value = false
+  }
+}
+
+onMounted(async () => {
+  try {
+    const user = await me()
+    if (user?.name) {
+      cajeroActual.value = user.name
+    } else if (user?.username) {
+      cajeroActual.value = user.username
+    }
+  } catch {
+    // Sesión no disponible o modo offline
+  }
+})
+
+// ==========================================
+// Control de Menú y Ventanas Modales de Catálogos
+// ==========================================
+const mostrarModalCuentas = ref(false)
+const mostrarModalEmpleados = ref(false)
+const mostrarModalImprimeVerano = ref(false)
+const mostrarModalPolizaIngresos = ref(false)
+const mostrarModalReporteIngresos = ref(false)
+const menuAbierto = ref<'catalogo' | 'imprimir' | 'control' | 'utilerias' | null>(null)
+
+function toggleMenu(menu: 'catalogo' | 'imprimir' | 'control' | 'utilerias'): void {
+  menuAbierto.value = menuAbierto.value === menu ? null : menu
+}
+
+function cerrarMenus(): void {
+  menuAbierto.value = null
+}
+
+function abrirModalCuentas(): void {
+  mostrarModalCuentas.value = true
+  cerrarMenus()
+}
+
+function abrirModalEmpleados(): void {
+  mostrarModalEmpleados.value = true
+  cerrarMenus()
+}
+
+function abrirModalImprimeVerano(): void {
+  mostrarModalImprimeVerano.value = true
+  cerrarMenus()
+}
+
+function abrirModalPolizaIngresos(): void {
+  mostrarModalPolizaIngresos.value = true
+  cerrarMenus()
+}
+
+function abrirModalReporteIngresos(): void {
+  mostrarModalReporteIngresos.value = true
+  cerrarMenus()
+}
+
+function cerrarModalCuentas(): void {
+  mostrarModalCuentas.value = false
+  if (route.hash === '#cuentas') {
+    void router.replace({ path: route.path })
+  }
+}
+
+function cerrarModalEmpleados(): void {
+  mostrarModalEmpleados.value = false
+  if (route.hash === '#empleados') {
+    void router.replace({ path: route.path })
+  }
+}
+
+// Escuchar cambios en la URL (por ejemplo si el usuario pulsa en el sidebar)
+watch(
+  () => route.hash,
+  (hash) => {
+    if (hash === '#cuentas') {
+      mostrarModalCuentas.value = true
+    } else if (hash === '#empleados') {
+      mostrarModalEmpleados.value = true
+    }
+  },
+  { immediate: true },
+)
 
 // ==========================================
 // Notificaciones Toast y Estados de Carga Asíncrona
@@ -306,7 +417,175 @@ async function registrarCobro(): Promise<void> {
 </script>
 
 <template>
-  <div class="caja-dashboard" :class="{ 'dark-theme': dark }">
+  <div class="caja-dashboard" :class="{ 'dark-theme': dark }" @click="cerrarMenus">
+    <!-- BARRA DE MENÚ CLÁSICA INSTITUCIONAL TECNM -->
+    <nav class="tecnm-classic-menubar" aria-label="Menú principal del sistema" @click.stop>
+      <div class="menubar-left-group">
+        <span class="menubar-title-tag">Menú</span>
+        <div class="menubar-items-group">
+          <!-- 1. Archivo -->
+          <div class="menubar-item">
+            <button type="button" class="menubar-btn">Archivo</button>
+          </div>
+
+          <!-- 2. Catálogo (Empleados, Cuentas) -->
+          <div class="menubar-item dropdown-parent" :class="{ open: menuAbierto === 'catalogo' }">
+            <button
+              type="button"
+              class="menubar-btn btn-dropdown"
+              :aria-expanded="menuAbierto === 'catalogo'"
+              @click.stop="toggleMenu('catalogo')"
+            >
+              Catálogo <span class="arrow-indicator">▾</span>
+            </button>
+
+            <div v-if="menuAbierto === 'catalogo'" class="menubar-dropdown-panel" role="menu">
+              <button
+                type="button"
+                class="dropdown-entry"
+                role="menuitem"
+                @click="abrirModalEmpleados"
+              >
+                <svg class="entry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                </svg>
+                <span>Empleados</span>
+              </button>
+
+              <button
+                type="button"
+                class="dropdown-entry"
+                role="menuitem"
+                @click="abrirModalCuentas"
+              >
+                <svg class="entry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="16" rx="2" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+                <span>Cuentas</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 3. Imprimir (15 opciones del reporte) -->
+          <div class="menubar-item dropdown-parent" :class="{ open: menuAbierto === 'imprimir' }">
+            <button
+              type="button"
+              class="menubar-btn btn-dropdown"
+              :aria-expanded="menuAbierto === 'imprimir'"
+              @click.stop="toggleMenu('imprimir')"
+            >
+              Imprimir <span class="arrow-indicator">▾</span>
+            </button>
+
+            <div v-if="menuAbierto === 'imprimir'" class="menubar-dropdown-panel menubar-dropdown-scroll" role="menu">
+              <button type="button" class="dropdown-entry dropdown-entry-active" role="menuitem" @click="cerrarMenus">
+                <span>Recibo</span>
+              </button>
+              <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalPolizaIngresos">
+                <span>Poliza de Ingresos</span>
+              </button>
+              <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalReporteIngresos">
+                <span>Reporte de Ingresos</span>
+              </button>
+              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
+                <span>Poliza de Ingreso Periodo</span>
+              </button>
+              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
+                <span>Reporte de Ingresos por Periodo</span>
+              </button>
+              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
+                <span>Reporte Varios</span>
+              </button>
+              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
+                <span>Reporte Deudores</span>
+              </button>
+              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
+                <span>Reporte Deudores Fecha de Corte</span>
+              </button>
+              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
+                <span>Reporte Deudores Fecha y Cuenta</span>
+              </button>
+              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
+                <span>Reporte Deudores Inscritos</span>
+              </button>
+              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
+                <span>Deposito Bancario</span>
+              </button>
+              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
+                <span>Recibo Provisional</span>
+              </button>
+              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
+                <span>Recibo Provisional Cancelar</span>
+              </button>
+              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
+                <span>Deposito Bancario - Curso Propedeutico</span>
+              </button>
+              <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalImprimeVerano">
+                <span>Imprime Verano</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 4. Control (2 opciones) -->
+          <div class="menubar-item dropdown-parent" :class="{ open: menuAbierto === 'control' }">
+            <button
+              type="button"
+              class="menubar-btn btn-dropdown"
+              :aria-expanded="menuAbierto === 'control'"
+              @click.stop="toggleMenu('control')"
+            >
+              Control <span class="arrow-indicator">▾</span>
+            </button>
+
+            <div v-if="menuAbierto === 'control'" class="menubar-dropdown-panel" role="menu">
+              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
+                <span>Consulta y Cancelación de Recibos</span>
+              </button>
+              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
+                <span>Corte por Empleado</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 5. Utilerías (3 opciones) -->
+          <div class="menubar-item dropdown-parent" :class="{ open: menuAbierto === 'utilerias' }">
+            <button
+              type="button"
+              class="menubar-btn btn-dropdown"
+              :aria-expanded="menuAbierto === 'utilerias'"
+              @click.stop="toggleMenu('utilerias')"
+            >
+              Utilerías <span class="arrow-indicator">▾</span>
+            </button>
+
+            <div v-if="menuAbierto === 'utilerias'" class="menubar-dropdown-panel" role="menu">
+              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
+                <span>Cambio de Contraseña</span>
+              </button>
+              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
+                <span>Cierre de Semestre</span>
+              </button>
+              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
+                <span>Crear Usuario</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Selector de Modo Oscuro / Claro integrado en el menú -->
+      <div class="menubar-theme-toggle">
+        <UiToggle
+          v-model="dark"
+          type="switch"
+          :label="dark ? 'Modo oscuro' : 'Modo claro'"
+          class="theme-switch"
+        />
+      </div>
+    </nav>
+
     <!-- BARRA SUPERIOR INSTITUCIONAL: Control de Caja TecNM -->
     <header class="cashier-status-bar">
       <div class="brand-zone">
@@ -329,6 +608,19 @@ async function registrarCobro(): Promise<void> {
             {{ estadoRecibo }}
           </UiBadge>
         </div>
+        <button
+          type="button"
+          class="btn-cerrar-sesion"
+          :disabled="isCerrandoSesion"
+          @click="endSession"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="logout-icon">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          {{ isCerrandoSesion ? 'Cerrando…' : 'Cerrar sesión' }}
+        </button>
       </div>
     </header>
 
@@ -841,6 +1133,32 @@ async function registrarCobro(): Promise<void> {
       </div>
     </UiDialog>
 
+    <!-- VENTANAS FLOTANTES DE CATÁLOGOS CONFORME A MANUAL TECNM -->
+    <ModalCuentas
+      v-if="mostrarModalCuentas"
+      @close="mostrarModalCuentas = false"
+    />
+
+    <ModalEmpleados
+      v-if="mostrarModalEmpleados"
+      @close="mostrarModalEmpleados = false"
+    />
+
+    <ModalImprimeVerano
+      v-if="mostrarModalImprimeVerano"
+      @close="mostrarModalImprimeVerano = false"
+    />
+
+    <ModalPolizaIngresos
+      v-if="mostrarModalPolizaIngresos"
+      @close="mostrarModalPolizaIngresos = false"
+    />
+
+    <ModalReporteIngresos
+      v-if="mostrarModalReporteIngresos"
+      @close="mostrarModalReporteIngresos = false"
+    />
+
     <!-- Sistema de Notificaciones Flotantes (Toasts) -->
     <UiToast ref="toastRef" />
   </div>
@@ -854,10 +1172,220 @@ async function registrarCobro(): Promise<void> {
 .caja-dashboard {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   padding: 16px;
   background-color: var(--color-bg-main, #F4F6F9);
   min-height: 100vh;
+}
+
+/* 0. Barra de Menú Clásica Institucional TecNM */
+.tecnm-classic-menubar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  background-color: var(--color-surface-white, #FFFFFF);
+  border: 1px solid var(--color-border-medium, #CBD5E1);
+  border-left: 4px solid var(--color-primary, #1B396A);
+  border-radius: 6px;
+  padding: 4px 12px;
+  box-shadow: 0 2px 4px rgba(15, 37, 72, 0.04);
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.menubar-left-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.menubar-theme-toggle {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
+}
+
+.theme-switch {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #1E293B);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.menubar-title-tag {
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-accent, #C5A059);
+  padding-right: 8px;
+  border-right: 1px solid var(--color-border, #E2E8F0);
+}
+
+.menubar-items-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.menubar-item {
+  position: relative;
+}
+
+.menubar-btn {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 6px 14px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #1E293B);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.menubar-btn:hover {
+  background-color: var(--color-primary-subtle, #EBF3FF);
+  color: var(--color-primary, #1B396A);
+  border-color: var(--color-border, #E2E8F0);
+}
+
+.btn-dropdown {
+  color: var(--color-primary, #1B396A);
+  font-weight: 700;
+}
+
+.arrow-indicator {
+  font-size: 0.75rem;
+  color: var(--color-accent, #C5A059);
+}
+
+.dropdown-parent.open .btn-dropdown {
+  background-color: var(--color-primary, #1B396A);
+  color: #FFFFFF;
+  border-color: var(--color-primary-dark, #0F2548);
+}
+
+.dropdown-parent.open .arrow-indicator {
+  color: #FFFFFF;
+}
+
+/* Menú flotante desplegable */
+.menubar-dropdown-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 50;
+  background-color: var(--color-surface-white, #FFFFFF);
+  border: 1px solid var(--color-border-medium, #CBD5E1);
+  border-top: 3px solid var(--color-accent, #C5A059);
+  border-radius: 6px;
+  box-shadow: 0 10px 25px -5px rgba(15, 37, 72, 0.2);
+  min-width: 250px;
+  max-height: 75vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 6px 0;
+  animation: dropdown-fade 0.15s ease-out;
+}
+
+.menubar-dropdown-scroll {
+  min-width: 290px;
+}
+
+@keyframes dropdown-fade {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dropdown-entry {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 16px;
+  border: none;
+  background: none;
+  text-align: left;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #1E293B);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.dropdown-entry:hover {
+  background-color: var(--color-primary-subtle, #EBF3FF);
+  color: var(--color-primary, #1B396A);
+}
+
+/* Reglas específicas para Modo Oscuro en la Barra de Menú Clásica */
+.dark-theme .tecnm-classic-menubar {
+  background-color: #141E33;
+  border-color: #2E3F5E;
+  border-left-color: var(--color-accent, #D4B06A);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.dark-theme .menubar-title-tag {
+  border-right-color: #2E3F5E;
+  color: #D4B06A;
+}
+
+.dark-theme .menubar-btn {
+  color: #F8FAFC !important;
+}
+
+.dark-theme .menubar-btn:hover {
+  background-color: #1E2F50;
+  color: #D4B06A !important;
+  border-color: #334C79;
+}
+
+.dark-theme .btn-dropdown {
+  color: #D4B06A !important;
+}
+
+.dark-theme .dropdown-parent.open .btn-dropdown {
+  background-color: #244B88;
+  color: #FFFFFF !important;
+}
+
+.dark-theme .menubar-dropdown-panel {
+  background-color: #141E33;
+  border-color: #2E3F5E;
+  border-top-color: #D4B06A;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+}
+
+.dark-theme .dropdown-entry {
+  color: #F8FAFC !important;
+}
+
+.dark-theme .dropdown-entry:hover {
+  background-color: #1E2F50;
+  color: #D4B06A !important;
+}
+
+.dark-theme .theme-switch {
+  color: #F8FAFC !important;
+}
+
+.entry-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--color-accent, #C5A059);
+  flex-shrink: 0;
 }
 
 /* 1. Barra de estado superior */
@@ -918,6 +1446,39 @@ async function registrarCobro(): Promise<void> {
 .meta-value {
   color: #FFFFFF;
   font-weight: 600;
+}
+
+.btn-cerrar-sesion {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #FFFFFF;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: 8px;
+}
+
+.btn-cerrar-sesion:hover {
+  background-color: #DC2626;
+  border-color: #DC2626;
+  color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+}
+
+.btn-cerrar-sesion:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.logout-icon {
+  width: 16px;
+  height: 16px;
 }
 
 /* 2. Disposición principal en rejilla */

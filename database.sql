@@ -1,8 +1,8 @@
--- ============================================================================
+﻿-- ============================================================================
 -- BASE DE DATOS OFICIAL: CAJADB - TECNM CAMPUS MONCLOVA
 -- Sistema de Control de Caja Universitaria
 -- Modelo relacional de 13 tablas maestras, vistas para reportes/corte diario,
--- índices de alto rendimiento y carga completa de datos semilla históricos.
+-- Ã­ndices de alto rendimiento y carga completa de datos semilla histÃ³ricos.
 -- ============================================================================
 
 BEGIN;
@@ -11,7 +11,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- ----------------------------------------------------------------------------
--- 1. CARRERAS (Catálogo Oficial de Oferta Académica TecNM)
+-- 1. CARRERAS (CatÃ¡logo Oficial de Oferta AcadÃ©mica TecNM)
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS carreras (
     id_carrera      INT PRIMARY KEY,
@@ -22,21 +22,21 @@ CREATE TABLE IF NOT EXISTS carreras (
 );
 
 INSERT INTO carreras (id_carrera, carrera, nombre_carrera, titulo) VALUES
-(64, 'Lic. Informática',          'LICENCIATURA EN INFORMATICA',          'LICENCIADO EN INFORMATICA'),
-(65, 'Ing. Mecánica',             'INGENIERIA MECANICA',                  'INGENIERO MECANICO'),
+(64, 'Lic. InformÃ¡tica',          'LICENCIATURA EN INFORMATICA',          'LICENCIADO EN INFORMATICA'),
+(65, 'Ing. MecÃ¡nica',             'INGENIERIA MECANICA',                  'INGENIERO MECANICO'),
 (67, 'Ing. Industrial',           'INGENIERIA INDUSTRIAL',                'INGENIERO INDUSTRIAL'),
-(68, 'Ing. Electrónica',          'INGENIERIA ELECTRONICA',               'INGENIERO ELECTRONICO'),
-(69, 'Ing. Informática',          'INGENIERIA INFORMATICA',               'INGENIERO INFORMATICO'),
-(70, 'Ing. Gestión Emp.',         'INGENIERIA EN GESTION EMPRESARIAL',    'INGENIERO EN GESTION EMPRESARIAL'),
-(71, 'Ing. Energías Renovables',  'INGENIERIA EN ENERGIAS RENOVABLES',    'INGENIERO EN ENERGIAS RENOVABLES'),
-(74, 'Ing. Mecatrónica',          'INGENIERIA MECATRONICA',               'INGENIERO MECATRONICO')
+(68, 'Ing. ElectrÃ³nica',          'INGENIERIA ELECTRONICA',               'INGENIERO ELECTRONICO'),
+(69, 'Ing. InformÃ¡tica',          'INGENIERIA INFORMATICA',               'INGENIERO INFORMATICO'),
+(70, 'Ing. GestiÃ³n Emp.',         'INGENIERIA EN GESTION EMPRESARIAL',    'INGENIERO EN GESTION EMPRESARIAL'),
+(71, 'Ing. EnergÃ­as Renovables',  'INGENIERIA EN ENERGIAS RENOVABLES',    'INGENIERO EN ENERGIAS RENOVABLES'),
+(74, 'Ing. MecatrÃ³nica',          'INGENIERIA MECATRONICA',               'INGENIERO MECATRONICO')
 ON CONFLICT (id_carrera) DO UPDATE SET
     carrera = EXCLUDED.carrera,
     nombre_carrera = EXCLUDED.nombre_carrera,
     titulo = EXCLUDED.titulo;
 
 -- ----------------------------------------------------------------------------
--- 2. PERIODOS ACADÉMICOS (Ciclos para asociar cobros, adeudos y vigencias)
+-- 2. PERIODOS ACADÃ‰MICOS (Ciclos para asociar cobros, adeudos y vigencias)
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS periodos_academicos (
     id_periodo   SERIAL PRIMARY KEY,
@@ -64,7 +64,7 @@ ON CONFLICT (codigo) DO UPDATE SET
     activo = EXCLUDED.activo;
 
 -- ----------------------------------------------------------------------------
--- 3. USUARIOS Y EMPLEADOS DEL SISTEMA (Cuentas de Caja y Administración)
+-- 3. USUARIOS Y EMPLEADOS DEL SISTEMA (Cuentas de Caja y AdministraciÃ³n)
 -- Password unificado predeterminado para todos: Password123!
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS users (
@@ -91,7 +91,7 @@ ON CONFLICT (username) DO UPDATE SET
     is_active = EXCLUDED.is_active;
 
 -- ----------------------------------------------------------------------------
--- 4. ALUMNOS (Padrón Maestro de Estudiantes y Antecedentes Académicos)
+-- 4. ALUMNOS (PadrÃ³n Maestro de Estudiantes y Antecedentes AcadÃ©micos)
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS alumnos (
     matricula       VARCHAR(20) PRIMARY KEY,
@@ -104,7 +104,7 @@ CREATE TABLE IF NOT EXISTS alumnos (
     carrera         VARCHAR(100) NOT NULL,
     semestre        INTEGER NOT NULL,
     turno           VARCHAR(20) NOT NULL CHECK (turno IN ('Matutino', 'Nocturno', 'Vespertino', 'Sabatino')),
-    numero_ficha    VARCHAR(30),                 -- Número de ficha de admisión
+    numero_ficha    VARCHAR(30),                 -- NÃºmero de ficha de admisiÃ³n
     cuenta_a        INT,                         -- Cuenta administrativa escolar
     estatus         VARCHAR(30) NOT NULL DEFAULT 'Inscrito' CHECK (estatus IN ('Inscrito', 'No Inscrito', 'Baja Temporal', 'Baja Definitiva', 'Egresado')),
     tiene_beca      BOOLEAN NOT NULL DEFAULT FALSE,
@@ -119,39 +119,39 @@ CREATE INDEX IF NOT EXISTS idx_alumnos_estatus ON alumnos(estatus);
 INSERT INTO alumnos (matricula, nombre_completo, nombres, apellidos, sexo, id_carrera, carrera, semestre, turno, numero_ficha, cuenta_a, estatus, tiene_beca, porcentaje_beca)
 VALUES
     -- Hoja ALUMNOS
-    ('G2605048',  'MARTINEZ SILVA MARIA JOSE',           'MARIA JOSE',           'MARTINEZ SILVA',          'F', 70, 'Ing. Gestión Emp.',         1, 'Matutino',   'F-2026-001', 24468, 'Inscrito', false, 0.00),
+    ('G2605048',  'MARTINEZ SILVA MARIA JOSE',           'MARIA JOSE',           'MARTINEZ SILVA',          'F', 70, 'Ing. GestiÃ³n Emp.',         1, 'Matutino',   'F-2026-001', 24468, 'Inscrito', false, 0.00),
     ('M2505057',  'PALOS DIAZ MARIA FERNADA',            'MARIA FERNANDA',       'PALOS DIAZ',              'F', 67, 'Ing. Industrial',           1, 'Matutino',   'F-2025-089', 23877, 'Inscrito', false, 0.00),
     ('N2305000',  'CHAPOY LIMON CARLOS',                 'CARLOS',               'CHAPOY LIMON',            'M', 67, 'Ing. Industrial',           7, 'Matutino',   'F-2023-014', 11670, 'Inscrito', false, 0.00),
-    ('120050011', 'DE LA TORRE CAMPOS DANIEL ARTURO',    'DANIEL ARTURO',        'DE LA TORRE CAMPOS',      'M', 69, 'Ing. Informática',          8, 'Matutino',   'F-2020-050', 12121, 'Inscrito', false, 0.00),
-    ('120050012', 'DEL TORO LIRA FERNANDA',              'FERNANDA',             'DEL TORO LIRA',           'F', 69, 'Ing. Informática',          8, 'Matutino',   'F-2020-051', 11671, 'Inscrito', false, 0.00),
-    ('120050013', 'DIAZ COSTILLA ANGEL GABRIEL',         'ANGEL GABRIEL',        'DIAZ COSTILLA',           'M', 69, 'Ing. Informática',          8, 'Matutino',   'F-2020-052', 12122, 'Inscrito', false, 0.00),
-    ('120050023', 'MARINES YAÑEZ MARIO CUAUHTEMOC',      'MARIO CUAUHTEMOC',     'MARINES YAÑEZ',           'M', 69, 'Ing. Informática',          8, 'Matutino',   'F-2020-053', 11672, 'Inscrito', false, 0.00),
-    ('120050032', 'RAMIREZ GONZALEZ ESTEFANIA ARISBETH', 'ESTEFANIA ARISBETH',   'RAMIREZ GONZALEZ',        'F', 69, 'Ing. Informática',          8, 'Matutino',   'F-2020-054', 11673, 'Inscrito', false, 0.00),
-    ('120050040', 'TORRES TREJO VICTORIA ALEJANDRA',     'VICTORIA ALEJANDRA',   'TORRES TREJO',            'F', 69, 'Ing. Informática',          8, 'Matutino',   'F-2020-055', 11674, 'Inscrito', false, 0.00),
-    ('120050041', 'TOVAR COVARRUBIAS JARED ISRAEL',      'JARED ISRAEL',         'TOVAR COVARRUBIAS',       'M', 69, 'Ing. Informática',          8, 'Matutino',   'F-2020-056', 11675, 'Inscrito', false, 0.00),
+    ('120050011', 'DE LA TORRE CAMPOS DANIEL ARTURO',    'DANIEL ARTURO',        'DE LA TORRE CAMPOS',      'M', 69, 'Ing. InformÃ¡tica',          8, 'Matutino',   'F-2020-050', 12121, 'Inscrito', false, 0.00),
+    ('120050012', 'DEL TORO LIRA FERNANDA',              'FERNANDA',             'DEL TORO LIRA',           'F', 69, 'Ing. InformÃ¡tica',          8, 'Matutino',   'F-2020-051', 11671, 'Inscrito', false, 0.00),
+    ('120050013', 'DIAZ COSTILLA ANGEL GABRIEL',         'ANGEL GABRIEL',        'DIAZ COSTILLA',           'M', 69, 'Ing. InformÃ¡tica',          8, 'Matutino',   'F-2020-052', 12122, 'Inscrito', false, 0.00),
+    ('120050023', 'MARINES YAÃ‘EZ MARIO CUAUHTEMOC',      'MARIO CUAUHTEMOC',     'MARINES YAÃ‘EZ',           'M', 69, 'Ing. InformÃ¡tica',          8, 'Matutino',   'F-2020-053', 11672, 'Inscrito', false, 0.00),
+    ('120050032', 'RAMIREZ GONZALEZ ESTEFANIA ARISBETH', 'ESTEFANIA ARISBETH',   'RAMIREZ GONZALEZ',        'F', 69, 'Ing. InformÃ¡tica',          8, 'Matutino',   'F-2020-054', 11673, 'Inscrito', false, 0.00),
+    ('120050040', 'TORRES TREJO VICTORIA ALEJANDRA',     'VICTORIA ALEJANDRA',   'TORRES TREJO',            'F', 69, 'Ing. InformÃ¡tica',          8, 'Matutino',   'F-2020-055', 11674, 'Inscrito', false, 0.00),
+    ('120050041', 'TOVAR COVARRUBIAS JARED ISRAEL',      'JARED ISRAEL',         'TOVAR COVARRUBIAS',       'M', 69, 'Ing. InformÃ¡tica',          8, 'Matutino',   'F-2020-056', 11675, 'Inscrito', false, 0.00),
     -- Hoja PREVIO
     ('N13050045', 'PEREZ SIFUENTES ALDO ULISES',         'ALDO ULISES',          'PEREZ SIFUENTES',         'M', 67, 'Ing. Industrial',           6, 'Matutino',   'F-2019-112', NULL,  'Inscrito', false, 0.00),
     ('N13050041', 'ORTIZ DURON LUIS MANUEL',             'LUIS MANUEL',          'ORTIZ DURON',             'M', 67, 'Ing. Industrial',           6, 'Matutino',   'F-2019-110', NULL,  'Inscrito', false, 0.00),
-    ('G13050156', 'DAVILA HERNANDEZ ANA PATRICIA',       'ANA PATRICIA',         'DAVILA HERNANDEZ',        'F', 70, 'Ing. Gestión Emp.',         5, 'Matutino',   'F-2019-215', NULL,  'Inscrito', false, 0.00),
-    ('E15050004', 'REQUENA RODRIGUEZ NESTOR OMAR',       'NESTOR OMAR',          'REQUENA RODRIGUEZ',       'M', 68, 'Ing. Electrónica',          3, 'Nocturno',   'F-2021-004', NULL,  'Inscrito', false, 0.00),
+    ('G13050156', 'DAVILA HERNANDEZ ANA PATRICIA',       'ANA PATRICIA',         'DAVILA HERNANDEZ',        'F', 70, 'Ing. GestiÃ³n Emp.',         5, 'Matutino',   'F-2019-215', NULL,  'Inscrito', false, 0.00),
+    ('E15050004', 'REQUENA RODRIGUEZ NESTOR OMAR',       'NESTOR OMAR',          'REQUENA RODRIGUEZ',       'M', 68, 'Ing. ElectrÃ³nica',          3, 'Nocturno',   'F-2021-004', NULL,  'Inscrito', false, 0.00),
     ('N12050104', 'BARRERA TOVAR JESUS ENRIQUE',         'JESUS ENRIQUE',        'BARRERA TOVAR',           'M', 67, 'Ing. Industrial',           8, 'Nocturno',   'F-2018-090', NULL,  'Inscrito', false, 0.00),
-    ('G13050219', 'HERNANDEZ CASTILLO ARELY SARAHI',     'ARELY SARAHI',         'HERNANDEZ CASTILLO',      'F', 70, 'Ing. Gestión Emp.',         6, 'Matutino',   'F-2019-219', NULL,  'Inscrito', false, 0.00),
-    ('G14050252', 'MUÑOZ DE LEON ILSE ARACELI',          'ILSE ARACELI',          'MUÑOZ DE LEON',           'F', 70, 'Ing. Gestión Emp.',         4, 'Matutino',   'F-2020-252', NULL,  'Inscrito', false, 0.00),
+    ('G13050219', 'HERNANDEZ CASTILLO ARELY SARAHI',     'ARELY SARAHI',         'HERNANDEZ CASTILLO',      'F', 70, 'Ing. GestiÃ³n Emp.',         6, 'Matutino',   'F-2019-219', NULL,  'Inscrito', false, 0.00),
+    ('G14050252', 'MUÃ‘OZ DE LEON ILSE ARACELI',          'ILSE ARACELI',          'MUÃ‘OZ DE LEON',           'F', 70, 'Ing. GestiÃ³n Emp.',         4, 'Matutino',   'F-2020-252', NULL,  'Inscrito', false, 0.00),
     ('N15050011', 'VILLASTRIGO GARCIA SABINO EMMANUEL',  'SABINO EMMANUEL',      'VILLASTRIGO GARCIA',      'M', 67, 'Ing. Industrial',           2, 'Matutino',   'F-2021-011', NULL,  'Inscrito', false, 0.00),
-    ('G13050164', 'GUTIERREZ SALAZAR CLAUDIA MONSERRAT', 'CLAUDIA MONSERRAT',    'GUTIERREZ SALAZAR',       'F', 70, 'Ing. Gestión Emp.',         6, 'Matutino',   'F-2019-164', NULL,  'Inscrito', false, 0.00),
+    ('G13050164', 'GUTIERREZ SALAZAR CLAUDIA MONSERRAT', 'CLAUDIA MONSERRAT',    'GUTIERREZ SALAZAR',       'F', 70, 'Ing. GestiÃ³n Emp.',         6, 'Matutino',   'F-2019-164', NULL,  'Inscrito', false, 0.00),
     ('N12050487', 'IBARRA MARTINEZ JULIO CESAR',         'JULIO CESAR',          'IBARRA MARTINEZ',         'M', 67, 'Ing. Industrial',           8, 'Nocturno',   'F-2018-487', NULL,  'Inscrito', false, 0.00),
     -- Hoja RECIBO
-    ('I11050186', 'GUZMAN GUAJARDO BRANDO ISRAEL',       'BRANDO ISRAEL',        'GUZMAN GUAJARDO',         'M', 69, 'Ing. Informática',          2, 'Matutino',   'F-2017-040', NULL,  'Inscrito', false, 0.00),
-    ('I11050180', 'DELGADILLO GELACIO IRMA BERENICE',    'IRMA BERENICE',        'DELGADILLO GELACIO',      'F', 69, 'Ing. Informática',          1, 'Nocturno',   'F-2017-038', NULL,  'Inscrito', true,  50.00),
-    ('I11050199', 'OROZCO ALVARADO KAREN',               'KAREN',                'OROZCO ALVARADO',         'F', 69, 'Ing. Informática',          1, 'Matutino',   'F-2017-062', NULL,  'Inscrito', true,  25.00),
-    ('E11050286', 'MARTINEZ ALFARO LUIS ANGEL',          'LUIS ANGEL',           'MARTINEZ ALFARO',         'M', 68, 'Ing. Electrónica',          1, 'Matutino',   'F-2017-080', NULL,  'Baja Temporal', false, 0.00),
-    ('E11050559', 'FLORES EVANGELISTA ESTEBAN DAMIAN',   'ESTEBAN DAMIAN',       'FLORES EVANGELISTA',      'M', 68, 'Ing. Electrónica',          1, 'Nocturno',   'F-2017-559', NULL,  'Inscrito', true,  25.00),
+    ('I11050186', 'GUZMAN GUAJARDO BRANDO ISRAEL',       'BRANDO ISRAEL',        'GUZMAN GUAJARDO',         'M', 69, 'Ing. InformÃ¡tica',          2, 'Matutino',   'F-2017-040', NULL,  'Inscrito', false, 0.00),
+    ('I11050180', 'DELGADILLO GELACIO IRMA BERENICE',    'IRMA BERENICE',        'DELGADILLO GELACIO',      'F', 69, 'Ing. InformÃ¡tica',          1, 'Nocturno',   'F-2017-038', NULL,  'Inscrito', true,  50.00),
+    ('I11050199', 'OROZCO ALVARADO KAREN',               'KAREN',                'OROZCO ALVARADO',         'F', 69, 'Ing. InformÃ¡tica',          1, 'Matutino',   'F-2017-062', NULL,  'Inscrito', true,  25.00),
+    ('E11050286', 'MARTINEZ ALFARO LUIS ANGEL',          'LUIS ANGEL',           'MARTINEZ ALFARO',         'M', 68, 'Ing. ElectrÃ³nica',          1, 'Matutino',   'F-2017-080', NULL,  'Baja Temporal', false, 0.00),
+    ('E11050559', 'FLORES EVANGELISTA ESTEBAN DAMIAN',   'ESTEBAN DAMIAN',       'FLORES EVANGELISTA',      'M', 68, 'Ing. ElectrÃ³nica',          1, 'Nocturno',   'F-2017-559', NULL,  'Inscrito', true,  25.00),
     -- Alumnos adicionales de prueba
     ('23050243',  'ORTEGON HERNANDEZ KLEBER',            'KLEBER',               'ORTEGON HERNANDEZ',       'M', 67, 'Ing. Industrial',           4, 'Matutino',   'F-2023-243', 23050, 'Inscrito', false, 0.00),
-    ('23050118',  'GARCIA ZAVALA LUIS FERNANDO',         'LUIS FERNANDO',        'GARCIA ZAVALA',           'M', 74, 'Ing. Mecatrónica',          3, 'Matutino',   'F-2023-118', 23051, 'Inscrito', false, 0.00),
-    ('22050890',  'LOPEZ SANCHEZ MARIANA',               'MARIANA',              'LOPEZ SANCHEZ',           'F', 70, 'Ing. Gestión Emp.',         6, 'Matutino',   'F-2022-890', 22050, 'Inscrito', true,  50.00),
-    ('24050012',  'RODRIGUEZ MORALES CARLOS',            'CARLOS',               'RODRIGUEZ MORALES',       'M', 69, 'Ing. Informática',          1, 'Vespertino', 'F-2024-012', 24050, 'Inscrito', false, 0.00),
-    ('21050334',  'HERNANDEZ RAMIREZ SOFIA',             'SOFIA',                'HERNANDEZ RAMIREZ',       'F', 71, 'Ing. Energías Renovables',  8, 'Matutino',   'F-2021-334', 21050, 'Egresado', false, 0.00)
+    ('23050118',  'GARCIA ZAVALA LUIS FERNANDO',         'LUIS FERNANDO',        'GARCIA ZAVALA',           'M', 74, 'Ing. MecatrÃ³nica',          3, 'Matutino',   'F-2023-118', 23051, 'Inscrito', false, 0.00),
+    ('22050890',  'LOPEZ SANCHEZ MARIANA',               'MARIANA',              'LOPEZ SANCHEZ',           'F', 70, 'Ing. GestiÃ³n Emp.',         6, 'Matutino',   'F-2022-890', 22050, 'Inscrito', true,  50.00),
+    ('24050012',  'RODRIGUEZ MORALES CARLOS',            'CARLOS',               'RODRIGUEZ MORALES',       'M', 69, 'Ing. InformÃ¡tica',          1, 'Vespertino', 'F-2024-012', 24050, 'Inscrito', false, 0.00),
+    ('21050334',  'HERNANDEZ RAMIREZ SOFIA',             'SOFIA',                'HERNANDEZ RAMIREZ',       'F', 71, 'Ing. EnergÃ­as Renovables',  8, 'Matutino',   'F-2021-334', 21050, 'Egresado', false, 0.00)
 ON CONFLICT (matricula) DO UPDATE SET
     nombre_completo = EXCLUDED.nombre_completo,
     id_carrera = EXCLUDED.id_carrera,
@@ -163,7 +163,7 @@ ON CONFLICT (matricula) DO UPDATE SET
     porcentaje_beca = EXCLUDED.porcentaje_beca;
 
 -- ----------------------------------------------------------------------------
--- 5. HISTORIAL DE CAMBIO DE MATRÍCULAS (Protección de Trazabilidad Histórica)
+-- 5. HISTORIAL DE CAMBIO DE MATRÃCULAS (ProtecciÃ³n de Trazabilidad HistÃ³rica)
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS alumno_matriculas_historial (
     id_historial      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -175,7 +175,7 @@ CREATE TABLE IF NOT EXISTS alumno_matriculas_historial (
 );
 
 -- ----------------------------------------------------------------------------
--- 6. BECAS Y DESCUENTOS (Reglas y Asignaciones Económicas)
+-- 6. BECAS Y DESCUENTOS (Reglas y Asignaciones EconÃ³micas)
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS becas_descuentos (
     id_beca             BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -201,7 +201,7 @@ ON CONFLICT DO NOTHING;
 CREATE TABLE IF NOT EXISTS adeudos (
     id_adeudo           BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     matricula           VARCHAR(20) NOT NULL REFERENCES alumnos(matricula) ON DELETE CASCADE,
-    concepto_cobro      VARCHAR(100) NOT NULL,       -- Denominación uniforme (ej. 'Pago de Inscripción')
+    concepto_cobro      VARCHAR(100) NOT NULL,       -- DenominaciÃ³n uniforme (ej. 'Pago de InscripciÃ³n')
     id_periodo          INT NOT NULL REFERENCES periodos_academicos(id_periodo),
     monto_original      NUMERIC(12, 4) NOT NULL,
     saldo_pendiente     NUMERIC(12, 4) NOT NULL,
@@ -215,13 +215,13 @@ CREATE INDEX IF NOT EXISTS idx_adeudos_periodo ON adeudos(id_periodo);
 
 INSERT INTO adeudos (matricula, concepto_cobro, id_periodo, monto_original, saldo_pendiente, fecha_limite, estado)
 VALUES
-    ('23050243', 'Pago de Inscripción', (SELECT id_periodo FROM periodos_academicos WHERE codigo = '2025-2'), 2600.00, 2600.00, '2025-10-30', 'PENDIENTE'),
-    ('23050243', 'Pago de Inscripción', (SELECT id_periodo FROM periodos_academicos WHERE codigo = '2025-1'), 2450.00, 1000.00, '2025-04-30', 'PARCIAL'),
+    ('23050243', 'Pago de InscripciÃ³n', (SELECT id_periodo FROM periodos_academicos WHERE codigo = '2025-2'), 2600.00, 2600.00, '2025-10-30', 'PENDIENTE'),
+    ('23050243', 'Pago de InscripciÃ³n', (SELECT id_periodo FROM periodos_academicos WHERE codigo = '2025-1'), 2450.00, 1000.00, '2025-04-30', 'PARCIAL'),
     ('N2305000', 'Curso de Verano',     (SELECT id_periodo FROM periodos_academicos WHERE codigo = '2024-2'), 1200.00, 1200.00, '2024-07-15', 'PENDIENTE')
 ON CONFLICT DO NOTHING;
 
 -- ----------------------------------------------------------------------------
--- 8. CONCEPTOS DE COBRO (Catálogo Maestro de Aranceles Institucionales)
+-- 8. CONCEPTOS DE COBRO (CatÃ¡logo Maestro de Aranceles Institucionales)
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS conceptos_cobro (
     id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -231,7 +231,7 @@ CREATE TABLE IF NOT EXISTS conceptos_cobro (
     orden             INT,
     cuenta_referencia VARCHAR(30),
     aplica_beca       BOOLEAN NOT NULL DEFAULT FALSE,
-    categoria         VARCHAR(50) NOT NULL DEFAULT 'Inscripción',
+    categoria         VARCHAR(50) NOT NULL DEFAULT 'InscripciÃ³n',
     is_active         BOOLEAN NOT NULL DEFAULT TRUE
 );
 
@@ -239,28 +239,28 @@ CREATE INDEX IF NOT EXISTS idx_conceptos_clave ON conceptos_cobro(clave);
 CREATE INDEX IF NOT EXISTS idx_conceptos_categoria ON conceptos_cobro(categoria);
 
 INSERT INTO conceptos_cobro (clave, descripcion, cuota_base, orden, cuenta_referencia, aplica_beca, categoria, is_active) VALUES
--- Cuentas de Inscripción y Reinscripción
-('5200-001-002-004', 'INSCRIPCION SEM. AGO 2012-ENERO 2013',        1700.00, 1, NULL, true,  'Inscripción', true),
-('5200-001-002-021', 'REINSCRIPCION SEM. AGOSTO 2022-ENERO 2023',    500.00, 2, NULL, true,  'Inscripción', true),
-('5200-001-002-051', 'REINSCRIPCION SEM. AGOSTO 2025-ENERO 2026',    500.00, 3, NULL, true,  'Inscripción', true),
-('5200-001-002-082', 'REINSCRIPCION SEM FEB-JUL 2023',               500.00, 4, NULL, true,  'Inscripción', true),
-('5200-002-001-001', 'INSCRIPCIONES GENERALES',                      1350.00, 5, NULL, true,  'Inscripción', true),
-('INSC-VIG',         'Pago de Inscripción (Periodo Vigente 2026)',   2600.00, 6, NULL, true,  'Inscripción', true),
-('INSC-ANT',         'Adeudo Inscripción Periodos Anteriores',       2450.00, 7, NULL, false, 'Inscripción', true),
--- Tarifas de Reinscripción Hoja PREVIO
-('5400-001-003-0001', 'REINSCRIPCION SEMESTRAL TARIFA 1',             520.00, 10, NULL, false, 'Inscripción', true),
-('5400-001-003-0002', 'REINSCRIPCION SEMESTRAL TARIFA 2',             620.00, 11, NULL, false, 'Inscripción', true),
-('5400-001-003-0003', 'REINSCRIPCION SEMESTRAL TARIFA 3',             620.00, 12, NULL, false, 'Inscripción', true),
-('5400-001-003-0005', 'REINSCRIPCION SEMESTRAL TARIFA 5',             700.00, 13, NULL, false, 'Inscripción', true),
-('5400-001-003-0006', 'REINSCRIPCION SEMESTRAL TARIFA 6',             700.00, 14, NULL, false, 'Inscripción', true),
+-- Cuentas de InscripciÃ³n y ReinscripciÃ³n
+('5200-001-002-004', 'INSCRIPCION SEM. AGO 2012-ENERO 2013',        1700.00, 1, NULL, true,  'InscripciÃ³n', true),
+('5200-001-002-021', 'REINSCRIPCION SEM. AGOSTO 2022-ENERO 2023',    500.00, 2, NULL, true,  'InscripciÃ³n', true),
+('5200-001-002-051', 'REINSCRIPCION SEM. AGOSTO 2025-ENERO 2026',    500.00, 3, NULL, true,  'InscripciÃ³n', true),
+('5200-001-002-082', 'REINSCRIPCION SEM FEB-JUL 2023',               500.00, 4, NULL, true,  'InscripciÃ³n', true),
+('5200-002-001-001', 'INSCRIPCIONES GENERALES',                      1350.00, 5, NULL, true,  'InscripciÃ³n', true),
+('INSC-VIG',         'Pago de InscripciÃ³n (Periodo Vigente 2026)',   2600.00, 6, NULL, true,  'InscripciÃ³n', true),
+('INSC-ANT',         'Adeudo InscripciÃ³n Periodos Anteriores',       2450.00, 7, NULL, false, 'InscripciÃ³n', true),
+-- Tarifas de ReinscripciÃ³n Hoja PREVIO
+('5400-001-003-0001', 'REINSCRIPCION SEMESTRAL TARIFA 1',             520.00, 10, NULL, false, 'InscripciÃ³n', true),
+('5400-001-003-0002', 'REINSCRIPCION SEMESTRAL TARIFA 2',             620.00, 11, NULL, false, 'InscripciÃ³n', true),
+('5400-001-003-0003', 'REINSCRIPCION SEMESTRAL TARIFA 3',             620.00, 12, NULL, false, 'InscripciÃ³n', true),
+('5400-001-003-0005', 'REINSCRIPCION SEMESTRAL TARIFA 5',             700.00, 13, NULL, false, 'InscripciÃ³n', true),
+('5400-001-003-0006', 'REINSCRIPCION SEMESTRAL TARIFA 6',             700.00, 14, NULL, false, 'InscripciÃ³n', true),
 -- Tarifas Hoja RECIBO
-('5400-001-002-0037', 'INSCRIPCION SEMESTRAL 2012',                  1700.00, 20, NULL, true,  'Inscripción', true),
+('5400-001-002-0037', 'INSCRIPCION SEMESTRAL 2012',                  1700.00, 20, NULL, true,  'InscripciÃ³n', true),
 ('5400-001-002-0038', 'DESCUENTO DE INSCRIPCION',                    -100.00, 21, NULL, false, 'Descuentos',  true),
 -- Servicios Universitarios y Cursos
 ('KARD',              'KARDEX OFICIAL',                               150.00, 30, NULL, false, 'Constancias',  true),
 ('CONST',             'Constancia de Estudios con Calificaciones',    100.00, 31, NULL, false, 'Constancias',  true),
 ('VERA',              'Curso de Verano (Por Asignatura)',            1200.00, 32, NULL, false, 'Cursos',       true),
-('TITU',              'Trámite de Titulación Integral y Cédula',     3800.00, 33, NULL, false, 'Otros',        true)
+('TITU',              'TrÃ¡mite de TitulaciÃ³n Integral y CÃ©dula',     3800.00, 33, NULL, false, 'Otros',        true)
 ON CONFLICT (clave) DO UPDATE SET
     descripcion = EXCLUDED.descripcion,
     cuota_base = EXCLUDED.cuota_base,
@@ -269,7 +269,7 @@ ON CONFLICT (clave) DO UPDATE SET
     is_active = EXCLUDED.is_active;
 
 -- ----------------------------------------------------------------------------
--- 9. FOLIOS ADMINISTRATIVOS (Relación 1 Folio -> N Recibos)
+-- 9. FOLIOS ADMINISTRATIVOS (RelaciÃ³n 1 Folio -> N Recibos)
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS folios (
     numero_folio    BIGINT PRIMARY KEY,
@@ -285,7 +285,7 @@ INSERT INTO folios (numero_folio, serie) VALUES
 ON CONFLICT (numero_folio) DO NOTHING;
 
 -- ----------------------------------------------------------------------------
--- 10. PÓLIZAS DE INGRESO (Cortes diarios, Arqueos y Concentración Contable)
+-- 10. PÃ“LIZAS DE INGRESO (Cortes diarios, Arqueos y ConcentraciÃ³n Contable)
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS polizas_ingreso (
     id_poliza       BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -304,7 +304,7 @@ INSERT INTO polizas_ingreso (numero_poliza, fecha_poliza, total_recaudado, cajer
 ON CONFLICT (numero_poliza) DO NOTHING;
 
 -- ----------------------------------------------------------------------------
--- 11. RECIBOS DE CAJA (Encabezado con Snapshot Histórico Inmutable)
+-- 11. RECIBOS DE CAJA (Encabezado con Snapshot HistÃ³rico Inmutable)
 -- ----------------------------------------------------------------------------
 CREATE SEQUENCE IF NOT EXISTS recibos_numero_recibo_seq START WITH 128450;
 
@@ -315,10 +315,10 @@ CREATE TABLE IF NOT EXISTS recibos (
     fecha_operacion      TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_efectiva_pago  TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     alumno_matricula     VARCHAR(20) NOT NULL REFERENCES alumnos(matricula),
-    alumno_nombre        VARCHAR(160) NOT NULL,      -- Snapshot histórico
-    alumno_carrera       VARCHAR(100) NOT NULL,      -- Snapshot histórico
-    alumno_semestre      INTEGER NOT NULL,           -- Snapshot histórico
-    alumno_turno         VARCHAR(20) NOT NULL,       -- Snapshot histórico
+    alumno_nombre        VARCHAR(160) NOT NULL,      -- Snapshot histÃ³rico
+    alumno_carrera       VARCHAR(100) NOT NULL,      -- Snapshot histÃ³rico
+    alumno_semestre      INTEGER NOT NULL,           -- Snapshot histÃ³rico
+    alumno_turno         VARCHAR(20) NOT NULL,       -- Snapshot histÃ³rico
     metodo_pago          VARCHAR(30) NOT NULL,       -- EFECTIVO, DEPOSITO_BANCARIO, etc.
     referencia_bancaria  VARCHAR(50),                -- No es UNIQUE, puede repetirse
     cuenta_bancaria      VARCHAR(50),
@@ -351,26 +351,26 @@ INSERT INTO recibos (
 ) VALUES
 ('b0000000-0000-4000-8000-000000000001', '1',  '2016-06-07 08:30:00-06', 'N13050045', 'PEREZ SIFUENTES ALDO ULISES',         'Ing. Industrial',          6, 'Matutino', 'EFECTIVO', '0', 620.00, 0.00, 620.00, 1, 'PREVIO', 'PREVIO', 'cajero1', 'Cajero Turno Matutino'),
 ('b0000000-0000-4000-8000-000000000002', '2',  '2016-06-07 09:15:00-06', 'N13050041', 'ORTIZ DURON LUIS MANUEL',             'Ing. Industrial',          6, 'Matutino', 'EFECTIVO', '0', 620.00, 0.00, 620.00, 1, 'PREVIO', 'PREVIO', 'cajero1', 'Cajero Turno Matutino'),
-('b0000000-0000-4000-8000-000000000003', '3',  '2016-06-07 10:00:00-06', 'G13050156', 'DAVILA HERNANDEZ ANA PATRICIA',       'Ing. Gestión Emp.',         5, 'Matutino', 'EFECTIVO', '0', 620.00, 0.00, 620.00, 1, 'PREVIO', 'PREVIO', 'cajero1', 'Cajero Turno Matutino'),
-('b0000000-0000-4000-8000-000000000004', '4',  '2016-06-07 11:20:00-06', 'E15050004', 'REQUENA RODRIGUEZ NESTOR OMAR',       'Ing. Electrónica',         3, 'Nocturno', 'EFECTIVO', '0', 520.00, 0.00, 520.00, 1, 'PREVIO', 'PREVIO', 'cajero1', 'Cajero Turno Matutino'),
+('b0000000-0000-4000-8000-000000000003', '3',  '2016-06-07 10:00:00-06', 'G13050156', 'DAVILA HERNANDEZ ANA PATRICIA',       'Ing. GestiÃ³n Emp.',         5, 'Matutino', 'EFECTIVO', '0', 620.00, 0.00, 620.00, 1, 'PREVIO', 'PREVIO', 'cajero1', 'Cajero Turno Matutino'),
+('b0000000-0000-4000-8000-000000000004', '4',  '2016-06-07 11:20:00-06', 'E15050004', 'REQUENA RODRIGUEZ NESTOR OMAR',       'Ing. ElectrÃ³nica',         3, 'Nocturno', 'EFECTIVO', '0', 520.00, 0.00, 520.00, 1, 'PREVIO', 'PREVIO', 'cajero1', 'Cajero Turno Matutino'),
 ('b0000000-0000-4000-8000-000000000005', '5',  '2016-06-07 12:45:00-06', 'N12050104', 'BARRERA TOVAR JESUS ENRIQUE',         'Ing. Industrial',          8, 'Nocturno', 'EFECTIVO', '0', 520.00, 0.00, 520.00, 1, 'PREVIO', 'PREVIO', 'cajero1', 'Cajero Turno Matutino'),
-('b0000000-0000-4000-8000-000000000006', '9',  '2016-06-08 08:45:00-06', 'G13050219', 'HERNANDEZ CASTILLO ARELY SARAHI',     'Ing. Gestión Emp.',         6, 'Matutino', 'EFECTIVO', '0', 620.00, 0.00, 620.00, 1, 'PREVIO', 'PREVIO', 'cajero1', 'Cajero Turno Matutino'),
-('b0000000-0000-4000-8000-000000000007', '10', '2016-06-08 09:30:00-06', 'G14050252', 'MUÑOZ DE LEON ILSE ARACELI',          'Ing. Gestión Emp.',         4, 'Matutino', 'EFECTIVO', '0', 620.00, 0.00, 620.00, 1, 'PREVIO', 'PREVIO', 'cajero1', 'Cajero Turno Matutino'),
+('b0000000-0000-4000-8000-000000000006', '9',  '2016-06-08 08:45:00-06', 'G13050219', 'HERNANDEZ CASTILLO ARELY SARAHI',     'Ing. GestiÃ³n Emp.',         6, 'Matutino', 'EFECTIVO', '0', 620.00, 0.00, 620.00, 1, 'PREVIO', 'PREVIO', 'cajero1', 'Cajero Turno Matutino'),
+('b0000000-0000-4000-8000-000000000007', '10', '2016-06-08 09:30:00-06', 'G14050252', 'MUÃ‘OZ DE LEON ILSE ARACELI',          'Ing. GestiÃ³n Emp.',         4, 'Matutino', 'EFECTIVO', '0', 620.00, 0.00, 620.00, 1, 'PREVIO', 'PREVIO', 'cajero1', 'Cajero Turno Matutino'),
 ('b0000000-0000-4000-8000-000000000008', '12', '2016-06-08 10:15:00-06', 'N15050011', 'VILLASTRIGO GARCIA SABINO EMMANUEL',  'Ing. Industrial',          2, 'Matutino', 'EFECTIVO', '0', 700.00, 0.00, 700.00, 1, 'PREVIO', 'PREVIO', 'cajero1', 'Cajero Turno Matutino'),
-('b0000000-0000-4000-8000-000000000009', '14', '2016-06-08 11:10:00-06', 'G13050164', 'GUTIERREZ SALAZAR CLAUDIA MONSERRAT', 'Ing. Gestión Emp.',         6, 'Matutino', 'EFECTIVO', '0', 620.00, 0.00, 620.00, 1, 'PREVIO', 'PREVIO', 'cajero1', 'Cajero Turno Matutino'),
+('b0000000-0000-4000-8000-000000000009', '14', '2016-06-08 11:10:00-06', 'G13050164', 'GUTIERREZ SALAZAR CLAUDIA MONSERRAT', 'Ing. GestiÃ³n Emp.',         6, 'Matutino', 'EFECTIVO', '0', 620.00, 0.00, 620.00, 1, 'PREVIO', 'PREVIO', 'cajero1', 'Cajero Turno Matutino'),
 ('b0000000-0000-4000-8000-000000000010', '18', '2016-06-08 12:00:00-06', 'N12050487', 'IBARRA MARTINEZ JULIO CESAR',         'Ing. Industrial',          8, 'Nocturno', 'EFECTIVO', '0', 700.00, 0.00, 700.00, 1, 'PREVIO', 'PREVIO', 'cajero1', 'Cajero Turno Matutino')
 ON CONFLICT (id) DO NOTHING;
 
--- Poblado de Recibos DEFINITIVOS (Turno 2012 e inscripción actual)
+-- Poblado de Recibos DEFINITIVOS (Turno 2012 e inscripciÃ³n actual)
 INSERT INTO recibos (
     id, folio_administrativo, fecha_operacion, alumno_matricula, alumno_nombre, alumno_carrera, alumno_semestre, alumno_turno,
     metodo_pago, referencia_bancaria, subtotal, descuento_total, total, status, estado, tipo_recibo, cajero_usuario, cajero_nombre
 ) VALUES
-('c0000000-0000-4000-8000-000000000001', '3692', '2012-01-23 10:00:00-06', 'I11050186', 'GUZMAN GUAJARDO BRANDO ISRAEL',        'Ing. Informática', 2, 'Matutino', 'DEPOSITO_BANCARIO', 'REF-2012-001', 1700.00,   0.00, 1700.00, 1, 'REGISTRADO', 'DEFINITIVO', 'cajero2', 'Cajero Turno Nocturno'),
-('c0000000-0000-4000-8000-000000000002', '3354', '2012-01-23 10:30:00-06', 'I11050180', 'DELGADILLO GELACIO IRMA BERENICE',     'Ing. Informática', 1, 'Nocturno', 'DEPOSITO_BANCARIO', 'REF-2012-002', 1700.00, 100.00, 1600.00, 1, 'REGISTRADO', 'DEFINITIVO', 'cajero2', 'Cajero Turno Nocturno'),
-('c0000000-0000-4000-8000-000000000003', '3661', '2012-01-23 11:00:00-06', 'I11050199', 'OROZCO ALVARADO KAREN',                'Ing. Informática', 1, 'Matutino', 'DEPOSITO_BANCARIO', 'REF-2012-003', 1700.00, 100.00, 1600.00, 1, 'REGISTRADO', 'DEFINITIVO', 'cajero2', 'Cajero Turno Nocturno'),
-('c0000000-0000-4000-8000-000000000004', '2922', '2012-01-23 11:30:00-06', 'E11050286', 'MARTINEZ ALFARO LUIS ANGEL',           'Ing. Electrónica', 1, 'Matutino', 'DEPOSITO_BANCARIO', 'REF-2012-004', 1700.00, 100.00, 1600.00, 0, 'CANCELADO',  'DEFINITIVO', 'cajero1', 'Cajero Turno Matutino'),
-('c0000000-0000-4000-8000-000000000005', '3662', '2012-01-23 12:00:00-06', 'E11050559', 'FLORES EVANGELISTA ESTEBAN DAMIAN',    'Ing. Electrónica', 1, 'Nocturno', 'DEPOSITO_BANCARIO', 'REF-2012-005', 1700.00, 100.00, 1600.00, 1, 'REGISTRADO', 'DEFINITIVO', 'cajero2', 'Cajero Turno Nocturno')
+('c0000000-0000-4000-8000-000000000001', '3692', '2012-01-23 10:00:00-06', 'I11050186', 'GUZMAN GUAJARDO BRANDO ISRAEL',        'Ing. InformÃ¡tica', 2, 'Matutino', 'DEPOSITO_BANCARIO', 'REF-2012-001', 1700.00,   0.00, 1700.00, 1, 'REGISTRADO', 'DEFINITIVO', 'cajero2', 'Cajero Turno Nocturno'),
+('c0000000-0000-4000-8000-000000000002', '3354', '2012-01-23 10:30:00-06', 'I11050180', 'DELGADILLO GELACIO IRMA BERENICE',     'Ing. InformÃ¡tica', 1, 'Nocturno', 'DEPOSITO_BANCARIO', 'REF-2012-002', 1700.00, 100.00, 1600.00, 1, 'REGISTRADO', 'DEFINITIVO', 'cajero2', 'Cajero Turno Nocturno'),
+('c0000000-0000-4000-8000-000000000003', '3661', '2012-01-23 11:00:00-06', 'I11050199', 'OROZCO ALVARADO KAREN',                'Ing. InformÃ¡tica', 1, 'Matutino', 'DEPOSITO_BANCARIO', 'REF-2012-003', 1700.00, 100.00, 1600.00, 1, 'REGISTRADO', 'DEFINITIVO', 'cajero2', 'Cajero Turno Nocturno'),
+('c0000000-0000-4000-8000-000000000004', '2922', '2012-01-23 11:30:00-06', 'E11050286', 'MARTINEZ ALFARO LUIS ANGEL',           'Ing. ElectrÃ³nica', 1, 'Matutino', 'DEPOSITO_BANCARIO', 'REF-2012-004', 1700.00, 100.00, 1600.00, 0, 'CANCELADO',  'DEFINITIVO', 'cajero1', 'Cajero Turno Matutino'),
+('c0000000-0000-4000-8000-000000000005', '3662', '2012-01-23 12:00:00-06', 'E11050559', 'FLORES EVANGELISTA ESTEBAN DAMIAN',    'Ing. ElectrÃ³nica', 1, 'Nocturno', 'DEPOSITO_BANCARIO', 'REF-2012-005', 1700.00, 100.00, 1600.00, 1, 'REGISTRADO', 'DEFINITIVO', 'cajero2', 'Cajero Turno Nocturno')
 ON CONFLICT (id) DO NOTHING;
 
 -- ----------------------------------------------------------------------------
@@ -405,7 +405,7 @@ JOIN conceptos_cobro c ON (
 WHERE r.tipo_recibo = 'PREVIO'
 ON CONFLICT DO NOTHING;
 
--- Cargar detalles de los recibos definitivos (Inscripción base)
+-- Cargar detalles de los recibos definitivos (InscripciÃ³n base)
 INSERT INTO detalles_recibo (recibo_id, concepto_id, descripcion, cantidad, cuota_unitario, descuento_beca, importe_total, periodo_ano)
 SELECT r.id, c.id, c.descripcion, 1, 1700.00, 0.00, 1700.00, '2012-1'
 FROM recibos r
@@ -422,7 +422,7 @@ WHERE r.folio_administrativo IN ('3354','3661','2922','3662') AND c.clave = '540
 ON CONFLICT DO NOTHING;
 
 -- ----------------------------------------------------------------------------
--- 13. MOVIMIENTOS DE PAGO (Auditoría Financiera, Medios de Pago y Conciliación)
+-- 13. MOVIMIENTOS DE PAGO (AuditorÃ­a Financiera, Medios de Pago y ConciliaciÃ³n)
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS movimientos_pago (
     id_movimiento       BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -450,7 +450,7 @@ WHERE r.tipo_recibo = 'DEFINITIVO'
 ON CONFLICT DO NOTHING;
 
 -- ============================================================================
--- VISTAS INTELIGENTES PARA REPORTES Y EXPORTACIÓN A EXCEL
+-- VISTAS INTELIGENTES PARA REPORTES Y EXPORTACIÃ“N A EXCEL
 -- ============================================================================
 
 -- Vista 1: Corte diario de Caja y Arqueo por Cajero
@@ -467,7 +467,7 @@ FROM recibos r
 LEFT JOIN movimientos_pago m ON r.id = m.recibo_id
 GROUP BY r.fecha_operacion::DATE, r.cajero_usuario, r.cajero_nombre, m.forma_pago;
 
--- Vista 2: Reporte detallado para filtros del Frontend y exportación a Excel
+-- Vista 2: Reporte detallado para filtros del Frontend y exportaciÃ³n a Excel
 CREATE OR REPLACE VIEW vw_reporte_recibos_detallado AS
 SELECT 
     r.id AS recibo_id,

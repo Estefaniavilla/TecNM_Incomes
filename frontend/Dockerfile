@@ -13,9 +13,8 @@ RUN npm install
 # Copiar el código fuente
 COPY . .
 
-# Exponer el puerto estándar de Vite
-EXPOSE 5173
+# Exponer el puerto configurado de Vite
+EXPOSE 6030
 
-# Arrancar el servidor de desarrollo en 0.0.0.0 para acceso desde el host
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
-
+# Arrancar el servidor de desarrollo en 0.0.0.0 y puerto 6030
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "6030"]

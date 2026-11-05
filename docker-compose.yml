@@ -31,9 +31,9 @@ services:
       - Jwt__Issuer=TecNM.Api
       - Jwt__Audience=TecNM.Frontend
       - Jwt__LifetimeHours=8
-      - Cors__AllowedOrigin=http://localhost:5173
+      - Cors__AllowedOrigin=http://localhost:6030
     ports:
-      - "7001:8080"
+      - "6040:8080"
     networks:
       - app-network
 
@@ -49,9 +49,10 @@ services:
     environment:
       - VITE_BACKEND_URL=http://localhost:7001
     ports:
-      - "5173:5173"
+      - "6030:6030"
     volumes:
       - ./frontend/src:/app/src
+      - ./frontend/vite.config.ts:/app/vite.config.ts
     networks:
       - app-network
     depends_on:
