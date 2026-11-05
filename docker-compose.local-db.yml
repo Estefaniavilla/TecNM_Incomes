@@ -1,11 +1,9 @@
 services:
   # ============================================================================
-  # 1. Base de Datos Relacional: CONECTADA A TU POSTGRES LOCAL (cajadb)
-  # (No levantamos contenedor de postgres porque usarás tu instalación de Windows)
-  # ============================================================================
-
-  # ============================================================================
-  # 2. Backend Web API (.NET 10 / C#)
+  # Backend Web API (.NET 10 / C#)
+  #
+  # Archivo de desarrollo local para quien ya tiene PostgreSQL 18 instalado
+  # en Windows con la base de datos 'cajadb' configurada.
   # ============================================================================
   backend:
     build:
@@ -18,8 +16,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
-      # Conexión directa a tu Postgres local en Windows:
-      - ConnectionStrings__DefaultConnection=Host=host.docker.internal;Port=5432;Database=cajadb;Username=postgres;Password=admin
+      - ConnectionStrings__DefaultConnection=Host=host.docker.internal;Port=5432;Database=cajadb;Username=postgres;Password=postgrespassword123
       - Jwt__SecretKey=TecNM_Monclova_SuperSecretKey_2026_Min32Bytes!
       - Jwt__Issuer=TecNM.Api
       - Jwt__Audience=TecNM.Frontend
@@ -31,7 +28,7 @@ services:
       - app-network
 
   # ============================================================================
-  # 3. Frontend SPA (Vue 3 + Vite + TypeScript)
+  # Frontend SPA (Vue 3 + Vite + TypeScript)
   # ============================================================================
   frontend:
     build:
