@@ -9,6 +9,7 @@ import ModalEmpleados from '../../catalogos/components/ModalEmpleados.vue'
 import ModalImprimeVerano from '../components/ModalImprimeVerano.vue'
 import ModalPolizaIngresos from '../components/ModalPolizaIngresos.vue'
 import ModalReporteIngresos from '../components/ModalReporteIngresos.vue'
+import ModalPolizaIngresoPeriodo from '../components/ModalPolizaIngresoPeriodo.vue'
 import { logout, me } from '../../auth/api/authApi'
 import { clearSessionMarker } from '../../../shared/utils/sessionCookie'
 
@@ -55,6 +56,7 @@ const mostrarModalEmpleados = ref(false)
 const mostrarModalImprimeVerano = ref(false)
 const mostrarModalPolizaIngresos = ref(false)
 const mostrarModalReporteIngresos = ref(false)
+const mostrarModalPolizaIngresoPeriodo = ref(false)
 const menuAbierto = ref<'catalogo' | 'imprimir' | 'control' | 'utilerias' | null>(null)
 
 function toggleMenu(menu: 'catalogo' | 'imprimir' | 'control' | 'utilerias'): void {
@@ -87,6 +89,11 @@ function abrirModalPolizaIngresos(): void {
 
 function abrirModalReporteIngresos(): void {
   mostrarModalReporteIngresos.value = true
+  cerrarMenus()
+}
+
+function abrirModalPolizaIngresoPeriodo(): void {
+  mostrarModalPolizaIngresoPeriodo.value = true
   cerrarMenus()
 }
 
@@ -489,7 +496,7 @@ async function registrarCobro(): Promise<void> {
               <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalReporteIngresos">
                 <span>Reporte de Ingresos</span>
               </button>
-              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
+              <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalPolizaIngresoPeriodo">
                 <span>Poliza de Ingreso Periodo</span>
               </button>
               <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
@@ -1157,6 +1164,11 @@ async function registrarCobro(): Promise<void> {
     <ModalReporteIngresos
       v-if="mostrarModalReporteIngresos"
       @close="mostrarModalReporteIngresos = false"
+    />
+
+    <ModalPolizaIngresoPeriodo
+      v-if="mostrarModalPolizaIngresoPeriodo"
+      @close="mostrarModalPolizaIngresoPeriodo = false"
     />
 
     <!-- Sistema de Notificaciones Flotantes (Toasts) -->
