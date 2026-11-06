@@ -1,14 +1,26 @@
 services:
   # ============================================================================
-  # 1. Backend Web API (.NET 10 / C#)
-  #
-  # ARQUITECTURA DEL EQUIPO:
-  #   - Base de Datos: PostgreSQL 18 instalado localmente en Windows (NO Docker).
-  #                    Tu compañera DB la administra en su máquina local.
-  #   - Backend + Frontend: Corren en Docker en las laptops del equipo.
-  #
-  # La variable host.docker.internal permite que el backend dentro de Docker
-  # alcance el PostgreSQL 18 que corre en Windows (fuera de Docker).
+  # 1. Base de Datos PostgreSQL 17 - cajadb
+  # Inicializa automáticamente con setup_cajadb_maestra.sql (13 tablas y vistas)
+  # ============================================================================
+  db:
+    image: postgres:17-alpine
+    container_name: tecnm_caja_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cajadb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword123
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./setup_cajadb_maestra.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    networks:
+      - app-network
+
+  # ============================================================================
+  # 2. Backend Web API (.NET 10 / C#)
   # ============================================================================
   backend:
     build:
@@ -16,17 +28,10 @@ services:
       dockerfile: Dockerfile
     container_name: tecnm_caja_backend
     restart: unless-stopped
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
-      # -------------------------------------------------------------------------
-      # Conexión a PostgreSQL 18 LOCAL (Windows) desde dentro de Docker.
-      # host.docker.internal resuelve a la IP del equipo anfitrión automáticamente.
-      # El nombre de la base de datos es 'cajadb' (creada por la especialista DB).
-      # -------------------------------------------------------------------------
-      - ConnectionStrings__DefaultConnection=Host=host.docker.internal;Port=5432;Database=cajadb;Username=postgres;Password=postgrespassword123
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=cajadb;Username=postgres;Password=postgrespassword123
       - Jwt__SecretKey=TecNM_Monclova_SuperSecretKey_2026_Min32Bytes!
       - Jwt__Issuer=TecNM.Api
       - Jwt__Audience=TecNM.Frontend
@@ -36,9 +41,11 @@ services:
       - "6040:8080"
     networks:
       - app-network
+    depends_on:
+      - db
 
   # ============================================================================
-  # 2. Frontend SPA (Vue 3 + Vite + TypeScript)
+  # 3. Frontend SPA (Vue 3 + Vite + TypeScript)
   # ============================================================================
   frontend:
     build:
@@ -47,7 +54,7 @@ services:
     container_name: tecnm_caja_frontend
     restart: unless-stopped
     environment:
-      - VITE_BACKEND_URL=http://localhost:7001
+      - VITE_BACKEND_URL=http://backend:8080
     ports:
       - "6030:6030"
     volumes:
@@ -57,6 +64,9 @@ services:
       - app-network
     depends_on:
       - backend
+
+volumes:
+  pgdata:
 
 networks:
   app-network:

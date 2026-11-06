@@ -33,8 +33,44 @@ public sealed class CajaController(CajaService cajaService) : ControllerBase
         return Ok(alumno);
     }
 
+    [HttpGet("alumnos/{matricula}/adeudos")]
+    public async Task<ActionResult<List<AdeudoDTO>>> GetAdeudosAlumno(
+        [FromRoute] string matricula,
+        CancellationToken cancellationToken)
+    {
+        var adeudos = await cajaService.GetAdeudosAlumnoAsync(matricula, cancellationToken);
+        return Ok(adeudos);
+    }
+
+    [HttpGet("alumnos/{matricula}/becas")]
+    public async Task<ActionResult<List<BecaDTO>>> GetBecasAlumno(
+        [FromRoute] string matricula,
+        CancellationToken cancellationToken)
+    {
+        var becas = await cajaService.GetBecasAlumnoAsync(matricula, cancellationToken);
+        return Ok(becas);
+    }
+
     // =========================================================================
-    // 2. Catálogo de Conceptos de Cobro
+    // 2. Catálogos Académicos (Carreras y Periodos)
+    // =========================================================================
+
+    [HttpGet("carreras")]
+    public async Task<ActionResult<List<CarreraDTO>>> GetCarreras(CancellationToken cancellationToken)
+    {
+        var carreras = await cajaService.GetCarrerasAsync(cancellationToken);
+        return Ok(carreras);
+    }
+
+    [HttpGet("periodos")]
+    public async Task<ActionResult<List<PeriodoDTO>>> GetPeriodos(CancellationToken cancellationToken)
+    {
+        var periodos = await cajaService.GetPeriodosAsync(cancellationToken);
+        return Ok(periodos);
+    }
+
+    // =========================================================================
+    // 3. Catálogo de Conceptos de Cobro
     // =========================================================================
 
     [HttpGet("conceptos")]
@@ -45,7 +81,7 @@ public sealed class CajaController(CajaService cajaService) : ControllerBase
     }
 
     // =========================================================================
-    // 3. Emisión de Recibos de Caja
+    // 4. Emisión de Recibos de Caja
     // =========================================================================
 
     [HttpPost("recibos")]
@@ -98,7 +134,7 @@ public sealed class CajaController(CajaService cajaService) : ControllerBase
     }
 
     // =========================================================================
-    // 4. Cancelación de Recibos
+    // 5. Cancelación de Recibos
     // =========================================================================
 
     [HttpPost("recibos/{id:guid}/cancelar")]
@@ -124,7 +160,7 @@ public sealed class CajaController(CajaService cajaService) : ControllerBase
     }
 
     // =========================================================================
-    // 5. Consultas y Corte Diario
+    // 6. Consultas, Historial, Corte Diario y Reportes
     // =========================================================================
 
     [HttpGet("recibos/{numero:long}")]
@@ -161,6 +197,14 @@ public sealed class CajaController(CajaService cajaService) : ControllerBase
         return Ok(corte);
     }
 
+    [HttpGet("reportes/detallado")]
+    public async Task<ActionResult<List<ReporteReciboDetalladoDTO>>> GetReporteDetallado(
+        CancellationToken cancellationToken)
+    {
+        var reporte = await cajaService.GetReporteDetalladoAsync(cancellationToken);
+        return Ok(reporte);
+    }
+
     // =========================================================================
     // Helpers
     // =========================================================================
@@ -168,12 +212,11 @@ public sealed class CajaController(CajaService cajaService) : ControllerBase
     {
         var usuario = User.FindFirst("name")?.Value
             ?? User.Identity?.Name
-            ?? "cajero_general";
+            ?? "cajero1";
 
         var nombre = User.FindFirst("fullName")?.Value
-            ?? "Cajero en Turno";
+            ?? "Cajero Turno Matutino";
 
         return (usuario, nombre);
     }
 }
-
