@@ -27,6 +27,7 @@ import ModalReporteIngresosPeriodo from '../components/ModalReporteIngresosPerio
 import ModalReporteVarios from '../components/ModalReporteVarios.vue'
 import ModalReporteDeudores from '../components/ModalReporteDeudores.vue'
 import ModalReporteDeudoresFechaCorte from '../components/ModalReporteDeudoresFechaCorte.vue'
+import ModalReporteDeudoresFechaCuenta from '../components/ModalReporteDeudoresFechaCuenta.vue'
 import * as cajaApi from '../api/cajaApi'
 import type {
   AdeudoAlumno,
@@ -89,6 +90,7 @@ const mostrarModalReporteIngresosPeriodo = ref(false)
 const mostrarModalReporteVarios = ref(false)
 const mostrarModalReporteDeudores = ref(false)
 const mostrarModalReporteDeudoresFechaCorte = ref(false)
+const mostrarModalReporteDeudoresFechaCuenta = ref(false)
 const menuAbierto = ref<'catalogo' | 'imprimir' | 'control' | 'utilerias' | null>(null)
 
 function toggleMenu(menu: 'catalogo' | 'imprimir' | 'control' | 'utilerias'): void {
@@ -146,6 +148,11 @@ function abrirModalReporteDeudores(): void {
 
 function abrirModalReporteDeudoresFechaCorte(): void {
   mostrarModalReporteDeudoresFechaCorte.value = true
+  cerrarMenus()
+}
+
+function abrirModalReporteDeudoresFechaCuenta(): void {
+  mostrarModalReporteDeudoresFechaCuenta.value = true
   cerrarMenus()
 }
 
@@ -762,7 +769,7 @@ onMounted(async () => {
               <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalReporteDeudoresFechaCorte">
                 <span>Reporte Deudores Fecha de Corte</span>
               </button>
-              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
+              <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalReporteDeudoresFechaCuenta">
                 <span>Reporte Deudores Fecha y Cuenta</span>
               </button>
               <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
@@ -1455,6 +1462,11 @@ onMounted(async () => {
     <ModalReporteDeudoresFechaCorte
       v-if="mostrarModalReporteDeudoresFechaCorte"
       @close="mostrarModalReporteDeudoresFechaCorte = false"
+    />
+
+    <ModalReporteDeudoresFechaCuenta
+      v-if="mostrarModalReporteDeudoresFechaCuenta"
+      @close="mostrarModalReporteDeudoresFechaCuenta = false"
     />
 
     <!-- Sistema de Notificaciones Flotantes (Toasts) -->
