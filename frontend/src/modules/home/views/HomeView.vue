@@ -13,6 +13,7 @@ import ModalReporteIngresos from '../../caja/components/ModalReporteIngresos.vue
 import ModalPolizaIngresoPeriodo from '../../caja/components/ModalPolizaIngresoPeriodo.vue'
 import ModalReporteIngresosPeriodo from '../../caja/components/ModalReporteIngresosPeriodo.vue'
 import ModalReporteVarios from '../../caja/components/ModalReporteVarios.vue'
+import ModalReporteDeudores from '../../caja/components/ModalReporteDeudores.vue'
 
 const router = useRouter()
 const { dark } = useTheme()
@@ -61,6 +62,7 @@ const mostrarModalReporteIngresos = ref(false)
 const mostrarModalPolizaIngresoPeriodo = ref(false)
 const mostrarModalReporteIngresosPeriodo = ref(false)
 const mostrarModalReporteVarios = ref(false)
+const mostrarModalReporteDeudores = ref(false)
 
 function toggleMenu(menu: 'catalogo' | 'imprimir' | 'control' | 'utilerias'): void {
   menuAbierto.value = menuAbierto.value === menu ? null : menu
@@ -107,6 +109,11 @@ function abrirModalReporteIngresosPeriodo(): void {
 
 function abrirModalReporteVarios(): void {
   mostrarModalReporteVarios.value = true
+  cerrarMenus()
+}
+
+function abrirModalReporteDeudores(): void {
+  mostrarModalReporteDeudores.value = true
   cerrarMenus()
 }
 
@@ -195,7 +202,7 @@ setInterval(actualizarHora, 1000)
               <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalReporteVarios">
                 <span>Reporte Varios</span>
               </button>
-              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
+              <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalReporteDeudores">
                 <span>Reporte Deudores</span>
               </button>
               <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
@@ -471,6 +478,7 @@ setInterval(actualizarHora, 1000)
     <ModalPolizaIngresoPeriodo v-if="mostrarModalPolizaIngresoPeriodo" @close="mostrarModalPolizaIngresoPeriodo = false" />
     <ModalReporteIngresosPeriodo v-if="mostrarModalReporteIngresosPeriodo" @close="mostrarModalReporteIngresosPeriodo = false" />
     <ModalReporteVarios v-if="mostrarModalReporteVarios" @close="mostrarModalReporteVarios = false" />
+    <ModalReporteDeudores v-if="mostrarModalReporteDeudores" @close="mostrarModalReporteDeudores = false" />
   </div>
 </template>
 
