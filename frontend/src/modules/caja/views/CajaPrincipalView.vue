@@ -29,6 +29,7 @@ import ModalReporteDeudores from '../components/ModalReporteDeudores.vue'
 import ModalReporteDeudoresFechaCorte from '../components/ModalReporteDeudoresFechaCorte.vue'
 import ModalReporteDeudoresFechaCuenta from '../components/ModalReporteDeudoresFechaCuenta.vue'
 import ModalReporteDeudoresInscritos from '../components/ModalReporteDeudoresInscritos.vue'
+import ModalDepositoBancario from '../components/ModalDepositoBancario.vue'
 import * as cajaApi from '../api/cajaApi'
 import type {
   AdeudoAlumno,
@@ -93,6 +94,7 @@ const mostrarModalReporteDeudores = ref(false)
 const mostrarModalReporteDeudoresFechaCorte = ref(false)
 const mostrarModalReporteDeudoresFechaCuenta = ref(false)
 const mostrarModalReporteDeudoresInscritos = ref(false)
+const mostrarModalDepositoBancario = ref(false)
 const menuAbierto = ref<'catalogo' | 'imprimir' | 'control' | 'utilerias' | null>(null)
 
 function toggleMenu(menu: 'catalogo' | 'imprimir' | 'control' | 'utilerias'): void {
@@ -160,6 +162,11 @@ function abrirModalReporteDeudoresFechaCuenta(): void {
 
 function abrirModalReporteDeudoresInscritos(): void {
   mostrarModalReporteDeudoresInscritos.value = true
+  cerrarMenus()
+}
+
+function abrirModalDepositoBancario(): void {
+  mostrarModalDepositoBancario.value = true
   cerrarMenus()
 }
 
@@ -782,7 +789,7 @@ onMounted(async () => {
               <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalReporteDeudoresInscritos">
                 <span>Reporte Deudores Inscritos</span>
               </button>
-              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
+              <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalDepositoBancario">
                 <span>Deposito Bancario</span>
               </button>
               <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
@@ -1479,6 +1486,11 @@ onMounted(async () => {
     <ModalReporteDeudoresInscritos
       v-if="mostrarModalReporteDeudoresInscritos"
       @close="mostrarModalReporteDeudoresInscritos = false"
+    />
+
+    <ModalDepositoBancario
+      v-if="mostrarModalDepositoBancario"
+      @close="mostrarModalDepositoBancario = false"
     />
 
     <!-- Sistema de Notificaciones Flotantes (Toasts) -->

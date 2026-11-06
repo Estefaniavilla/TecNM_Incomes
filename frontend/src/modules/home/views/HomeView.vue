@@ -17,6 +17,7 @@ import ModalReporteDeudores from '../../caja/components/ModalReporteDeudores.vue
 import ModalReporteDeudoresFechaCorte from '../../caja/components/ModalReporteDeudoresFechaCorte.vue'
 import ModalReporteDeudoresFechaCuenta from '../../caja/components/ModalReporteDeudoresFechaCuenta.vue'
 import ModalReporteDeudoresInscritos from '../../caja/components/ModalReporteDeudoresInscritos.vue'
+import ModalDepositoBancario from '../../caja/components/ModalDepositoBancario.vue'
 
 const router = useRouter()
 const { dark } = useTheme()
@@ -69,6 +70,7 @@ const mostrarModalReporteDeudores = ref(false)
 const mostrarModalReporteDeudoresFechaCorte = ref(false)
 const mostrarModalReporteDeudoresFechaCuenta = ref(false)
 const mostrarModalReporteDeudoresInscritos = ref(false)
+const mostrarModalDepositoBancario = ref(false)
 
 function toggleMenu(menu: 'catalogo' | 'imprimir' | 'control' | 'utilerias'): void {
   menuAbierto.value = menuAbierto.value === menu ? null : menu
@@ -135,6 +137,11 @@ function abrirModalReporteDeudoresFechaCuenta(): void {
 
 function abrirModalReporteDeudoresInscritos(): void {
   mostrarModalReporteDeudoresInscritos.value = true
+  cerrarMenus()
+}
+
+function abrirModalDepositoBancario(): void {
+  mostrarModalDepositoBancario.value = true
   cerrarMenus()
 }
 
@@ -235,7 +242,7 @@ setInterval(actualizarHora, 1000)
               <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalReporteDeudoresInscritos">
                 <span>Reporte Deudores Inscritos</span>
               </button>
-              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
+              <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalDepositoBancario">
                 <span>Deposito Bancario</span>
               </button>
               <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
@@ -503,6 +510,7 @@ setInterval(actualizarHora, 1000)
     <ModalReporteDeudoresFechaCorte v-if="mostrarModalReporteDeudoresFechaCorte" @close="mostrarModalReporteDeudoresFechaCorte = false" />
     <ModalReporteDeudoresFechaCuenta v-if="mostrarModalReporteDeudoresFechaCuenta" @close="mostrarModalReporteDeudoresFechaCuenta = false" />
     <ModalReporteDeudoresInscritos v-if="mostrarModalReporteDeudoresInscritos" @close="mostrarModalReporteDeudoresInscritos = false" />
+    <ModalDepositoBancario v-if="mostrarModalDepositoBancario" @close="mostrarModalDepositoBancario = false" />
   </div>
 </template>
 
