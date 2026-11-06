@@ -14,6 +14,7 @@ import ModalPolizaIngresoPeriodo from '../../caja/components/ModalPolizaIngresoP
 import ModalReporteIngresosPeriodo from '../../caja/components/ModalReporteIngresosPeriodo.vue'
 import ModalReporteVarios from '../../caja/components/ModalReporteVarios.vue'
 import ModalReporteDeudores from '../../caja/components/ModalReporteDeudores.vue'
+import ModalReporteDeudoresFechaCorte from '../../caja/components/ModalReporteDeudoresFechaCorte.vue'
 
 const router = useRouter()
 const { dark } = useTheme()
@@ -63,6 +64,7 @@ const mostrarModalPolizaIngresoPeriodo = ref(false)
 const mostrarModalReporteIngresosPeriodo = ref(false)
 const mostrarModalReporteVarios = ref(false)
 const mostrarModalReporteDeudores = ref(false)
+const mostrarModalReporteDeudoresFechaCorte = ref(false)
 
 function toggleMenu(menu: 'catalogo' | 'imprimir' | 'control' | 'utilerias'): void {
   menuAbierto.value = menuAbierto.value === menu ? null : menu
@@ -114,6 +116,11 @@ function abrirModalReporteVarios(): void {
 
 function abrirModalReporteDeudores(): void {
   mostrarModalReporteDeudores.value = true
+  cerrarMenus()
+}
+
+function abrirModalReporteDeudoresFechaCorte(): void {
+  mostrarModalReporteDeudoresFechaCorte.value = true
   cerrarMenus()
 }
 
@@ -205,7 +212,7 @@ setInterval(actualizarHora, 1000)
               <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalReporteDeudores">
                 <span>Reporte Deudores</span>
               </button>
-              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
+              <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalReporteDeudoresFechaCorte">
                 <span>Reporte Deudores Fecha de Corte</span>
               </button>
               <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
@@ -479,6 +486,7 @@ setInterval(actualizarHora, 1000)
     <ModalReporteIngresosPeriodo v-if="mostrarModalReporteIngresosPeriodo" @close="mostrarModalReporteIngresosPeriodo = false" />
     <ModalReporteVarios v-if="mostrarModalReporteVarios" @close="mostrarModalReporteVarios = false" />
     <ModalReporteDeudores v-if="mostrarModalReporteDeudores" @close="mostrarModalReporteDeudores = false" />
+    <ModalReporteDeudoresFechaCorte v-if="mostrarModalReporteDeudoresFechaCorte" @close="mostrarModalReporteDeudoresFechaCorte = false" />
   </div>
 </template>
 
