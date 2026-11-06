@@ -7,8 +7,19 @@ namespace TecNM.Api.Modules.Caja;
 public sealed class CajaController(CajaService cajaService) : ControllerBase
 {
     // =========================================================================
-    // 1. Alumnos / Control Escolar
+    // 1. Alumnos y Control Escolar (Incluye Historial y Cambios de Matrícula)
     // =========================================================================
+
+    [HttpGet("alumnos")]
+    public async Task<ActionResult<List<AlumnoDTO>>> ListarAlumnos(
+        [FromQuery] string? carrera,
+        [FromQuery] int? semestre,
+        [FromQuery] string? estatus,
+        CancellationToken cancellationToken)
+    {
+        var alumnos = await cajaService.ListarAlumnosAsync(carrera, semestre, estatus, cancellationToken);
+        return Ok(alumnos);
+    }
 
     [HttpGet("alumnos/buscar")]
     public async Task<ActionResult<List<AlumnoDTO>>> BuscarAlumnos(
@@ -33,12 +44,63 @@ public sealed class CajaController(CajaService cajaService) : ControllerBase
         return Ok(alumno);
     }
 
+    [HttpGet("alumnos/{matricula}/historial-matriculas")]
+    public async Task<ActionResult<List<MatriculaHistorialDTO>>> GetHistorialMatriculas(
+        [FromRoute] string matricula,
+        CancellationToken cancellationToken)
+    {
+        var historial = await cajaService.GetHistorialMatriculasAsync(matricula, cancellationToken);
+        return Ok(historial);
+    }
+
+    [HttpPost("alumnos/{matricula}/cambiar-matricula")]
+    public async Task<ActionResult<AlumnoDTO>> CambiarMatricula(
+        [FromRoute] string matricula,
+        [FromBody] CambiarMatriculaRequest req,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var (usuario, _) = GetCajeroSesion();
+            var resultado = await cajaService.CambiarMatriculaAsync(matricula, req, usuario, cancellationToken);
+            return Ok(resultado);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
+    // =========================================================================
+    // 2. Administración de Adeudos y Becas
+    // =========================================================================
+
     [HttpGet("alumnos/{matricula}/adeudos")]
     public async Task<ActionResult<List<AdeudoDTO>>> GetAdeudosAlumno(
         [FromRoute] string matricula,
         CancellationToken cancellationToken)
     {
         var adeudos = await cajaService.GetAdeudosAlumnoAsync(matricula, cancellationToken);
+        return Ok(adeudos);
+    }
+
+    [HttpGet("adeudos")]
+    public async Task<ActionResult<List<AdeudoDetalleDTO>>> ConsultarAdeudosGeneral(
+        [FromQuery] string? matricula,
+        [FromQuery] string? concepto,
+        [FromQuery] int? periodoId,
+        [FromQuery] string? estado,
+        CancellationToken cancellationToken)
+    {
+        var adeudos = await cajaService.ConsultarAdeudosGeneralAsync(matricula, concepto, periodoId, estado, cancellationToken);
         return Ok(adeudos);
     }
 
@@ -52,7 +114,74 @@ public sealed class CajaController(CajaService cajaService) : ControllerBase
     }
 
     // =========================================================================
-    // 2. Catálogos Académicos (Carreras y Periodos)
+    // 3. Empleados/Cajeros y Cuentas de Cobro (Catálogos y Distinción)
+    // =========================================================================
+
+    [HttpGet("empleados")]
+    public async Task<ActionResult<List<EmpleadoDTO>>> ListarEmpleados(CancellationToken cancellationToken)
+    {
+        var empleados = await cajaService.ListarEmpleadosAsync(cancellationToken);
+        return Ok(empleados);
+    }
+
+    [HttpPost("empleados")]
+    public async Task<ActionResult<EmpleadoDTO>> CrearEmpleado(
+        [FromBody] CrearEmpleadoRequest req,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var empleado = await cajaService.CrearEmpleadoAsync(req, cancellationToken);
+            return Created($"/api/caja/empleados/{empleado.Id}", empleado);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
+    [HttpGet("cuentas")]
+    public async Task<ActionResult<List<CuentaConceptoDTO>>> ListarCuentas(CancellationToken cancellationToken)
+    {
+        var cuentas = await cajaService.ListarCuentasConceptosAsync(cancellationToken);
+        return Ok(cuentas);
+    }
+
+    [HttpPost("cuentas")]
+    public async Task<ActionResult<CuentaConceptoDTO>> CrearCuenta(
+        [FromBody] CrearCuentaConceptoRequest req,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var cuenta = await cajaService.CrearCuentaConceptoAsync(req, cancellationToken);
+            return Created($"/api/caja/cuentas/{cuenta.Id}", cuenta);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
+    [HttpPut("cuentas/{id:guid}")]
+    public async Task<ActionResult<CuentaConceptoDTO>> ActualizarCuenta(
+        [FromRoute] Guid id,
+        [FromBody] ActualizarCuentaConceptoRequest req,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var cuenta = await cajaService.ActualizarCuentaConceptoAsync(id, req, cancellationToken);
+            return Ok(cuenta);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
+    // =========================================================================
+    // 4. Catálogos Académicos (Carreras y Periodos) y Conceptos
     // =========================================================================
 
     [HttpGet("carreras")]
@@ -69,10 +198,6 @@ public sealed class CajaController(CajaService cajaService) : ControllerBase
         return Ok(periodos);
     }
 
-    // =========================================================================
-    // 3. Catálogo de Conceptos de Cobro
-    // =========================================================================
-
     [HttpGet("conceptos")]
     public async Task<ActionResult<List<ConceptoDTO>>> GetConceptos(CancellationToken cancellationToken)
     {
@@ -81,7 +206,20 @@ public sealed class CajaController(CajaService cajaService) : ControllerBase
     }
 
     // =========================================================================
-    // 4. Emisión de Recibos de Caja
+    // 5. Análisis y Desglose de Referencias Bancarias (5+5)
+    // =========================================================================
+
+    [HttpGet("referencias/desglosar")]
+    public async Task<ActionResult<DesgloseReferenciaDTO>> DesglosarReferencia(
+        [FromQuery] string referencia,
+        CancellationToken cancellationToken)
+    {
+        var desglose = await cajaService.DesglosarReferenciaAsync(referencia, cancellationToken);
+        return Ok(desglose);
+    }
+
+    // =========================================================================
+    // 6. Emisión y Cancelación de Recibos
     // =========================================================================
 
     [HttpPost("recibos")]
@@ -99,16 +237,16 @@ public sealed class CajaController(CajaService cajaService) : ControllerBase
             return BadRequest(new { message = "La matrícula y el nombre del estudiante son obligatorios." });
         }
 
-        var (cajeroUsuario, cajeroNombre) = ObtenerDatosCajero();
-
-        var recibo = await cajaService.CrearReciboAsync(
-            request,
-            cajeroUsuario,
-            cajeroNombre,
-            esPrevio: false,
-            cancellationToken);
-
-        return CreatedAtAction(nameof(GetReciboPorNumero), new { numero = recibo.NumeroRecibo }, recibo);
+        try
+        {
+            var (usuario, nombre) = GetCajeroSesion();
+            var recibo = await cajaService.CrearReciboAsync(request, usuario, nombre, false, cancellationToken);
+            return Created($"/api/caja/recibos/{recibo.NumeroRecibo}", recibo);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpPost("recibos/previo")]
@@ -118,24 +256,20 @@ public sealed class CajaController(CajaService cajaService) : ControllerBase
     {
         if (request is null || request.Detalles == null || request.Detalles.Count == 0)
         {
-            return BadRequest(new { message = "El recibo provisional debe contener al menos un concepto." });
+            return BadRequest(new { message = "El recibo previo debe contener al menos un concepto." });
         }
 
-        var (cajeroUsuario, cajeroNombre) = ObtenerDatosCajero();
-
-        var recibo = await cajaService.CrearReciboAsync(
-            request,
-            cajeroUsuario,
-            cajeroNombre,
-            esPrevio: true,
-            cancellationToken);
-
-        return Ok(recibo);
+        try
+        {
+            var (usuario, nombre) = GetCajeroSesion();
+            var recibo = await cajaService.CrearReciboAsync(request, usuario, nombre, true, cancellationToken);
+            return Ok(recibo);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
-
-    // =========================================================================
-    // 5. Cancelación de Recibos
-    // =========================================================================
 
     [HttpPost("recibos/{id:guid}/cancelar")]
     public async Task<ActionResult<ReciboResponse>> CancelarRecibo(
@@ -143,35 +277,40 @@ public sealed class CajaController(CajaService cajaService) : ControllerBase
         [FromBody] CancelarReciboRequest? request,
         CancellationToken cancellationToken)
     {
-        if (request is null || string.IsNullOrWhiteSpace(request.Motivo) || request.Motivo.Trim().Length < 5)
+        if (request is null || string.IsNullOrWhiteSpace(request.Motivo))
         {
-            return BadRequest(new { message = "Debe proporcionar un motivo formal de cancelación de al menos 5 caracteres." });
+            return BadRequest(new { message = "Debe proporcionar una justificación para cancelar el recibo." });
         }
 
-        var (cajeroUsuario, _) = ObtenerDatosCajero();
-
-        var cancelado = await cajaService.CancelarReciboAsync(id, request.Motivo, cajeroUsuario, cancellationToken);
-        if (cancelado is null)
+        try
         {
-            return NotFound(new { message = $"No se encontró el recibo con ID '{id}'." });
+            var (usuario, _) = GetCajeroSesion();
+            var resultado = await cajaService.CancelarReciboAsync(id, request.Motivo, usuario, cancellationToken);
+            return Ok(resultado);
         }
-
-        return Ok(cancelado);
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
     }
 
-    // =========================================================================
-    // 6. Consultas, Historial, Corte Diario y Reportes
-    // =========================================================================
-
     [HttpGet("recibos/{numero:long}")]
-    public async Task<ActionResult<ReciboResponse>> GetReciboPorNumero(
+    public async Task<ActionResult<ReciboResponse>> GetRecibo(
         [FromRoute] long numero,
         CancellationToken cancellationToken)
     {
-        var recibo = await cajaService.GetReciboPorNumeroAsync(numero, cancellationToken);
+        var recibo = await cajaService.GetReciboByNumeroAsync(numero, cancellationToken);
         if (recibo is null)
         {
-            return NotFound(new { message = $"No se encontró el recibo número {numero}." });
+            return NotFound(new { message = $"No se encontró el recibo número #{numero}." });
         }
 
         return Ok(recibo);
@@ -182,18 +321,21 @@ public sealed class CajaController(CajaService cajaService) : ControllerBase
         [FromQuery] int limite = 15,
         CancellationToken cancellationToken = default)
     {
-        var cantidad = Math.Clamp(limite, 1, 50);
-        var recibos = await cajaService.GetRecibosRecientesAsync(cantidad, cancellationToken);
+        var maxLimit = Math.Clamp(limite, 1, 50);
+        var recibos = await cajaService.GetRecibosRecientesAsync(maxLimit, cancellationToken);
         return Ok(recibos);
     }
 
+    // =========================================================================
+    // 7. Corte Diario, Pólizas y Reportes (Para Modales del Frontend)
+    // =========================================================================
+
     [HttpGet("corte")]
-    public async Task<ActionResult<CorteCajaResponse>> GetCorteCaja(
+    public async Task<ActionResult<CorteCajaResponse>> GetCorteDiario(
         [FromQuery] DateOnly? fecha,
         CancellationToken cancellationToken)
     {
-        var fechaConsulta = fecha ?? DateOnly.FromDateTime(DateTime.UtcNow);
-        var corte = await cajaService.GetCorteCajaAsync(fechaConsulta, cancellationToken);
+        var corte = await cajaService.GetCorteDiarioAsync(fecha, null, cancellationToken);
         return Ok(corte);
     }
 
@@ -205,10 +347,40 @@ public sealed class CajaController(CajaService cajaService) : ControllerBase
         return Ok(reporte);
     }
 
+    [HttpGet("polizas/resumen")]
+    public async Task<ActionResult<PolizaIngresoResumenDTO>> GetPolizaResumen(
+        [FromQuery] string? fecha,
+        CancellationToken cancellationToken)
+    {
+        var resumen = await cajaService.GetPolizaResumenAsync(fecha, cancellationToken);
+        return Ok(resumen);
+    }
+
+    [HttpGet("reportes/ingresos")]
+    public async Task<ActionResult<ReporteIngresoResumenDTO>> GetReporteIngresos(
+        [FromQuery] string? fecha,
+        CancellationToken cancellationToken)
+    {
+        var reporte = await cajaService.GetReporteIngresosAsync(fecha, cancellationToken);
+        return Ok(reporte);
+    }
+
+    [HttpGet("reportes/verano")]
+    public async Task<ActionResult<ReporteVeranoResumenDTO>> GetReporteVerano(
+        [FromQuery] string? inicio,
+        [FromQuery] string? fin,
+        [FromQuery] string? concepto,
+        CancellationToken cancellationToken)
+    {
+        var reporte = await cajaService.GetReporteVeranoAsync(inicio, fin, concepto, cancellationToken);
+        return Ok(reporte);
+    }
+
     // =========================================================================
     // Helpers
     // =========================================================================
-    private (string Usuario, string Nombre) ObtenerDatosCajero()
+
+    private (string usuario, string nombre) GetCajeroSesion()
     {
         var usuario = User.FindFirst("name")?.Value
             ?? User.Identity?.Name

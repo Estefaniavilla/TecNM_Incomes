@@ -223,6 +223,40 @@ function onBusquedaInput(val: string): void {
   }, 200)
 }
 
+const desgloseReferenciaInfo = ref<cajaApi.DesgloseReferenciaResult | null>(null)
+let debounceReferenciaTimeout: any = null
+
+function onReferenciaBancariaInput(val: string): void {
+  referenciaBancaria.value = val
+  if (debounceReferenciaTimeout) clearTimeout(debounceReferenciaTimeout)
+
+  if (!val || val.trim().length < 5) {
+    desgloseReferenciaInfo.value = null
+    return
+  }
+
+  debounceReferenciaTimeout = setTimeout(async () => {
+    try {
+      const res = await cajaApi.desglosarReferencia(val.trim())
+      desgloseReferenciaInfo.value = res
+      if (res.alumnoDetectado && !alumno.value.matricula) {
+        toastRef.value?.info(`Referencia 5+5 asociada a ${res.alumnoDetectado.nombreCompleto}.`)
+      }
+      if (res.referenciaDuplicada) {
+        toastRef.value?.warning(res.mensaje)
+      }
+    } catch {
+      desgloseReferenciaInfo.value = null
+    }
+  }, 300)
+}
+
+function aplicarAlumnoDeReferencia(): void {
+  if (desgloseReferenciaInfo.value?.alumnoDetectado) {
+    void seleccionarEstudiante(desgloseReferenciaInfo.value.alumnoDetectado)
+  }
+}
+
 async function seleccionarEstudiante(est: AlumnoCaja, showNotification = true): Promise<void> {
   alumno.value.matricula = est.matricula
   alumno.value.nombreCompleto = est.nombreCompleto
@@ -477,6 +511,8 @@ async function registrarCobro(): Promise<void> {
     referenciaBancaria: metodoPagoSeleccionado.value === 'DEPOSITO_BANCARIO' ? referenciaBancaria.value : undefined,
     cuentaBancaria: cuentaBancaria.value || undefined,
     fechaBancaria: fechaBancaria.value ? new Date(fechaBancaria.value).toISOString() : undefined,
+    fechaOperacion: permitirEditarFecha.value && fechaOperacion.value ? `${fechaOperacion.value}T12:00:00Z` : undefined,
+    justificacionFecha: permitirEditarFecha.value ? 'Modificación administrativa de fecha justificada en ventanilla' : undefined,
     detalles: partidas.value.map(p => ({
       conceptoId: p.conceptoId && p.conceptoId.length === 36 ? p.conceptoId : undefined,
       descripcion: p.descripcion,
@@ -546,6 +582,8 @@ async function generarReciboPrevio(): Promise<void> {
     semestre: alumno.value.semestre,
     turno: alumno.value.turno.trim(),
     metodoPago: metodoPagoSeleccionado.value,
+    fechaOperacion: permitirEditarFecha.value && fechaOperacion.value ? `${fechaOperacion.value}T12:00:00Z` : undefined,
+    justificacionFecha: permitirEditarFecha.value ? 'Modificación de fecha justificada' : undefined,
     detalles: partidas.value.map(p => ({
       conceptoId: p.conceptoId && p.conceptoId.length === 36 ? p.conceptoId : undefined,
       descripcion: p.descripcion,
@@ -1140,9 +1178,10 @@ onMounted(async () => {
                 hint="Cuenta receptora oficial TecNM"
               />
               <UiField
-                v-model="referenciaBancaria"
+                :model-value="referenciaBancaria"
                 label="Referencia Bancaria (Estructura 5 + 5)"
                 hint="5 dígitos de alumno + 5 dígitos de concepto"
+                @update:model-value="onReferenciaBancariaInput"
               />
               <UiField
                 v-model="fechaBancaria"
@@ -1150,7 +1189,23 @@ onMounted(async () => {
                 label="Fecha de Pago en Banco"
               />
             </div>
-            <p class="reference-rule-note">
+
+            <!-- Desglose Inteligente 5+5 -->
+            <div v-if="desgloseReferenciaInfo" class="reference-analysis-panel mt-2 p-3 rounded border">
+              <p class="reference-rule-note">
+                ℹ️ Estructura 5+5: Estudiante (<strong>{{ desgloseReferenciaInfo.codigoEstudiante5 }}</strong>) · Concepto (<strong>{{ desgloseReferenciaInfo.codigoConcepto5 }}</strong>)
+              </p>
+              <div v-if="desgloseReferenciaInfo.alumnoDetectado" class="detected-student-banner mt-1 flex items-center justify-between">
+                <span>🎓 Alumno identificado: <strong>{{ desgloseReferenciaInfo.alumnoDetectado.nombreCompleto }}</strong> ({{ desgloseReferenciaInfo.alumnoDetectado.matricula }})</span>
+                <UiButton v-if="alumno.matricula !== desgloseReferenciaInfo.alumnoDetectado.matricula" size="sm" variant="secondary" @click="aplicarAlumnoDeReferencia">
+                  Usar Alumno
+                </UiButton>
+              </div>
+              <div v-if="desgloseReferenciaInfo.referenciaDuplicada" class="duplicate-alert mt-1 text-danger font-bold text-sm">
+                ⚠️ {{ desgloseReferenciaInfo.mensaje }}
+              </div>
+            </div>
+            <p v-else class="reference-rule-note">
               ℹ️ Validación de referencia: Primeros 5 dígitos (<strong>{{ referenciaBancaria.slice(0, 5) }}</strong>) vinculados a la matrícula; últimos 5 dígitos (<strong>{{ referenciaBancaria.slice(5) }}</strong>) correspondientes a la cuota institucional.
             </p>
           </div>

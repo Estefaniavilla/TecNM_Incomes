@@ -90,6 +90,10 @@ function adaptReciboResponse(item: BackendReciboResponse): ReciboCaja {
   }
 }
 
+// =============================================================================
+// Catálogos Oficiales
+// =============================================================================
+
 export async function getConceptos(): Promise<ConceptoCatalogo[]> {
   const { data } = await http.get<ConceptoCatalogo[]>('/caja/conceptos')
   return data
@@ -105,6 +109,10 @@ export async function getPeriodos(): Promise<PeriodoAcademicoItem[]> {
   return data
 }
 
+// =============================================================================
+// Alumnos e Historial de Matrícula
+// =============================================================================
+
 export async function buscarAlumnos(query?: string): Promise<AlumnoCaja[]> {
   const { data } = await http.get<AlumnoCaja[]>('/caja/alumnos/buscar', {
     params: { q: query },
@@ -117,6 +125,20 @@ export async function getAlumno(matricula: string): Promise<AlumnoCaja> {
   return data
 }
 
+export async function getHistorialMatriculas(matricula: string): Promise<any[]> {
+  const { data } = await http.get<any[]>(`/caja/alumnos/${encodeURIComponent(matricula)}/historial-matriculas`)
+  return data
+}
+
+export async function cambiarMatricula(matricula: string, payload: { nuevaMatricula: string; motivoCambio: string; idPeriodo?: number }): Promise<AlumnoCaja> {
+  const { data } = await http.post<AlumnoCaja>(`/caja/alumnos/${encodeURIComponent(matricula)}/cambiar-matricula`, payload)
+  return data
+}
+
+// =============================================================================
+// Adeudos y Becas
+// =============================================================================
+
 export async function getAdeudosAlumno(matricula: string): Promise<AdeudoAlumno[]> {
   const { data } = await http.get<AdeudoAlumno[]>(`/caja/alumnos/${encodeURIComponent(matricula)}/adeudos`)
   return data
@@ -126,6 +148,158 @@ export async function getBecasAlumno(matricula: string): Promise<BecaAlumno[]> {
   const { data } = await http.get<BecaAlumno[]>(`/caja/alumnos/${encodeURIComponent(matricula)}/becas`)
   return data
 }
+
+export async function getAdeudosGeneral(filtros?: { matricula?: string; concepto?: string; periodoId?: number; estado?: string }): Promise<any[]> {
+  const { data } = await http.get<any[]>('/caja/adeudos', { params: filtros })
+  return data
+}
+
+// =============================================================================
+// Desglose de Referencias Bancarias (5+5)
+// =============================================================================
+
+export interface DesgloseReferenciaResult {
+  referenciaOriginal: string
+  codigoEstudiante5: string
+  codigoConcepto5: string
+  alumnoDetectado: AlumnoCaja | null
+  conceptoDetectado: ConceptoCatalogo | null
+  recibosPrevios: ReciboCaja[]
+  referenciaDuplicada: boolean
+  mensaje: string
+}
+
+export async function desglosarReferencia(referencia: string): Promise<DesgloseReferenciaResult> {
+  const { data } = await http.get<any>('/caja/referencias/desglosar', {
+    params: { referencia },
+  })
+  return {
+    ...data,
+    recibosPrevios: (data.recibosPrevios || []).map(adaptReciboResponse),
+  }
+}
+
+// =============================================================================
+// Empleados y Cuentas (Para Modales de Catálogos)
+// =============================================================================
+
+export interface EmpleadoItem {
+  id: string
+  username: string
+  name: string
+  email: string
+  role: string
+  isActive: boolean
+}
+
+export async function getEmpleados(): Promise<EmpleadoItem[]> {
+  const { data } = await http.get<EmpleadoItem[]>('/caja/empleados')
+  return data
+}
+
+export async function crearEmpleado(payload: { username: string; name: string; email: string; role: string; password?: string }): Promise<EmpleadoItem> {
+  const { data } = await http.post<EmpleadoItem>('/caja/empleados', payload)
+  return data
+}
+
+export interface CuentaItem {
+  id: string
+  cuenta: string
+  descripcion: string
+  costo: number
+  categoria: string
+  aplicaBeca: boolean
+}
+
+export async function getCuentas(): Promise<CuentaItem[]> {
+  const { data } = await http.get<CuentaItem[]>('/caja/cuentas')
+  return data
+}
+
+export async function crearCuenta(payload: { cuenta: string; descripcion: string; costo: number; categoria?: string }): Promise<CuentaItem> {
+  const { data } = await http.post<CuentaItem>('/caja/cuentas', payload)
+  return data
+}
+
+export async function actualizarCuenta(id: string, payload: { descripcion: string; costo: number; categoria?: string }): Promise<CuentaItem> {
+  const { data } = await http.put<CuentaItem>(`/caja/cuentas/${id}`, payload)
+  return data
+}
+
+// =============================================================================
+// Pólizas y Reportes Especializados (Para Modales)
+// =============================================================================
+
+export interface PolizaResumenItem {
+  cuenta: string
+  concepto: string
+  cantidad: number
+  total: number
+}
+
+export interface PolizaResumenResponse {
+  fecha: string
+  totalGeneral: number
+  filas: PolizaResumenItem[]
+}
+
+export async function getPolizaResumen(fecha?: string): Promise<PolizaResumenResponse> {
+  const { data } = await http.get<PolizaResumenResponse>('/caja/polizas/resumen', {
+    params: { fecha },
+  })
+  return data
+}
+
+export interface ReporteIngresoItem {
+  folio: string
+  concepto: string
+  nombre: string
+  total: number
+  estatus: string
+}
+
+export interface ReporteIngresoResponse {
+  fecha: string
+  totalGeneral: number
+  filas: ReporteIngresoItem[]
+}
+
+export async function getReporteIngresos(fecha?: string): Promise<ReporteIngresoResponse> {
+  const { data } = await http.get<ReporteIngresoResponse>('/caja/reportes/ingresos', {
+    params: { fecha },
+  })
+  return data
+}
+
+export interface ReporteVeranoItem {
+  reciboNo: string
+  matricula: string
+  alumno: string
+  concepto: string
+  cuota: number
+  fecha: string
+}
+
+export interface ReporteVeranoResponse {
+  fechaInicio: string
+  fechaFin: string
+  concepto: string
+  cuotaUnitario: number
+  totalRegistros: number
+  totalRecaudado: number
+  registros: ReporteVeranoItem[]
+}
+
+export async function getReporteVerano(inicio?: string, fin?: string, concepto?: string): Promise<ReporteVeranoResponse> {
+  const { data } = await http.get<ReporteVeranoResponse>('/caja/reportes/verano', {
+    params: { inicio, fin, concepto },
+  })
+  return data
+}
+
+// =============================================================================
+// Recibos, Cobros y Corte Diario
+// =============================================================================
 
 export async function getRecibosRecientes(limite = 15): Promise<ReciboCaja[]> {
   const { data } = await http.get<BackendReciboResponse[]>('/caja/recibos/recientes', {

@@ -114,6 +114,8 @@ export interface CrearReciboPayload {
   referenciaBancaria?: string
   cuentaBancaria?: string
   fechaBancaria?: string
+  fechaOperacion?: string
+  justificacionFecha?: string
   detalles: Array<{
     conceptoId?: string
     descripcion: string

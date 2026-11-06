@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
 import { useTheme } from '../../../shared/composables/useTheme'
+import { getReporteIngresos } from '../api/cajaApi'
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -55,14 +56,16 @@ async function buscar(): Promise<void> {
   if (!fechaBusqueda.value) return
 
   isBuscando.value = true
-  // TODO: Conectar con endpoint GET /api/reporte-ingresos?fecha=YYYY-MM-DD
-  // const data = await fetchReporteIngresos(fechaBusqueda.value)
-  // resultados.value = data.filas
-  // totalGeneral.value = data.total
-  await new Promise(resolve => setTimeout(resolve, 400)) // simulación de espera
-  resultados.value = []
-  totalGeneral.value = 0
-  isBuscando.value = false
+  try {
+    const data = await getReporteIngresos(fechaBusqueda.value)
+    resultados.value = data.filas || []
+    totalGeneral.value = data.totalGeneral || 0
+  } catch {
+    resultados.value = []
+    totalGeneral.value = 0
+  } finally {
+    isBuscando.value = false
+  }
 }
 
 function formatearMoneda(valor: number): string {
