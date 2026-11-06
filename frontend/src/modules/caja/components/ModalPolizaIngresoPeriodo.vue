@@ -107,7 +107,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
             <line x1="8" y1="2" x2="8" y2="6"/>
             <line x1="3" y1="10" x2="21" y2="10"/>
           </svg>
-          <span id="poliza-periodo-title" class="window-title-text">Póliza de Ingreso en Periodo (frmPolizaIngresoPeriodo)</span>
+          <span id="poliza-periodo-title" class="window-title-text">Póliza de Ingreso en Periodo</span>
         </div>
         <button type="button" class="window-btn-close" title="Cerrar (ESC)" aria-label="Cerrar ventana" @click="cerrar">
           &times;
@@ -825,3 +825,4 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
   font-family: 'Consolas', 'Courier New', monospace;
 }
 </style>
+
