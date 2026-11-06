@@ -41,10 +41,10 @@ if (string.IsNullOrWhiteSpace(issuer) || string.IsNullOrWhiteSpace(audience) || 
 var allowedOrigin = configuration["Cors:AllowedOrigin"]?.TrimEnd('/');
 if (string.IsNullOrWhiteSpace(allowedOrigin)
     || !Uri.TryCreate(allowedOrigin, UriKind.Absolute, out var originUri)
-    || originUri.Scheme != Uri.UriSchemeHttps)
+    || (originUri.Scheme != Uri.UriSchemeHttps && originUri.Scheme != Uri.UriSchemeHttp))
 {
     throw new InvalidOperationException(
-        "Cors__AllowedOrigin debe ser un origen HTTPS absoluto.");
+        "Cors__AllowedOrigin debe ser un origen HTTP o HTTPS absoluto.");
 }
 
 var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));

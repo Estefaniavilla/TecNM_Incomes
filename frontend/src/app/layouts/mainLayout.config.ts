@@ -2,13 +2,20 @@ import type { BrandOptions, NavigationItem } from '../../shared/components/navig
 
 export const mainLayoutConfig = {
   showHeader: false,
-  showSidebar: true,
+  showSidebar: false,
   header: { title: 'TecNM Caja', subtitle: 'Campus Monclova', showTitle: true, showLogo: false } satisfies BrandOptions,
   sidebar: { title: 'Control de Caja', subtitle: 'TecNM Monclova', showTitle: true, showLogo: false } satisfies BrandOptions,
 }
 
 export const headerNavigation: NavigationItem[] = [
   { label: 'Caja Ventanilla', to: '/' },
+  {
+    label: 'Catálogo',
+    children: [
+      { label: 'Empleados', to: '/catalogos/empleados' },
+      { label: 'Cuentas', to: '/catalogos/cuentas' },
+    ],
+  },
   { label: 'Póliza de Ingresos', to: '/#poliza' },
   { label: 'Corte por Empleado', to: '/#corte' },
 ]
@@ -25,8 +32,8 @@ export const sidebarNavigation: NavigationItem[] = [
   {
     label: 'Catálogos',
     children: [
-      { label: 'Empleados', to: '/#empleados' },
-      { label: 'Cuentas', to: '/#cuentas' },
+      { label: 'Empleados', to: '/catalogos/empleados' },
+      { label: 'Cuentas', to: '/catalogos/cuentas' },
     ],
   },
   {

@@ -1,0 +1,461 @@
+<script setup lang="ts">
+import { onMounted, onUnmounted, ref } from 'vue'
+
+const emit = defineEmits<{
+  (e: 'close'): void
+}>()
+
+const formEmpleado = ref({
+  numero: '',
+  nombre: '',
+})
+
+interface EmpleadoItem {
+  id: string
+  numero: number | string
+  nombre: string
+}
+const listaEmpleados = ref<EmpleadoItem[]>([])
+
+function limpiar(): void {
+  formEmpleado.value = {
+    numero: '',
+    nombre: '',
+  }
+}
+
+function cerrar(): void {
+  emit('close')
+}
+
+function handleKeydown(e: KeyboardEvent): void {
+  if (e.key === 'Escape') {
+    cerrar()
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
+})
+</script>
+
+<template>
+  <div class="modal-backdrop" @click.self="cerrar">
+    <div class="tecnm-window" role="dialog" aria-modal="true" aria-labelledby="empleados-title">
+      <!-- 1. Barra de título institucional TecNM -->
+      <header class="window-title-bar">
+        <div class="window-title-left">
+          <svg class="window-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+          <span id="empleados-title" class="window-title-text">Alta y Cambios de Empleados</span>
+        </div>
+        <button type="button" class="window-btn-close" title="Cerrar (ESC)" aria-label="Cerrar ventana" @click="cerrar">
+          &times;
+        </button>
+      </header>
+
+      <!-- 2. Panel superior de captura - Manual de Identidad TecNM -->
+      <section class="window-form-panel">
+        <div class="form-row">
+          <label for="modal-input-no" class="form-label">No. Empleado:</label>
+          <div class="form-input-wrap input-no-wrap">
+            <input
+              id="modal-input-no"
+              v-model="formEmpleado.numero"
+              type="text"
+              class="tecnm-input"
+              placeholder="Ej. 1"
+              autocomplete="off"
+            />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label for="modal-input-nombre" class="form-label">Nombre Empleado:</label>
+          <div class="form-input-wrap input-nombre-wrap">
+            <input
+              id="modal-input-nombre"
+              v-model="formEmpleado.nombre"
+              type="text"
+              class="tecnm-input"
+              placeholder="Ej. OLGA RIVERA QUINTERO"
+              autocomplete="off"
+            />
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. Rejilla / Tabla central (preparada para la BD) -->
+      <section class="window-grid-panel">
+        <div class="grid-table-scroll">
+          <table class="tecnm-data-table">
+            <thead>
+              <tr>
+                <th class="th-numero">N</th>
+                <th class="th-nombre">Nombre</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Estado vacío: preparado para conectar a PostgreSQL -->
+              <tr v-if="listaEmpleados.length === 0" class="tr-empty">
+                <td colspan="2" class="td-empty">
+                  <div class="empty-state-content">
+                    <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <line x1="19" y1="8" x2="19" y2="14" />
+                      <line x1="22" y1="11" x2="16" y2="11" />
+                    </svg>
+                    <p class="empty-title">Sin empleados registrados</p>
+                    <span class="empty-subtitle">
+                      Los registros de empleados y cajeros se obtendrán al vincular la base de datos PostgreSQL.
+                    </span>
+                  </div>
+                </td>
+              </tr>
+
+              <tr v-for="item in listaEmpleados" :key="item.id" class="data-row">
+                <td class="td-numero font-mono">{{ item.numero }}</td>
+                <td class="td-nombre font-bold">{{ item.nombre }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 4. Barra inferior de acciones conforme a la foto -->
+      <footer class="window-footer-bar">
+        <div class="footer-buttons">
+          <button type="button" class="btn-tecnm btn-primary">
+            Guardar
+          </button>
+          <button type="button" class="btn-tecnm btn-accent">
+            Actualizar
+          </button>
+          <button type="button" class="btn-tecnm btn-secondary" @click="limpiar">
+            Limpiar
+          </button>
+          <button type="button" class="btn-tecnm btn-danger" @click="cerrar">
+            Salir
+          </button>
+        </div>
+        <div class="footer-hint">
+          <kbd>ESC</kbd> = Salir
+        </div>
+      </footer>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+/* Tipografía y variables institucionales TecNM */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background-color: rgba(15, 37, 72, 0.65);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  font-family: var(--font-family-base, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+}
+
+.tecnm-window {
+  width: 100%;
+  max-width: 860px;
+  background-color: var(--color-surface-white, #FFFFFF);
+  border: 2px solid var(--color-primary, #1B396A);
+  border-radius: 8px;
+  box-shadow: 0 25px 50px -12px rgba(15, 37, 72, 0.35);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: window-appear 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes window-appear {
+  from { opacity: 0; transform: scale(0.97) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* 1. Barra de título institucional */
+.window-title-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--color-primary, #1B396A);
+  color: var(--color-white, #FFFFFF);
+  padding: 8px 16px;
+  border-bottom: 3px solid var(--color-accent, #C5A059);
+}
+
+.window-title-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.window-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--color-accent, #C5A059);
+}
+
+.window-title-text {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #FFFFFF;
+}
+
+.window-btn-close {
+  background-color: #DC2626;
+  border: none;
+  color: #FFFFFF;
+  width: 26px;
+  height: 24px;
+  border-radius: 4px;
+  font-size: 1.15rem;
+  font-weight: bold;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background-color 0.15s ease;
+}
+
+.window-btn-close:hover {
+  background-color: #B91C1C;
+}
+
+/* 2. Panel superior de captura - Manual de Identidad TecNM */
+.window-form-panel {
+  background: linear-gradient(135deg, #1B396A 0%, #244B88 100%);
+  padding: 16px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-bottom: 2px solid var(--color-accent, #C5A059);
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.form-label {
+  width: 140px;
+  color: #FFFFFF;
+  font-weight: 700;
+  font-size: 0.88rem;
+  text-align: right;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+.form-input-wrap {
+  flex: 1;
+}
+
+.input-no-wrap { max-width: 180px; }
+.input-nombre-wrap { max-width: 520px; }
+
+.tecnm-input {
+  width: 100%;
+  padding: 7px 12px;
+  border: 1px solid var(--color-border-medium, #CBD5E1);
+  border-radius: 4px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  background-color: #FFFFFF;
+  color: var(--color-text-primary, #1E293B);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.tecnm-input:focus {
+  border-color: var(--color-accent, #C5A059);
+  box-shadow: 0 0 0 3px rgba(197, 160, 89, 0.3);
+}
+
+/* 3. Rejilla / Tabla de datos */
+.window-grid-panel {
+  padding: 16px 20px;
+  background-color: var(--color-bg-light, #F8FAFC);
+}
+
+.grid-table-scroll {
+  max-height: 380px;
+  min-height: 240px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border-medium, #CBD5E1);
+  border-radius: 6px;
+  background-color: #FFFFFF;
+}
+
+.tecnm-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+
+.tecnm-data-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background-color: var(--color-border-light, #F1F5F9);
+  border-bottom: 2px solid var(--color-border-medium, #CBD5E1);
+}
+
+.tecnm-data-table th {
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 700;
+  color: var(--color-primary-dark, #0F2548);
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+}
+
+.th-numero { width: 80px; }
+.th-nombre { width: auto; }
+
+.tecnm-data-table td {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--color-border, #E2E8F0);
+  color: var(--color-text-primary, #1E293B);
+}
+
+.font-mono { font-family: monospace; }
+.font-bold { font-weight: 700; }
+
+.td-empty {
+  padding: 44px 16px;
+  text-align: center;
+}
+
+.empty-state-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-secondary, #64748B);
+}
+
+.empty-icon {
+  width: 44px;
+  height: 44px;
+  color: var(--color-accent, #C5A059);
+}
+
+.empty-title {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--color-text-primary, #1E293B);
+}
+
+.empty-subtitle {
+  font-size: 0.82rem;
+  color: var(--color-text-muted, #94A3B8);
+  max-width: 400px;
+  line-height: 1.4;
+}
+
+/* 4. Barra inferior de acciones */
+.window-footer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background-color: var(--color-border-light, #F1F5F9);
+  border-top: 1px solid var(--color-border-medium, #CBD5E1);
+}
+
+.footer-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-tecnm {
+  padding: 8px 18px;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-width: 95px;
+}
+
+.btn-primary {
+  background-color: var(--color-primary, #1B396A);
+  color: #FFFFFF;
+  border: 1px solid var(--color-primary-dark, #0F2548);
+}
+.btn-primary:hover {
+  background-color: var(--color-primary-hover, #244B88);
+}
+
+.btn-accent {
+  background-color: var(--color-accent, #C5A059);
+  color: #FFFFFF;
+  border: 1px solid #B38E46;
+}
+.btn-accent:hover {
+  background-color: #B38E46;
+}
+
+.btn-secondary {
+  background-color: #FFFFFF;
+  color: var(--color-text-primary, #1E293B);
+  border: 1px solid var(--color-border-medium, #CBD5E1);
+}
+.btn-secondary:hover {
+  background-color: var(--color-border-light, #F1F5F9);
+}
+
+.btn-danger {
+  background-color: #FFFFFF;
+  color: #DC2626;
+  border: 1px solid #DC2626;
+}
+.btn-danger:hover {
+  background-color: #FEE2E2;
+}
+
+.footer-hint {
+  font-size: 0.82rem;
+  color: var(--color-text-secondary, #64748B);
+  font-weight: 600;
+}
+
+.footer-hint kbd {
+  background-color: #E2E8F0;
+  border: 1px solid #CBD5E1;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.75rem;
+  color: #1E293B;
+  font-family: monospace;
+}
+
+@media (max-width: 680px) {
+  .form-row { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .form-label { text-align: left; width: auto; }
+  .input-no-wrap, .input-nombre-wrap { max-width: 100%; }
+  .window-footer-bar { flex-direction: column; gap: 10px; }
+  .footer-buttons { flex-wrap: wrap; width: 100%; }
+}
+</style>
+
