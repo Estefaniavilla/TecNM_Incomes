@@ -57,7 +57,10 @@ builder.Services.AddScoped<CajaService>();
 builder.Services.AddScoped<PasswordHasher<User>>();
 builder.Services.AddSingleton(jwtSettings);
 builder.Services.AddCors(options => options.AddPolicy(FrontendCors, policy =>
-    policy.WithOrigins(allowedOrigin).AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
+    policy.WithOrigins(allowedOrigin, "http://localhost:6030", "http://localhost:5173", "https://localhost:6030", "https://localhost:5173")
+          .AllowAnyHeader()
+          .AllowAnyMethod()
+          .AllowCredentials()));
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
