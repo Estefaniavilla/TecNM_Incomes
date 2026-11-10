@@ -30,6 +30,7 @@ import ModalReporteDeudoresFechaCorte from '../components/ModalReporteDeudoresFe
 import ModalReporteDeudoresFechaCuenta from '../components/ModalReporteDeudoresFechaCuenta.vue'
 import ModalReporteDeudoresInscritos from '../components/ModalReporteDeudoresInscritos.vue'
 import ModalDepositoBancario from '../components/ModalDepositoBancario.vue'
+import ModalDepositoBancarioPropedeutico from '../components/ModalDepositoBancarioPropedeutico.vue'
 import ModalReciboProvisional from '../components/ModalReciboProvisional.vue'
 import ModalReciboProvisionalCancelar from '../components/ModalReciboProvisionalCancelar.vue'
 import * as cajaApi from '../api/cajaApi'
@@ -97,6 +98,7 @@ const mostrarModalReporteDeudoresFechaCorte = ref(false)
 const mostrarModalReporteDeudoresFechaCuenta = ref(false)
 const mostrarModalReporteDeudoresInscritos = ref(false)
 const mostrarModalDepositoBancario = ref(false)
+const mostrarModalDepositoBancarioPropedeutico = ref(false)
 const mostrarModalReciboProvisional = ref(false)
 const mostrarModalReciboProvisionalCancelar = ref(false)
 const menuAbierto = ref<'catalogo' | 'imprimir' | 'control' | 'utilerias' | null>(null)
@@ -171,6 +173,11 @@ function abrirModalReporteDeudoresInscritos(): void {
 
 function abrirModalDepositoBancario(): void {
   mostrarModalDepositoBancario.value = true
+  cerrarMenus()
+}
+
+function abrirModalDepositoBancarioPropedeutico(): void {
+  mostrarModalDepositoBancarioPropedeutico.value = true
   cerrarMenus()
 }
 
@@ -920,7 +927,7 @@ onMounted(async () => {
               <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalReciboProvisionalCancelar">
                 <span>Recibo Provisional Cancelar</span>
               </button>
-              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
+              <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalDepositoBancarioPropedeutico">
                 <span>Deposito Bancario - Curso Propedeutico</span>
               </button>
               <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalImprimeVerano">
@@ -1656,6 +1663,11 @@ onMounted(async () => {
     <ModalDepositoBancario
       v-if="mostrarModalDepositoBancario"
       @close="mostrarModalDepositoBancario = false"
+    />
+
+    <ModalDepositoBancarioPropedeutico
+      v-if="mostrarModalDepositoBancarioPropedeutico"
+      @close="mostrarModalDepositoBancarioPropedeutico = false"
     />
 
     <ModalReciboProvisional

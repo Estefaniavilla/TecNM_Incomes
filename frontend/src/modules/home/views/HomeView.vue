@@ -18,6 +18,7 @@ import ModalReporteDeudoresFechaCorte from '../../caja/components/ModalReporteDe
 import ModalReporteDeudoresFechaCuenta from '../../caja/components/ModalReporteDeudoresFechaCuenta.vue'
 import ModalReporteDeudoresInscritos from '../../caja/components/ModalReporteDeudoresInscritos.vue'
 import ModalDepositoBancario from '../../caja/components/ModalDepositoBancario.vue'
+import ModalDepositoBancarioPropedeutico from '../../caja/components/ModalDepositoBancarioPropedeutico.vue'
 import ModalReciboProvisional from '../../caja/components/ModalReciboProvisional.vue'
 import ModalReciboProvisionalCancelar from '../../caja/components/ModalReciboProvisionalCancelar.vue'
 
@@ -73,6 +74,7 @@ const mostrarModalReporteDeudoresFechaCorte = ref(false)
 const mostrarModalReporteDeudoresFechaCuenta = ref(false)
 const mostrarModalReporteDeudoresInscritos = ref(false)
 const mostrarModalDepositoBancario = ref(false)
+const mostrarModalDepositoBancarioPropedeutico = ref(false)
 const mostrarModalReciboProvisional = ref(false)
 const mostrarModalReciboProvisionalCancelar = ref(false)
 
@@ -146,6 +148,11 @@ function abrirModalReporteDeudoresInscritos(): void {
 
 function abrirModalDepositoBancario(): void {
   mostrarModalDepositoBancario.value = true
+  cerrarMenus()
+}
+
+function abrirModalDepositoBancarioPropedeutico(): void {
+  mostrarModalDepositoBancarioPropedeutico.value = true
   cerrarMenus()
 }
 
@@ -265,7 +272,7 @@ setInterval(actualizarHora, 1000)
               <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalReciboProvisionalCancelar">
                 <span>Recibo Provisional Cancelar</span>
               </button>
-              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
+              <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalDepositoBancarioPropedeutico">
                 <span>Deposito Bancario - Curso Propedeutico</span>
               </button>
               <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalImprimeVerano">
@@ -525,6 +532,7 @@ setInterval(actualizarHora, 1000)
     <ModalReporteDeudoresFechaCuenta v-if="mostrarModalReporteDeudoresFechaCuenta" @close="mostrarModalReporteDeudoresFechaCuenta = false" />
     <ModalReporteDeudoresInscritos v-if="mostrarModalReporteDeudoresInscritos" @close="mostrarModalReporteDeudoresInscritos = false" />
     <ModalDepositoBancario v-if="mostrarModalDepositoBancario" @close="mostrarModalDepositoBancario = false" />
+    <ModalDepositoBancarioPropedeutico v-if="mostrarModalDepositoBancarioPropedeutico" @close="mostrarModalDepositoBancarioPropedeutico = false" />
     <ModalReciboProvisional v-if="mostrarModalReciboProvisional" @close="mostrarModalReciboProvisional = false" />
     <ModalReciboProvisionalCancelar v-if="mostrarModalReciboProvisionalCancelar" @close="mostrarModalReciboProvisionalCancelar = false" />
   </div>
