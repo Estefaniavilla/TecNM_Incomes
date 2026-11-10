@@ -179,7 +179,13 @@ onUnmounted(() => {
                 </td>
               </tr>
 
-              <tr v-for="item in listaEmpleados" :key="item.id" class="data-row cursor-pointer" @click="seleccionarFila(item)">
+              <tr
+                v-for="item in listaEmpleados"
+                :key="item.id"
+                class="data-row cursor-pointer"
+                :class="{ 'is-selected': formEmpleado.id === item.id }"
+                @click="seleccionarFila(item)"
+              >
                 <td class="td-numero font-mono">{{ item.numero }}</td>
                 <td class="td-nombre font-bold">{{ item.nombre }}</td>
               </tr>
@@ -360,7 +366,7 @@ onUnmounted(() => {
   overflow-y: auto;
   border: 1px solid var(--color-border-medium, #CBD5E1);
   border-radius: 6px;
-  background-color: #FFFFFF;
+  background-color: var(--color-surface-white, #FFFFFF);
 }
 
 .tecnm-data-table {
@@ -393,6 +399,77 @@ onUnmounted(() => {
   padding: 8px 14px;
   border-bottom: 1px solid var(--color-border, #E2E8F0);
   color: var(--color-text-primary, #1E293B);
+}
+
+.data-row {
+  background-color: var(--color-surface-white, #FFFFFF);
+  transition: background-color 0.15s;
+}
+
+.data-row:hover {
+  background-color: var(--color-bg-light, #F8FAFC);
+}
+
+.data-row.is-selected {
+  background-color: var(--color-primary, #1B396A) !important;
+}
+
+.data-row.is-selected td {
+  color: #FFFFFF !important;
+}
+
+/* Modo Oscuro Robusto y Legible para ModalEmpleados */
+:global([data-theme="dark"]) .tecnm-window {
+  background-color: #141E33 !important;
+  border-color: #2B5EA7 !important;
+}
+
+:global([data-theme="dark"]) .window-grid-panel {
+  background-color: #101A2C !important;
+}
+
+:global([data-theme="dark"]) .grid-table-scroll {
+  background-color: #141E33 !important;
+  border-color: #2E3F5E !important;
+}
+
+:global([data-theme="dark"]) .tecnm-data-table thead {
+  background-color: #101A2C !important;
+  border-bottom-color: #2E3F5E !important;
+}
+
+:global([data-theme="dark"]) .tecnm-data-table th {
+  color: #D4B06A !important;
+}
+
+:global([data-theme="dark"]) .data-row {
+  background-color: #141E33 !important;
+}
+
+:global([data-theme="dark"]) .data-row:hover {
+  background-color: #1E2E4A !important;
+}
+
+:global([data-theme="dark"]) .tecnm-data-table td {
+  color: #F8FAFC !important;
+  border-bottom-color: #1E2C44 !important;
+}
+
+:global([data-theme="dark"]) .window-footer-bar {
+  background-color: #101A2C !important;
+  border-top-color: #2E3F5E !important;
+}
+
+:global([data-theme="dark"]) .tecnm-input {
+  background-color: #0B111E !important;
+  color: #F8FAFC !important;
+  border-color: #2E3F5E !important;
+}
+
+:global([data-theme="dark"]) .btn-secondary {
+  background-color: #141E33 !important;
+  color: #F8FAFC !important;
+  border-color: #2E3F5E !important;
 }
 
 .font-mono { font-family: monospace; }
