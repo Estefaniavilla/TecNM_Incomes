@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
+import { getReporteVerano } from '../api/cajaApi'
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -13,6 +14,9 @@ const form = ref({
   inicio: '',
   fin: '',
 })
+
+const isCargando = ref(false)
+const mensajeReporte = ref('')
 
 const pickerInicioRef = ref<HTMLInputElement | null>(null)
 const pickerFinRef = ref<HTMLInputElement | null>(null)
@@ -40,10 +44,27 @@ const conceptosDisponibles = [
   { id: 4, nombre: 'CURSO DE VERANO - IDIOMAS / INGLES', cuota: 850.00 },
 ]
 
-function alCambiarConcepto(): void {
+async function alCambiarConcepto(): Promise<void> {
   const seleccionado = conceptosDisponibles.find(c => c.nombre === form.value.concepto)
   if (seleccionado) {
     form.value.cuota = seleccionado.cuota.toFixed(2)
+  }
+  await ejecutarConsultaVerano()
+}
+
+async function ejecutarConsultaVerano(): Promise<void> {
+  isCargando.value = true
+  try {
+    const data = await getReporteVerano(form.value.inicio, form.value.fin, form.value.concepto)
+    form.value.totalRegistros = data.totalRegistros || 0
+    if (data.registros && data.registros.length > 0) {
+      form.value.reciboNo = data.registros[0].reciboNo
+    }
+    mensajeReporte.value = `Encontrados ${data.totalRegistros} registro(s) en PostgreSQL. Total recaudado: $${data.totalRecaudado.toFixed(2)}`
+  } catch {
+    mensajeReporte.value = 'Error al consultar datos de verano.'
+  } finally {
+    isCargando.value = false
   }
 }
 
@@ -239,7 +260,7 @@ onUnmounted(() => {
           </div>
 
           <div class="field-item item-btn-imprimir">
-            <button type="button" class="btn-action-primary btn-imprimir">
+            <button type="button" class="btn-action-primary btn-imprimir" :disabled="isCargando" @click="ejecutarConsultaVerano">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
                 <polyline points="6 9 6 2 18 2 18 9" />
                 <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
@@ -249,6 +270,7 @@ onUnmounted(() => {
             </button>
           </div>
         </div>
+        <p v-if="mensajeReporte" class="reporte-hint-text font-bold text-center mt-2">{{ mensajeReporte }}</p>
       </section>
 
       <!-- 3. Barra inferior de acciones (Manual TecNM) -->

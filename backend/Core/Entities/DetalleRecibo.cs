@@ -6,6 +6,7 @@ public sealed class DetalleRecibo
     public Guid ReciboId { get; set; }
     public Recibo? Recibo { get; set; }
     public Guid? ConceptoId { get; set; }
+    public ConceptoCobro? Concepto { get; set; }
     public required string Descripcion { get; set; }
     public int Cantidad { get; set; }
     public decimal CuotaUnitario { get; set; }
@@ -13,4 +14,3 @@ public sealed class DetalleRecibo
     public decimal ImporteTotal { get; set; }
     public string? PeriodoAno { get; set; }
 }
-

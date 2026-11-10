@@ -256,6 +256,11 @@ public sealed class TecNMDbContext(DbContextOptions<TecNMDbContext> options) : D
         detalle.Property(d => d.ImporteTotal).HasColumnName("importe_total").HasPrecision(12, 4).IsRequired();
         detalle.Property(d => d.PeriodoAno).HasColumnName("periodo_ano").HasMaxLength(20);
 
+        detalle.HasOne(d => d.Concepto)
+            .WithMany()
+            .HasForeignKey(d => d.ConceptoId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         // 13. Movimientos de Pago
         var mov = modelBuilder.Entity<MovimientoPago>();
         mov.ToTable("movimientos_pago");

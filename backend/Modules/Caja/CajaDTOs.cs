@@ -1,5 +1,9 @@
 namespace TecNM.Api.Modules.Caja;
 
+// =============================================================================
+// 1. Catálogos Académicos
+// =============================================================================
+
 public sealed record CarreraDTO(
     int IdCarrera,
     string Carrera,
@@ -17,12 +21,61 @@ public sealed record PeriodoDTO(
     DateOnly? FechaFin,
     bool Activo);
 
+// =============================================================================
+// 2. Alumnos y Matrículas
+// =============================================================================
+
+public sealed record AlumnoDTO(
+    string Matricula,
+    string NombreCompleto,
+    string Carrera,
+    int Semestre,
+    string Turno,
+    string Estatus,
+    bool TieneBeca,
+    decimal PorcentajeBeca,
+    int? IdCarrera = null,
+    string? NumeroFicha = null,
+    int? CuentaA = null,
+    string? MatriculaPrevia = null);
+
+public sealed record MatriculaHistorialDTO(
+    long IdHistorial,
+    string MatriculaAlumno,
+    string MatriculaPrevia,
+    string? PeriodoCodigo,
+    DateTimeOffset FechaRegistro,
+    string? MotivoCambio);
+
+public sealed record CambiarMatriculaRequest(
+    string NuevaMatricula,
+    string MotivoCambio,
+    int? IdPeriodo = null);
+
+// =============================================================================
+// 3. Adeudos y Becas
+// =============================================================================
+
 public sealed record AdeudoDTO(
     long IdAdeudo,
     string Matricula,
     string ConceptoCobro,
     int IdPeriodo,
     string PeriodoCodigo,
+    decimal MontoOriginal,
+    decimal SaldoPendiente,
+    DateOnly? FechaLimite,
+    string Estado);
+
+public sealed record AdeudoDetalleDTO(
+    long IdAdeudo,
+    string Matricula,
+    string AlumnoNombre,
+    string Carrera,
+    string ConceptoCobro,
+    string PeriodoCodigo,
+    short PeriodoAnio,
+    string PeriodoCiclo,
     decimal MontoOriginal,
     decimal SaldoPendiente,
     DateOnly? FechaLimite,
@@ -39,18 +92,43 @@ public sealed record BecaDTO(
     string? Motivo,
     bool Activa);
 
-public sealed record AlumnoDTO(
-    string Matricula,
-    string NombreCompleto,
-    string Carrera,
-    int Semestre,
-    string Turno,
-    string Estatus,
-    bool TieneBeca,
-    decimal PorcentajeBeca,
-    int? IdCarrera = null,
-    string? NumeroFicha = null,
-    int? CuentaA = null);
+// =============================================================================
+// 4. Cuentas y Empleados (Distinción entre Usuario, Cuenta y Banco)
+// =============================================================================
+
+public sealed record EmpleadoDTO(
+    Guid Id,
+    string Username,
+    string Name,
+    string Email,
+    string Role,
+    bool IsActive);
+
+public sealed record CrearEmpleadoRequest(
+    string Username,
+    string Name,
+    string Email,
+    string Role,
+    string Password);
+
+public sealed record CuentaConceptoDTO(
+    Guid Id,
+    string Cuenta,
+    string Descripcion,
+    decimal Costo,
+    string Categoria,
+    bool AplicaBeca);
+
+public sealed record CrearCuentaConceptoRequest(
+    string Cuenta,
+    string Descripcion,
+    decimal Costo,
+    string? Categoria = "Inscripción");
+
+public sealed record ActualizarCuentaConceptoRequest(
+    string Descripcion,
+    decimal Costo,
+    string? Categoria = null);
 
 public sealed record ConceptoDTO(
     Guid Id,
@@ -61,6 +139,24 @@ public sealed record ConceptoDTO(
     string Categoria,
     string? CuentaReferencia = null,
     int? Orden = null);
+
+// =============================================================================
+// 5. Análisis y Desglose de Referencias Bancarias (5+5)
+// =============================================================================
+
+public sealed record DesgloseReferenciaDTO(
+    string ReferenciaOriginal,
+    string CodigoEstudiante5,
+    string CodigoConcepto5,
+    AlumnoDTO? AlumnoDetectado,
+    ConceptoDTO? ConceptoDetectado,
+    List<ReciboResponse> RecibosPrevios,
+    bool ReferenciaDuplicada,
+    string Mensaje);
+
+// =============================================================================
+// 6. Recibos, Cobros y Cancelación
+// =============================================================================
 
 public sealed record DetalleItemRequest(
     Guid? ConceptoId,
@@ -81,7 +177,9 @@ public sealed record CrearReciboRequest(
     string? ReferenciaBancaria,
     string? CuentaBancaria,
     DateTimeOffset? FechaBancaria,
-    List<DetalleItemRequest> Detalles);
+    List<DetalleItemRequest> Detalles,
+    DateTimeOffset? FechaOperacion = null,
+    string? JustificacionFecha = null);
 
 public sealed record DetalleItemResponse(
     Guid Id,
@@ -120,6 +218,10 @@ public sealed record ReciboResponse(
 public sealed record CancelarReciboRequest(
     string Motivo);
 
+// =============================================================================
+// 7. Corte Diario, Pólizas y Reportes Especializados
+// =============================================================================
+
 public sealed record CorteCajaResponse(
     DateOnly Fecha,
     decimal TotalEfectivo,
@@ -149,3 +251,43 @@ public sealed record ReporteReciboDetalladoDTO(
     string EstadoRecibo,
     string CajeroUsuario,
     string CajeroNombre);
+
+public sealed record PolizaIngresoFilaDTO(
+    string Cuenta,
+    string Concepto,
+    int Cantidad,
+    decimal Total);
+
+public sealed record PolizaIngresoResumenDTO(
+    string Fecha,
+    decimal TotalGeneral,
+    List<PolizaIngresoFilaDTO> Filas);
+
+public sealed record ReporteIngresoFilaDTO(
+    string Folio,
+    string Concepto,
+    string Nombre,
+    decimal Total,
+    string Estatus);
+
+public sealed record ReporteIngresoResumenDTO(
+    string Fecha,
+    decimal TotalGeneral,
+    List<ReporteIngresoFilaDTO> Filas);
+
+public sealed record ReporteVeranoItemDTO(
+    string ReciboNo,
+    string Matricula,
+    string Alumno,
+    string Concepto,
+    decimal Cuota,
+    string Fecha);
+
+public sealed record ReporteVeranoResumenDTO(
+    string FechaInicio,
+    string FechaFin,
+    string Concepto,
+    decimal CuotaUnitario,
+    int TotalRegistros,
+    decimal TotalRecaudado,
+    List<ReporteVeranoItemDTO> Registros);

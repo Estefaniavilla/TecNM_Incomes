@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
+import { crearEmpleado, getEmpleados } from '../../caja/api/cajaApi'
 
 const emit = defineEmits<{
   (e: 'close'): void
 }>()
 
 const formEmpleado = ref({
+  id: '',
   numero: '',
   nombre: '',
 })
@@ -16,9 +18,63 @@ interface EmpleadoItem {
   nombre: string
 }
 const listaEmpleados = ref<EmpleadoItem[]>([])
+const isCargando = ref(false)
+const mensajeFeedback = ref('')
+
+async function cargarEmpleados(): Promise<void> {
+  isCargando.value = true
+  try {
+    const data = await getEmpleados()
+    if (data && data.length > 0) {
+      listaEmpleados.value = data.map((u, idx) => ({
+        id: u.id,
+        numero: idx + 1,
+        nombre: u.name,
+      }))
+    }
+  } catch {
+    // Si falla, se conservan los valores por defecto
+  } finally {
+    isCargando.value = false
+  }
+}
+
+async function guardarEmpleado(): Promise<void> {
+  if (!formEmpleado.value.nombre.trim()) {
+    mensajeFeedback.value = 'Ingrese el nombre del empleado.'
+    return
+  }
+
+  isCargando.value = true
+  try {
+    const username = `emp_${Date.now().toString().slice(-4)}`
+    await crearEmpleado({
+      username,
+      name: formEmpleado.value.nombre.trim(),
+      email: `${username}@tecnm.local`,
+      role: 'Cajero',
+    })
+    mensajeFeedback.value = 'Empleado registrado correctamente en PostgreSQL.'
+    limpiar()
+    await cargarEmpleados()
+  } catch {
+    mensajeFeedback.value = 'Error al registrar el empleado en el servidor.'
+  } finally {
+    isCargando.value = false
+  }
+}
+
+function seleccionarFila(item: EmpleadoItem): void {
+  formEmpleado.value = {
+    id: item.id,
+    numero: String(item.numero),
+    nombre: item.nombre,
+  }
+}
 
 function limpiar(): void {
   formEmpleado.value = {
+    id: '',
     numero: '',
     nombre: '',
   }
@@ -36,6 +92,7 @@ function handleKeydown(e: KeyboardEvent): void {
 
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown)
+  void cargarEmpleados()
 })
 
 onUnmounted(() => {
@@ -122,7 +179,13 @@ onUnmounted(() => {
                 </td>
               </tr>
 
-              <tr v-for="item in listaEmpleados" :key="item.id" class="data-row">
+              <tr
+                v-for="item in listaEmpleados"
+                :key="item.id"
+                class="data-row cursor-pointer"
+                :class="{ 'is-selected': formEmpleado.id === item.id }"
+                @click="seleccionarFila(item)"
+              >
                 <td class="td-numero font-mono">{{ item.numero }}</td>
                 <td class="td-nombre font-bold">{{ item.nombre }}</td>
               </tr>
@@ -134,10 +197,10 @@ onUnmounted(() => {
       <!-- 4. Barra inferior de acciones conforme a la foto -->
       <footer class="window-footer-bar">
         <div class="footer-buttons">
-          <button type="button" class="btn-tecnm btn-primary">
+          <button type="button" class="btn-tecnm btn-primary" :disabled="isCargando" @click="guardarEmpleado">
             Guardar
           </button>
-          <button type="button" class="btn-tecnm btn-accent">
+          <button type="button" class="btn-tecnm btn-accent" :disabled="isCargando" @click="cargarEmpleados">
             Actualizar
           </button>
           <button type="button" class="btn-tecnm btn-secondary" @click="limpiar">
@@ -148,6 +211,7 @@ onUnmounted(() => {
           </button>
         </div>
         <div class="footer-hint">
+          <span v-if="mensajeFeedback" class="feedback-text">{{ mensajeFeedback }}</span>
           <kbd>ESC</kbd> = Salir
         </div>
       </footer>
@@ -302,7 +366,7 @@ onUnmounted(() => {
   overflow-y: auto;
   border: 1px solid var(--color-border-medium, #CBD5E1);
   border-radius: 6px;
-  background-color: #FFFFFF;
+  background-color: var(--color-surface-white, #FFFFFF);
 }
 
 .tecnm-data-table {
@@ -335,6 +399,77 @@ onUnmounted(() => {
   padding: 8px 14px;
   border-bottom: 1px solid var(--color-border, #E2E8F0);
   color: var(--color-text-primary, #1E293B);
+}
+
+.data-row {
+  background-color: var(--color-surface-white, #FFFFFF);
+  transition: background-color 0.15s;
+}
+
+.data-row:hover {
+  background-color: var(--color-bg-light, #F8FAFC);
+}
+
+.data-row.is-selected {
+  background-color: var(--color-primary, #1B396A) !important;
+}
+
+.data-row.is-selected td {
+  color: #FFFFFF !important;
+}
+
+/* Modo Oscuro Robusto y Legible para ModalEmpleados */
+:global([data-theme="dark"]) .tecnm-window {
+  background-color: #141E33 !important;
+  border-color: #2B5EA7 !important;
+}
+
+:global([data-theme="dark"]) .window-grid-panel {
+  background-color: #101A2C !important;
+}
+
+:global([data-theme="dark"]) .grid-table-scroll {
+  background-color: #141E33 !important;
+  border-color: #2E3F5E !important;
+}
+
+:global([data-theme="dark"]) .tecnm-data-table thead {
+  background-color: #101A2C !important;
+  border-bottom-color: #2E3F5E !important;
+}
+
+:global([data-theme="dark"]) .tecnm-data-table th {
+  color: #D4B06A !important;
+}
+
+:global([data-theme="dark"]) .data-row {
+  background-color: #141E33 !important;
+}
+
+:global([data-theme="dark"]) .data-row:hover {
+  background-color: #1E2E4A !important;
+}
+
+:global([data-theme="dark"]) .tecnm-data-table td {
+  color: #F8FAFC !important;
+  border-bottom-color: #1E2C44 !important;
+}
+
+:global([data-theme="dark"]) .window-footer-bar {
+  background-color: #101A2C !important;
+  border-top-color: #2E3F5E !important;
+}
+
+:global([data-theme="dark"]) .tecnm-input {
+  background-color: #0B111E !important;
+  color: #F8FAFC !important;
+  border-color: #2E3F5E !important;
+}
+
+:global([data-theme="dark"]) .btn-secondary {
+  background-color: #141E33 !important;
+  color: #F8FAFC !important;
+  border-color: #2E3F5E !important;
 }
 
 .font-mono { font-family: monospace; }

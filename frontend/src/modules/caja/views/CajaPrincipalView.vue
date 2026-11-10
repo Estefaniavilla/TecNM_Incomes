@@ -44,7 +44,7 @@ import type {
   EstadoRecibo,
   MetodoPago,
   ReciboCaja,
-} from '../types/caja'
+} from '../types/caja' 
 
 const route = useRoute()
 const router = useRouter()
@@ -274,11 +274,40 @@ const opcionesCarreras = ref([
 const sugerenciasEstudiantes = ref<AlumnoCaja[]>([])
 let searchDebounceTimeout: any = null
 
+function limpiarExpedienteEstudiante(): void {
+  alumno.value = {
+    matricula: '',
+    nombreCompleto: '',
+    carrera: 'Ing. Industrial',
+    carreraId: 67,
+    semestre: 1,
+    turno: 'Matutino',
+    estatus: 'Inscrito',
+    tieneBeca: false,
+    porcentajeBeca: 0,
+  }
+  adeudosAlumno.value = []
+  becasAlumno.value = []
+  sugerenciasEstudiantes.value = []
+}
+
 function onBusquedaInput(val: string): void {
   busquedaMatricula.value = val
   if (searchDebounceTimeout) clearTimeout(searchDebounceTimeout)
 
-  if (!val || val.trim().length < 2) {
+  // 1. Si el usuario borra la caja de búsqueda, limpiar de inmediato adeudos y expediente anterior
+  if (!val || val.trim() === '') {
+    limpiarExpedienteEstudiante()
+    return
+  }
+
+  // 2. Si el texto cambia y ya no coincide con la matrícula cargada, quitar adeudos del alumno anterior
+  if (val.trim() !== alumno.value.matricula) {
+    adeudosAlumno.value = []
+    becasAlumno.value = []
+  }
+
+  if (val.trim().length < 2) {
     sugerenciasEstudiantes.value = []
     return
   }
@@ -287,10 +316,78 @@ function onBusquedaInput(val: string): void {
     try {
       const res = await cajaApi.buscarAlumnos(val.trim())
       sugerenciasEstudiantes.value = res || []
+
+      // Si coincide exactamente con una matrícula, cargar automáticamente el nuevo alumno y sus adeudos
+      const coincidencia = (res || []).find(
+        a => a.matricula.toLowerCase() === val.trim().toLowerCase()
+      )
+      if (coincidencia && coincidencia.matricula !== alumno.value.matricula) {
+        await seleccionarEstudiante(coincidencia, false)
+      }
     } catch {
       sugerenciasEstudiantes.value = []
     }
   }, 200)
+}
+
+function cobrarAdeudo(adeudo: AdeudoAlumno): void {
+  const conceptoMatch = catalogoConceptos.value.find(c =>
+    c.descripcion.toLowerCase().includes(adeudo.conceptoCobro.toLowerCase()) ||
+    c.clave.toLowerCase().includes('insc')
+  )
+
+  const yaExiste = partidas.value.find(p => p.descripcion.includes(adeudo.conceptoCobro) && p.periodoAno === adeudo.periodoCodigo)
+  if (yaExiste) {
+    toastRef.value?.info(`El adeudo de ${adeudo.conceptoCobro} (${adeudo.periodoCodigo}) ya está incluido en el recibo.`)
+    return
+  }
+
+  partidas.value.push({
+    id: `adeudo-${adeudo.idAdeudo}-${Date.now()}`,
+    conceptoId: conceptoMatch?.id || undefined,
+    descripcion: `${adeudo.conceptoCobro} (Periodo: ${adeudo.periodoCodigo})`,
+    cantidad: 1,
+    cuotaUnitario: adeudo.saldoPendiente,
+    descuentoBeca: 0,
+    importeTotal: adeudo.saldoPendiente,
+    periodoAno: adeudo.periodoCodigo,
+  })
+
+  toastRef.value?.success(`Adeudo de ${adeudo.conceptoCobro} ($${adeudo.saldoPendiente.toFixed(2)}) cargado al recibo. Puedes editar el importe si el alumno desea abonar una cantidad parcial.`)
+}
+
+const desgloseReferenciaInfo = ref<cajaApi.DesgloseReferenciaResult | null>(null)
+let debounceReferenciaTimeout: any = null
+
+function onReferenciaBancariaInput(val: string): void {
+  referenciaBancaria.value = val
+  if (debounceReferenciaTimeout) clearTimeout(debounceReferenciaTimeout)
+
+  if (!val || val.trim().length < 5) {
+    desgloseReferenciaInfo.value = null
+    return
+  }
+
+  debounceReferenciaTimeout = setTimeout(async () => {
+    try {
+      const res = await cajaApi.desglosarReferencia(val.trim())
+      desgloseReferenciaInfo.value = res
+      if (res.alumnoDetectado && !alumno.value.matricula) {
+        toastRef.value?.info(`Referencia 5+5 asociada a ${res.alumnoDetectado.nombreCompleto}.`)
+      }
+      if (res.referenciaDuplicada) {
+        toastRef.value?.warning(res.mensaje)
+      }
+    } catch {
+      desgloseReferenciaInfo.value = null
+    }
+  }, 300)
+}
+
+function aplicarAlumnoDeReferencia(): void {
+  if (desgloseReferenciaInfo.value?.alumnoDetectado) {
+    void seleccionarEstudiante(desgloseReferenciaInfo.value.alumnoDetectado)
+  }
 }
 
 async function seleccionarEstudiante(est: AlumnoCaja, showNotification = true): Promise<void> {
@@ -339,11 +436,16 @@ async function seleccionarEstudiante(est: AlumnoCaja, showNotification = true): 
 async function buscarEstudiante(): Promise<void> {
   const q = busquedaMatricula.value.trim()
   if (!q) {
+    limpiarExpedienteEstudiante()
     toastRef.value?.warning('Ingresa una matrícula o nombre para realizar la búsqueda.')
     return
   }
 
   isBuscandoAlumno.value = true
+  // Limpiar adeudos del alumno anterior mientras se realiza la nueva búsqueda
+  adeudosAlumno.value = []
+  becasAlumno.value = []
+
   try {
     const resultados = await cajaApi.buscarAlumnos(q)
     isBuscandoAlumno.value = false
@@ -353,10 +455,12 @@ async function buscarEstudiante(): Promise<void> {
       await seleccionarEstudiante(match, false)
       toastRef.value?.success(`Alumno localizado: ${match.nombreCompleto}`)
     } else {
+      limpiarExpedienteEstudiante()
       toastRef.value?.error(`No se encontró ningún estudiante con "${busquedaMatricula.value}".`)
     }
   } catch (err: any) {
     isBuscandoAlumno.value = false
+    limpiarExpedienteEstudiante()
     toastRef.value?.error('Error de comunicación con el servicio de estudiantes.')
   }
 }
@@ -547,6 +651,8 @@ async function registrarCobro(): Promise<void> {
     referenciaBancaria: metodoPagoSeleccionado.value === 'DEPOSITO_BANCARIO' ? referenciaBancaria.value : undefined,
     cuentaBancaria: cuentaBancaria.value || undefined,
     fechaBancaria: fechaBancaria.value ? new Date(fechaBancaria.value).toISOString() : undefined,
+    fechaOperacion: permitirEditarFecha.value && fechaOperacion.value ? `${fechaOperacion.value}T12:00:00Z` : undefined,
+    justificacionFecha: permitirEditarFecha.value ? 'Modificación administrativa de fecha justificada en ventanilla' : undefined,
     detalles: partidas.value.map(p => ({
       conceptoId: p.conceptoId && p.conceptoId.length === 36 ? p.conceptoId : undefined,
       descripcion: p.descripcion,
@@ -616,6 +722,8 @@ async function generarReciboPrevio(): Promise<void> {
     semestre: alumno.value.semestre,
     turno: alumno.value.turno.trim(),
     metodoPago: metodoPagoSeleccionado.value,
+    fechaOperacion: permitirEditarFecha.value && fechaOperacion.value ? `${fechaOperacion.value}T12:00:00Z` : undefined,
+    justificacionFecha: permitirEditarFecha.value ? 'Modificación de fecha justificada' : undefined,
     detalles: partidas.value.map(p => ({
       conceptoId: p.conceptoId && p.conceptoId.length === 36 ? p.conceptoId : undefined,
       descripcion: p.descripcion,
@@ -992,10 +1100,36 @@ onMounted(async () => {
           title="Atención en Ventanilla: El alumno presenta adeudos pendientes"
           class="adeudo-alert-banner"
         >
+          <div class="adeudo-banner-header-row">
+            <span class="adeudo-banner-subtitle">
+              Se detectaron {{ adeudosAlumno.length }} concepto(s) pendientes. Pregunta al estudiante cuánto desea abonar o si cubrirá la totalidad.
+            </span>
+            <button
+              type="button"
+              class="btn-dismiss-adeudo"
+              title="Descartar este aviso"
+              @click="adeudosAlumno = []"
+            >
+              ✕ Descartar aviso
+            </button>
+          </div>
+
           <div v-for="adeudo in adeudosAlumno" :key="adeudo.idAdeudo" class="adeudo-item-notice">
-            <span>⚠️ <strong>{{ adeudo.conceptoCobro }}</strong> (Periodo: {{ adeudo.periodoCodigo }}): </span>
-            <span class="text-danger font-bold">Saldo: ${{ adeudo.saldoPendiente.toFixed(2) }}</span>
-            <span v-if="adeudo.fechaLimite" class="adeudo-due-date"> · Límite de pago: {{ adeudo.fechaLimite }}</span>
+            <div class="adeudo-notice-info">
+              <span class="adeudo-bullet">⚠️</span>
+              <strong class="adeudo-concepto">{{ adeudo.conceptoCobro }}</strong>
+              <span class="adeudo-periodo">(Periodo: {{ adeudo.periodoCodigo }})</span>
+              <span class="text-danger font-bold">Saldo: ${{ adeudo.saldoPendiente.toFixed(2) }}</span>
+              <span v-if="adeudo.fechaLimite" class="adeudo-due-date">· Límite: {{ adeudo.fechaLimite }}</span>
+            </div>
+            <button
+              type="button"
+              class="btn-cobrar-adeudo"
+              title="Cargar adeudo a las partidas para cobrarlo o abonar"
+              @click="cobrarAdeudo(adeudo)"
+            >
+              + Cobrar / Abonar Adeudo
+            </button>
           </div>
         </UiAlert>
 
@@ -1210,9 +1344,10 @@ onMounted(async () => {
                 hint="Cuenta receptora oficial TecNM"
               />
               <UiField
-                v-model="referenciaBancaria"
+                :model-value="referenciaBancaria"
                 label="Referencia Bancaria (Estructura 5 + 5)"
                 hint="5 dígitos de alumno + 5 dígitos de concepto"
+                @update:model-value="onReferenciaBancariaInput"
               />
               <UiField
                 v-model="fechaBancaria"
@@ -1220,7 +1355,23 @@ onMounted(async () => {
                 label="Fecha de Pago en Banco"
               />
             </div>
-            <p class="reference-rule-note">
+
+            <!-- Desglose Inteligente 5+5 -->
+            <div v-if="desgloseReferenciaInfo" class="reference-analysis-panel mt-2 p-3 rounded border">
+              <p class="reference-rule-note">
+                ℹ️ Estructura 5+5: Estudiante (<strong>{{ desgloseReferenciaInfo.codigoEstudiante5 }}</strong>) · Concepto (<strong>{{ desgloseReferenciaInfo.codigoConcepto5 }}</strong>)
+              </p>
+              <div v-if="desgloseReferenciaInfo.alumnoDetectado" class="detected-student-banner mt-1 flex items-center justify-between">
+                <span>🎓 Alumno identificado: <strong>{{ desgloseReferenciaInfo.alumnoDetectado.nombreCompleto }}</strong> ({{ desgloseReferenciaInfo.alumnoDetectado.matricula }})</span>
+                <UiButton v-if="alumno.matricula !== desgloseReferenciaInfo.alumnoDetectado.matricula" size="sm" variant="secondary" @click="aplicarAlumnoDeReferencia">
+                  Usar Alumno
+                </UiButton>
+              </div>
+              <div v-if="desgloseReferenciaInfo.referenciaDuplicada" class="duplicate-alert mt-1 text-danger font-bold text-sm">
+                ⚠️ {{ desgloseReferenciaInfo.mensaje }}
+              </div>
+            </div>
+            <p v-else class="reference-rule-note">
               ℹ️ Validación de referencia: Primeros 5 dígitos (<strong>{{ referenciaBancaria.slice(0, 5) }}</strong>) vinculados a la matrícula; últimos 5 dígitos (<strong>{{ referenciaBancaria.slice(5) }}</strong>) correspondientes a la cuota institucional.
             </p>
           </div>
@@ -2517,22 +2668,104 @@ onMounted(async () => {
 }
 
 .adeudo-alert-banner {
-  margin-bottom: 8px;
+  margin-bottom: 12px;
   border-left: 4px solid #EAB308;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.adeudo-banner-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed rgba(234, 179, 8, 0.35);
+}
+
+.adeudo-banner-subtitle {
+  font-size: 0.8125rem;
+  color: inherit;
+  opacity: 0.9;
+}
+
+.btn-dismiss-adeudo {
+  background: transparent;
+  border: 1px solid rgba(234, 179, 8, 0.4);
+  color: inherit;
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.btn-dismiss-adeudo:hover {
+  background: rgba(234, 179, 8, 0.15);
+  border-color: #EAB308;
 }
 
 .adeudo-item-notice {
   font-size: 0.875rem;
-  padding: 4px 0;
+  padding: 6px 10px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: space-between;
+  gap: 10px;
+  background: rgba(234, 179, 8, 0.08);
+  border-radius: 6px;
+  border: 1px solid rgba(234, 179, 8, 0.2);
+  flex-wrap: wrap;
+}
+
+.adeudo-notice-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .adeudo-due-date {
   color: #64748B;
   font-size: 0.8rem;
+}
+
+.btn-cobrar-adeudo {
+  background: #1B396A;
+  color: #FFFFFF;
+  border: 1px solid #D4B06A;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-cobrar-adeudo:hover {
+  background: #152C53;
+  color: #D4B06A;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+:global([data-theme="dark"]) .btn-cobrar-adeudo {
+  background: #1E293B;
+  color: #F8FAFC;
+  border-color: #D4B06A;
+}
+
+:global([data-theme="dark"]) .btn-cobrar-adeudo:hover {
+  background: #283548;
+  color: #D4B06A;
+}
+
+:global([data-theme="dark"]) .adeudo-due-date {
+  color: #94A3B8;
 }
 </style>
 
