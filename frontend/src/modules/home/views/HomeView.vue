@@ -19,6 +19,7 @@ import ModalReporteDeudoresFechaCuenta from '../../caja/components/ModalReporteD
 import ModalReporteDeudoresInscritos from '../../caja/components/ModalReporteDeudoresInscritos.vue'
 import ModalDepositoBancario from '../../caja/components/ModalDepositoBancario.vue'
 import ModalReciboProvisional from '../../caja/components/ModalReciboProvisional.vue'
+import ModalReciboProvisionalCancelar from '../../caja/components/ModalReciboProvisionalCancelar.vue'
 
 const router = useRouter()
 const { dark } = useTheme()
@@ -73,6 +74,7 @@ const mostrarModalReporteDeudoresFechaCuenta = ref(false)
 const mostrarModalReporteDeudoresInscritos = ref(false)
 const mostrarModalDepositoBancario = ref(false)
 const mostrarModalReciboProvisional = ref(false)
+const mostrarModalReciboProvisionalCancelar = ref(false)
 
 function toggleMenu(menu: 'catalogo' | 'imprimir' | 'control' | 'utilerias'): void {
   menuAbierto.value = menuAbierto.value === menu ? null : menu
@@ -149,6 +151,11 @@ function abrirModalDepositoBancario(): void {
 
 function abrirModalReciboProvisional(): void {
   mostrarModalReciboProvisional.value = true
+  cerrarMenus()
+}
+
+function abrirModalReciboProvisionalCancelar(): void {
+  mostrarModalReciboProvisionalCancelar.value = true
   cerrarMenus()
 }
 
@@ -255,7 +262,7 @@ setInterval(actualizarHora, 1000)
               <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalReciboProvisional">
                 <span>Recibo Provisional</span>
               </button>
-              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
+              <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalReciboProvisionalCancelar">
                 <span>Recibo Provisional Cancelar</span>
               </button>
               <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
@@ -519,6 +526,7 @@ setInterval(actualizarHora, 1000)
     <ModalReporteDeudoresInscritos v-if="mostrarModalReporteDeudoresInscritos" @close="mostrarModalReporteDeudoresInscritos = false" />
     <ModalDepositoBancario v-if="mostrarModalDepositoBancario" @close="mostrarModalDepositoBancario = false" />
     <ModalReciboProvisional v-if="mostrarModalReciboProvisional" @close="mostrarModalReciboProvisional = false" />
+    <ModalReciboProvisionalCancelar v-if="mostrarModalReciboProvisionalCancelar" @close="mostrarModalReciboProvisionalCancelar = false" />
   </div>
 </template>
 

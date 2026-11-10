@@ -31,6 +31,7 @@ import ModalReporteDeudoresFechaCuenta from '../components/ModalReporteDeudoresF
 import ModalReporteDeudoresInscritos from '../components/ModalReporteDeudoresInscritos.vue'
 import ModalDepositoBancario from '../components/ModalDepositoBancario.vue'
 import ModalReciboProvisional from '../components/ModalReciboProvisional.vue'
+import ModalReciboProvisionalCancelar from '../components/ModalReciboProvisionalCancelar.vue'
 import * as cajaApi from '../api/cajaApi'
 import type {
   AdeudoAlumno,
@@ -97,6 +98,7 @@ const mostrarModalReporteDeudoresFechaCuenta = ref(false)
 const mostrarModalReporteDeudoresInscritos = ref(false)
 const mostrarModalDepositoBancario = ref(false)
 const mostrarModalReciboProvisional = ref(false)
+const mostrarModalReciboProvisionalCancelar = ref(false)
 const menuAbierto = ref<'catalogo' | 'imprimir' | 'control' | 'utilerias' | null>(null)
 
 function toggleMenu(menu: 'catalogo' | 'imprimir' | 'control' | 'utilerias'): void {
@@ -174,6 +176,11 @@ function abrirModalDepositoBancario(): void {
 
 function abrirModalReciboProvisional(): void {
   mostrarModalReciboProvisional.value = true
+  cerrarMenus()
+}
+
+function abrirModalReciboProvisionalCancelar(): void {
+  mostrarModalReciboProvisionalCancelar.value = true
   cerrarMenus()
 }
 
@@ -802,7 +809,7 @@ onMounted(async () => {
               <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalReciboProvisional">
                 <span>Recibo Provisional</span>
               </button>
-              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
+              <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalReciboProvisionalCancelar">
                 <span>Recibo Provisional Cancelar</span>
               </button>
               <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
@@ -1503,6 +1510,11 @@ onMounted(async () => {
     <ModalReciboProvisional
       v-if="mostrarModalReciboProvisional"
       @close="mostrarModalReciboProvisional = false"
+    />
+
+    <ModalReciboProvisionalCancelar
+      v-if="mostrarModalReciboProvisionalCancelar"
+      @close="mostrarModalReciboProvisionalCancelar = false"
     />
 
     <!-- Sistema de Notificaciones Flotantes (Toasts) -->
