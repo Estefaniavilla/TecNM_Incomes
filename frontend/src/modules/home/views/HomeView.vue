@@ -21,6 +21,7 @@ import ModalDepositoBancario from '../../caja/components/ModalDepositoBancario.v
 import ModalDepositoBancarioPropedeutico from '../../caja/components/ModalDepositoBancarioPropedeutico.vue'
 import ModalReciboProvisional from '../../caja/components/ModalReciboProvisional.vue'
 import ModalReciboProvisionalCancelar from '../../caja/components/ModalReciboProvisionalCancelar.vue'
+import ModalConsultaCancelacionRecibos from '../../caja/components/ModalConsultaCancelacionRecibos.vue'
 
 const router = useRouter()
 const { dark } = useTheme()
@@ -77,6 +78,7 @@ const mostrarModalDepositoBancario = ref(false)
 const mostrarModalDepositoBancarioPropedeutico = ref(false)
 const mostrarModalReciboProvisional = ref(false)
 const mostrarModalReciboProvisionalCancelar = ref(false)
+const mostrarModalConsultaCancelacionRecibos = ref(false)
 
 function toggleMenu(menu: 'catalogo' | 'imprimir' | 'control' | 'utilerias'): void {
   menuAbierto.value = menuAbierto.value === menu ? null : menu
@@ -163,6 +165,11 @@ function abrirModalReciboProvisional(): void {
 
 function abrirModalReciboProvisionalCancelar(): void {
   mostrarModalReciboProvisionalCancelar.value = true
+  cerrarMenus()
+}
+
+function abrirModalConsultaCancelacionRecibos(): void {
+  mostrarModalConsultaCancelacionRecibos.value = true
   cerrarMenus()
 }
 
@@ -292,7 +299,7 @@ setInterval(actualizarHora, 1000)
               Control <span class="arrow-indicator">▾</span>
             </button>
             <div v-if="menuAbierto === 'control'" class="menubar-dropdown-panel" role="menu">
-              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
+              <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalConsultaCancelacionRecibos">
                 <span>Consulta y Cancelación de Recibos</span>
               </button>
               <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
@@ -535,6 +542,7 @@ setInterval(actualizarHora, 1000)
     <ModalDepositoBancarioPropedeutico v-if="mostrarModalDepositoBancarioPropedeutico" @close="mostrarModalDepositoBancarioPropedeutico = false" />
     <ModalReciboProvisional v-if="mostrarModalReciboProvisional" @close="mostrarModalReciboProvisional = false" />
     <ModalReciboProvisionalCancelar v-if="mostrarModalReciboProvisionalCancelar" @close="mostrarModalReciboProvisionalCancelar = false" />
+    <ModalConsultaCancelacionRecibos v-if="mostrarModalConsultaCancelacionRecibos" @close="mostrarModalConsultaCancelacionRecibos = false" />
   </div>
 </template>
 
