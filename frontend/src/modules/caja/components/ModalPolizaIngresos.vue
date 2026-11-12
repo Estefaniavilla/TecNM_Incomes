@@ -66,7 +66,7 @@ function onFechaSeleccionada(campo: 'inicio' | 'fin', event: Event): void {
   }
 }
 
-function presetFecha(tipo: 'ayer' | 'hoy' | 'mes'): void {
+function presetFecha(tipo: 'ayer' | 'hoy' | 'mes' | 'todos'): void {
   if (tipo === 'ayer') {
     const ayer = obtenerFechaAyer()
     fechaInicio.value = ayer
@@ -81,6 +81,9 @@ function presetFecha(tipo: 'ayer' | 'hoy' | 'mes'): void {
     const m = String(hoy.getMonth() + 1).padStart(2, '0')
     fechaInicio.value = `${y}-${m}-01`
     fechaFin.value = obtenerFechaHoy()
+  } else if (tipo === 'todos') {
+    fechaInicio.value = ''
+    fechaFin.value = ''
   }
   buscar()
 }
@@ -532,9 +535,8 @@ const subtituloPeriodo = computed(() => {
 // Acciones
 // ==========================================
 function limpiar(): void {
-  const ayer = obtenerFechaAyer()
-  fechaInicio.value = ayer
-  fechaFin.value = ayer
+  fechaInicio.value = ''
+  fechaFin.value = ''
   formaPagoFiltro.value = ''
   cuentaFiltro.value = ''
   impresora.value = ''
@@ -632,6 +634,9 @@ onUnmounted(() => {
               </button>
               <button type="button" class="btn-preset" @click="presetFecha('mes')">
                 Mes en Curso
+              </button>
+              <button type="button" class="btn-preset btn-preset-highlight" @click="presetFecha('todos')">
+                🌐 Ver Todo
               </button>
             </div>
           </div>
