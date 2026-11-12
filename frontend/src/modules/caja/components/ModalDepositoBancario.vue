@@ -536,7 +536,182 @@ function limpiar(): void {
 }
 
 function imprimir(): void {
-  window.print()
+  pestanaActiva.value = 'impresion'
+  setTimeout(() => {
+    window.print()
+  }, 200)
+}
+
+function exportarPdf(): void {
+  imprimir()
+}
+
+function exportarCsv(): void {
+  if (pagos.value.length === 0) {
+    alert('No hay movimientos en el depósito para exportar.')
+    return
+  }
+
+  const lineas: string[] = []
+  lineas.push('INSTITUTO TECNOLÓGICO SUPERIOR DE MONCLOVA')
+  lineas.push('SISTEMA DE CONTROL DE CAJA — MÓDULO DE DEPÓSITOS BANCARIOS')
+  lineas.push('RESUMEN CONCENTRADOR DE DEPÓSITOS BANCARIOS')
+  lineas.push(`Fecha de Operación: ${formatearFechaIso(fechaDeposito.value)},Folio Concentrador: ${folioLote.value}`)
+  lineas.push(`Banco y Cuenta: ${bancoReceptor.value},Total Movimientos: ${totalCantidadMovimientos.value} PAGOS`)
+  lineas.push('')
+  lineas.push('--- RESUMEN POR CONCEPTO ---')
+  lineas.push('CONCEPTO,CANTIDAD,PRECIO UNITARIO,TOTAL')
+  for (const r of resumenAgrupadoPorConcepto.value) {
+    lineas.push(`"${r.concepto}",${r.cantidad},${r.precioUnitario.toFixed(2)},${r.total.toFixed(2)}`)
+  }
+  lineas.push(`"TOTAL GENERAL",${totalCantidadMovimientos.value},,${totalGeneralImporte.value.toFixed(2)}`)
+  lineas.push('')
+  lineas.push('--- RELACIÓN COMPLETA DE ALUMNOS Y REFERENCIAS BANCARIAS ---')
+  lineas.push('NO. RECIBO,MATRÍCULA,NOMBRE DEL ALUMNO,CARRERA,CONCEPTO,REFERENCIA BANCARIA,FECHA,IMPORTE')
+  for (const p of pagos.value) {
+    lineas.push(`"${p.numeroRecibo || ''}","${p.matricula}","${p.nombreAlumno}","${p.carrera}","${p.concepto}","${p.referenciaBancaria}","${p.fechaDeposito}",${p.precioUnitario.toFixed(2)}`)
+  }
+
+  const blob = new Blob(['\uFEFF' + lineas.join('\r\n')], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `Deposito_Bancario_${folioLote.value}_${fechaDeposito.value}.csv`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
+function exportarWord(): void {
+  if (pagos.value.length === 0) {
+    alert('No hay movimientos en el depósito para exportar.')
+    return
+  }
+
+  const filasResumenHtml = resumenAgrupadoPorConcepto.value.map(r => `
+    <tr>
+      <td style="border:1px solid #000; padding:6px 10px; font-weight:bold;">${r.concepto.toUpperCase()}</td>
+      <td style="border:1px solid #000; padding:6px 10px; text-align:center;">${r.cantidad}</td>
+      <td style="border:1px solid #000; padding:6px 10px; text-align:right;">${formatearMoneda(r.precioUnitario)}</td>
+      <td style="border:1px solid #000; padding:6px 10px; text-align:right; font-weight:bold;">${formatearMoneda(r.total)}</td>
+    </tr>
+  `).join('')
+
+  const filasAlumnosHtml = pagos.value.map((p, i) => `
+    <tr>
+      <td style="border:1px solid #000; padding:4px 8px; text-align:center; font-weight:bold;">${p.numeroRecibo || (i + 1)}</td>
+      <td style="border:1px solid #000; padding:4px 8px; font-family:monospace; font-weight:bold;">${p.matricula}</td>
+      <td style="border:1px solid #000; padding:4px 8px;">${p.nombreAlumno}</td>
+      <td style="border:1px solid #000; padding:4px 8px;">${p.carrera}</td>
+      <td style="border:1px solid #000; padding:4px 8px;">${p.concepto}</td>
+      <td style="border:1px solid #000; padding:4px 8px; font-family:monospace; text-align:center;">${p.referenciaBancaria}</td>
+      <td style="border:1px solid #000; padding:4px 8px; text-align:center;">${formatearFechaIso(p.fechaDeposito)}</td>
+      <td style="border:1px solid #000; padding:4px 8px; text-align:right; font-weight:bold;">${formatearMoneda(p.precioUnitario)}</td>
+    </tr>
+  `).join('')
+
+  const docHtml = `
+    <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+    <head>
+      <meta charset='utf-8'>
+      <title>Resumen Concentrador de Depósitos Bancarios</title>
+      <style>
+        body { font-family: Arial, sans-serif; font-size: 10pt; color: #000; }
+        h2 { text-align: center; margin: 0; color: #1B396A; font-size: 15pt; }
+        h3 { text-align: center; margin: 3px 0; color: #333; font-size: 11pt; }
+        h4 { text-align: center; margin: 5px 0 12px 0; color: #000; text-decoration: underline; font-size: 12pt; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 9pt; }
+        th { background-color: #1B396A; color: #ffffff; border: 1px solid #000; padding: 5px 8px; font-weight: bold; }
+        .meta-table td { border: none; padding: 3px 6px; font-size: 9pt; }
+        .section-header { font-size: 10pt; font-weight: bold; margin: 10px 0 4px 0; color: #1B396A; }
+      </style>
+    </head>
+    <body>
+      <h2>INSTITUTO TECNOLÓGICO SUPERIOR DE MONCLOVA</h2>
+      <h3>SISTEMA DE CONTROL DE CAJA — MÓDULO DE DEPÓSITOS BANCARIOS</h3>
+      <h4>RESUMEN CONCENTRADOR DE DEPÓSITOS BANCARIOS</h4>
+
+      <table class="meta-table">
+        <tr>
+          <td><strong>FECHA DE OPERACIÓN:</strong> ${formatearFechaIso(fechaDeposito.value)}</td>
+          <td><strong>FOLIO CONCENTRADOR:</strong> ${folioLote.value}</td>
+        </tr>
+        <tr>
+          <td><strong>BANCO Y CUENTA:</strong> ${bancoReceptor.value}</td>
+          <td><strong>TOTAL MOVIMIENTOS:</strong> ${totalCantidadMovimientos.value} PAGOS</td>
+        </tr>
+      </table>
+
+      <div class="section-header">RESUMEN POR CONCEPTO</div>
+      <table>
+        <thead>
+          <tr>
+            <th>CONCEPTO</th>
+            <th>CANTIDAD</th>
+            <th>PRECIO UNITARIO</th>
+            <th>TOTAL</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${filasResumenHtml}
+          <tr style="background-color: #f2f2f2; font-weight: bold;">
+            <td style="border:1px solid #000; padding:6px 10px;">TOTAL GENERAL</td>
+            <td style="border:1px solid #000; padding:6px 10px; text-align:center;">${totalCantidadMovimientos.value}</td>
+            <td style="border:1px solid #000; padding:6px 10px; text-align:right;">—</td>
+            <td style="border:1px solid #000; padding:6px 10px; text-align:right; color:#1B396A;">${formatearMoneda(totalGeneralImporte.value)}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="section-header">RELACIÓN COMPLETA DE ALUMNOS Y REFERENCIAS BANCARIAS (${pagos.value.length} MOVIMIENTOS)</div>
+      <table>
+        <thead>
+          <tr>
+            <th>RECIBO</th>
+            <th>MATRÍCULA</th>
+            <th>NOMBRE DEL ALUMNO</th>
+            <th>CARRERA</th>
+            <th>CONCEPTO</th>
+            <th>REFERENCIA BANCARIA</th>
+            <th>FECHA</th>
+            <th>IMPORTE</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${filasAlumnosHtml}
+        </tbody>
+      </table>
+
+      <br/><br/>
+      <table style="width: 100%; border: none;">
+        <tr>
+          <td style="width: 45%; text-align: center; border: none;">
+            _________________________________________<br/>
+            <strong>Cajero en Turno</strong><br/>
+            ELABORÓ
+          </td>
+          <td style="width: 10%; border: none;"></td>
+          <td style="width: 45%; text-align: center; border: none;">
+            _________________________________________<br/>
+            <strong>Depto. de Recursos Financieros</strong><br/>
+            REVISÓ Y VALIDÓ
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `
+
+  const blob = new Blob(['\uFEFF' + docHtml], { type: 'application/msword;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `Concentrado_Deposito_${folioLote.value}_${fechaDeposito.value}.doc`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
 }
 
 function cerrar(): void {
@@ -1033,6 +1208,49 @@ onUnmounted(() => {
       <!-- 4. MODO VISTA PREVIA DE IMPRESIÓN DEL CONCENTRADO BANC.  -->
       <!-- ======================================================== -->
       <section v-else class="preview-content-panel">
+
+        <!-- BARRA SUPERIOR DE EXPORTACIÓN Y VISTA PREVIA -->
+        <div class="preview-top-toolbar">
+          <div class="toolbar-left-msg">
+            <span class="preview-badge">Hoja Institucional</span>
+            <span class="preview-desc">Vista completa sin recortes ({{ pagos.length }} movimientos)</span>
+          </div>
+          <div class="toolbar-right-btns">
+            <button type="button" class="btn-export-pdf" title="Exportar a PDF" @click="exportarPdf">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon-sm">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
+              PDF
+            </button>
+            <button type="button" class="btn-export-csv" title="Exportar a CSV" @click="exportarCsv">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon-sm">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="10 9 9 9 8 9" />
+              </svg>
+              CSV
+            </button>
+            <button type="button" class="btn-export-word" title="Exportar a Word" @click="exportarWord">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon-sm">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                <polyline points="7 9 10 16 12 11 14 16 17 9" />
+              </svg>
+              Word
+            </button>
+            <button type="button" class="btn-action-print" title="Mandar a imprimir" @click="imprimir">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon-sm">
+                <polyline points="6 9 6 2 18 2 18 9"/>
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                <rect x="6" y="14" width="12" height="8"/>
+              </svg>
+              Imprimir
+            </button>
+            <button type="button" class="btn-action-secondary" title="Volver a la edición" @click="pestanaActiva = 'resumen'">
+              Volver a Edición
+            </button>
+          </div>
+        </div>
+
         <div class="print-sheet-wrapper">
           <div class="print-paper-sheet">
 
@@ -1056,6 +1274,9 @@ onUnmounted(() => {
             </header>
 
             <!-- TABLA DE CONCEPTOS AGRUPADOS (FORMATO OFICIAL) -->
+            <div class="sheet-section-title">
+              RESUMEN CONCENTRADO POR CONCEPTO:
+            </div>
             <table class="sheet-table">
               <thead>
                 <tr>
@@ -1085,20 +1306,35 @@ onUnmounted(() => {
               </tbody>
             </table>
 
-            <!-- DESGLOSE DE REFERENCIAS BANCARIAS ANEXO -->
-            <div class="sheet-annex-box">
-              <div class="annex-title">RELACIÓN DE ALUMNOS Y REFERENCIAS BANCARIAS ASOCIADAS:</div>
-              <div class="annex-columns-grid">
-                <div v-for="p in pagos.slice(0, 30)" :key="p.id" class="annex-item">
-                  <span class="annex-mat font-mono">{{ p.matricula }}</span>
-                  <span class="annex-nom">{{ p.nombreAlumno }}</span>
-                  <span class="annex-ref font-mono">{{ p.referenciaBancaria }}</span>
-                  <span class="annex-imp font-mono font-bold">{{ formatearMoneda(p.precioUnitario) }}</span>
-                </div>
+            <!-- RELACIÓN COMPLETA DE ALUMNOS (TODA LA LISTA COMPLETA SIN RECORTES NI SCROLL) -->
+            <div class="sheet-alumnos-section">
+              <div class="sheet-section-title">
+                RELACIÓN COMPLETA DE ALUMNOS Y REFERENCIAS BANCARIAS ({{ pagos.length }} MOVIMIENTOS):
               </div>
-              <div v-if="pagos.length > 30" class="annex-more">
-                ... y {{ pagos.length - 30 }} movimientos adicionales registrados en el archivo digital.
-              </div>
+              <table class="sheet-table sheet-table-alumnos">
+                <thead>
+                  <tr>
+                    <th class="th-rec text-center">RECIBO</th>
+                    <th class="th-mat text-center">MATRÍCULA</th>
+                    <th class="th-nom">NOMBRE DEL ALUMNO</th>
+                    <th class="th-cpto">CONCEPTO</th>
+                    <th class="th-ref text-center">REFERENCIA BANCARIA</th>
+                    <th class="th-fec text-center">FECHA</th>
+                    <th class="th-imp text-right">IMPORTE</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(p, i) in pagos" :key="p.id">
+                    <td class="td-rec text-center font-mono font-bold">{{ p.numeroRecibo || (i + 1) }}</td>
+                    <td class="td-mat text-center font-mono font-bold">{{ p.matricula }}</td>
+                    <td class="td-nom font-bold">{{ p.nombreAlumno }}</td>
+                    <td class="td-cpto">{{ p.concepto }}</td>
+                    <td class="td-ref text-center font-mono">{{ p.referenciaBancaria }}</td>
+                    <td class="td-fec text-center font-mono">{{ formatearFechaIso(p.fechaDeposito) }}</td>
+                    <td class="td-imp text-right font-mono font-bold">{{ formatearMoneda(p.precioUnitario) }}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
 
             <!-- CUADRO DE FIRMAS -->
@@ -1144,7 +1380,7 @@ onUnmounted(() => {
               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
               <circle cx="12" cy="12" r="3" />
             </svg>
-            Vista Previa de Impresión
+            Vista Previa
           </button>
           <button
             v-else
@@ -1156,11 +1392,57 @@ onUnmounted(() => {
             Volver a Edición
           </button>
 
+          <!-- Exportar a PDF -->
+          <button
+            type="button"
+            class="btn-export-pdf"
+            :disabled="pagos.length === 0"
+            title="Exportar documento oficial a PDF"
+            @click="exportarPdf"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+            </svg>
+            PDF
+          </button>
+
+          <!-- Exportar a CSV -->
+          <button
+            type="button"
+            class="btn-export-csv"
+            :disabled="pagos.length === 0"
+            title="Exportar relación a archivo Excel / CSV"
+            @click="exportarCsv"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="10 9 9 9 8 9" />
+            </svg>
+            CSV
+          </button>
+
+          <!-- Exportar a Word -->
+          <button
+            type="button"
+            class="btn-export-word"
+            :disabled="pagos.length === 0"
+            title="Exportar documento oficial a Microsoft Word (.doc)"
+            @click="exportarWord"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+              <polyline points="7 9 10 16 12 11 14 16 17 9" />
+            </svg>
+            Word
+          </button>
+
           <!-- Botón Imprimir -->
           <button
             type="button"
             class="btn-action-print"
             :disabled="pagos.length === 0"
+            title="Imprimir formato oficial"
             @click="imprimir"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
@@ -1168,7 +1450,7 @@ onUnmounted(() => {
               <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
               <rect x="6" y="14" width="12" height="8"/>
             </svg>
-            Imprimir Concentrado
+            Imprimir
           </button>
 
           <!-- Botón Procesar en Base de Datos -->
@@ -2044,7 +2326,50 @@ onUnmounted(() => {
   overflow-y: auto;
   background: #475569;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+}
+
+.preview-top-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  background: #1E293B;
+  padding: 0.6rem 1rem;
+  border-radius: 6px;
+  border: 1px solid #334155;
+  width: 100%;
+  max-width: 900px;
+}
+
+.toolbar-left-msg {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: #F8FAFC;
+  font-size: 0.8rem;
+}
+
+.preview-badge {
+  background: #C5A059;
+  color: #1B396A;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+}
+
+.preview-desc {
+  color: #CBD5E1;
+  font-size: 0.78rem;
+}
+
+.toolbar-right-btns {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .print-sheet-wrapper {
@@ -2059,7 +2384,7 @@ onUnmounted(() => {
   box-shadow: 0 15px 30px rgba(0, 0, 0, 0.35);
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1rem;
   min-height: 700px;
   position: relative;
   font-family: 'Times New Roman', Times, serif, Arial, sans-serif;
@@ -2099,6 +2424,14 @@ onUnmounted(() => {
   text-align: left;
 }
 
+.sheet-section-title {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #000000;
+  margin-top: 0.4rem;
+  letter-spacing: 0.02em;
+}
+
 /* Tabla de hoja */
 .sheet-table {
   width: 100%;
@@ -2123,59 +2456,26 @@ onUnmounted(() => {
   background: #F8FAFC;
 }
 
-/* Anexo de referencias */
-.sheet-annex-box {
-  border: 1px solid #64748B;
-  border-radius: 4px;
-  padding: 0.65rem 0.85rem;
-  background: #FAFAFA;
-}
-
-.annex-title {
-  font-size: 0.75rem;
-  font-weight: 800;
-  margin-bottom: 0.4rem;
-}
-
-.annex-columns-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.25rem 1rem;
-  font-size: 0.68rem;
-  max-height: 180px;
-  overflow-y: auto;
-}
-
-.annex-item {
+/* Relación Completa de Alumnos */
+.sheet-alumnos-section {
   display: flex;
-  justify-content: space-between;
-  border-bottom: 1px dotted #CBD5E1;
-  padding: 0.1rem 0;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
 }
 
-.annex-mat {
-  font-weight: 700;
-  width: 70px;
+.sheet-table-alumnos {
+  font-size: 0.73rem !important;
 }
 
-.annex-nom {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding: 0 0.3rem;
+.sheet-table-alumnos th {
+  background: #E2E8F0 !important;
+  color: #000000 !important;
+  padding: 0.35rem 0.5rem !important;
 }
 
-.annex-ref {
-  color: #475569;
-  padding-right: 0.5rem;
-}
-
-.annex-more {
-  margin-top: 0.4rem;
-  font-size: 0.68rem;
-  font-style: italic;
-  color: #64748B;
+.sheet-table-alumnos td {
+  padding: 0.3rem 0.5rem !important;
 }
 
 /* Firmas */
@@ -2250,7 +2550,8 @@ onUnmounted(() => {
 
 .footer-buttons-group {
   display: flex;
-  gap: 0.6rem;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .btn-icon {
@@ -2261,6 +2562,79 @@ onUnmounted(() => {
 .btn-icon-sm {
   width: 0.85rem;
   height: 0.85rem;
+}
+
+/* BOTONES DE EXPORTACIÓN (PDF, CSV, WORD) */
+.btn-export-pdf {
+  background: #DC2626;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 4px;
+  padding: 0.42rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-export-pdf:hover:not(:disabled) {
+  background: #B91C1C;
+}
+
+.btn-export-pdf:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-export-csv {
+  background: #16A34A;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 4px;
+  padding: 0.42rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-export-csv:hover:not(:disabled) {
+  background: #15803D;
+}
+
+.btn-export-csv:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-export-word {
+  background: #2563EB;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 4px;
+  padding: 0.42rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-export-word:hover:not(:disabled) {
+  background: #1D4ED8;
+}
+
+.btn-export-word:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btn-action-primary {
@@ -2369,24 +2743,99 @@ onUnmounted(() => {
 }
 
 /* =====================================================
-   MEDIA PRINT
+   MEDIA PRINT: IMPRESIÓN COMPLETA SIN RECORTES NI SCROLL
    ===================================================== */
 @media print {
+  @page {
+    size: letter portrait;
+    margin: 1cm;
+  }
+
+  body, html {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #FFFFFF !important;
+  }
+
+  /* Ocultar toda la UI externa y controles de la ventana */
   body * {
     visibility: hidden;
   }
+
   .print-paper-sheet,
   .print-paper-sheet * {
     visibility: visible;
   }
-  .print-paper-sheet {
+
+  .preview-top-toolbar,
+  .window-title-bar,
+  .window-footer-bar,
+  .sub-tabs-bar {
+    display: none !important;
+  }
+
+  .modal-backdrop {
+    position: static !important;
+    inset: auto !important;
+    background: transparent !important;
+    padding: 0 !important;
+    display: block !important;
+  }
+
+  .tecnm-window {
+    max-width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: #FFFFFF !important;
+  }
+
+  .preview-content-panel {
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    display: block !important;
     position: absolute;
     left: 0;
     top: 0;
     width: 100%;
-    margin: 0;
-    padding: 1.5cm;
-    box-shadow: none;
+  }
+
+  .print-sheet-wrapper {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .print-paper-sheet {
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    position: static !important;
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+
+  .sheet-table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+
+  .sheet-table th,
+  .sheet-table td {
+    border: 1px solid #000000 !important;
+  }
+
+  .sheet-table tr {
+    page-break-inside: avoid !important;
+  }
+
+  .sheet-signatures-footer {
+    page-break-inside: avoid !important;
+    margin-top: 2rem !important;
   }
 }
 </style>
