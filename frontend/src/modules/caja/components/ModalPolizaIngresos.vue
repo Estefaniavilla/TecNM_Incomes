@@ -66,7 +66,7 @@ function onFechaSeleccionada(campo: 'inicio' | 'fin', event: Event): void {
   }
 }
 
-function presetFecha(tipo: 'ayer' | 'hoy' | 'mes' | 'todos'): void {
+function presetFecha(tipo: 'ayer' | 'hoy' | 'mes' | 'todos' | 'muestra'): void {
   if (tipo === 'ayer') {
     const ayer = obtenerFechaAyer()
     fechaInicio.value = ayer
@@ -84,6 +84,9 @@ function presetFecha(tipo: 'ayer' | 'hoy' | 'mes' | 'todos'): void {
   } else if (tipo === 'todos') {
     fechaInicio.value = ''
     fechaFin.value = ''
+  } else if (tipo === 'muestra') {
+    fechaInicio.value = '2026-10-29'
+    fechaFin.value = '2026-10-29'
   }
   buscar()
 }
@@ -405,7 +408,7 @@ async function cargarDatos(): Promise<void> {
   try {
     const raw = await cajaApi.getReporteDetallado()
     if (raw && raw.length > 0) {
-      todosMovimientos.value = raw.map((item: ReporteDetalladoItem) => {
+      const listaApi = raw.map((item: ReporteDetalladoItem) => {
         const metodo = (item.metodoPago || '').toUpperCase()
         const esEfectivo = metodo.includes('EFECT')
         const forma: 'EFECTIVO' | 'DEPOSITO' = esEfectivo ? 'EFECTIVO' : 'DEPOSITO'
@@ -430,6 +433,10 @@ async function cargarDatos(): Promise<void> {
           estado: (item.estadoRecibo || 'PAGADO').toUpperCase(),
         }
       })
+      // Combinar los movimientos de BD con los movimientos oficiales de la póliza de prueba (29/10/2026)
+      const idsExistentes = new Set(listaApi.map(x => x.numeroRecibo))
+      const mocksAdicionales = mockMovimientosPoliza.filter(m => !idsExistentes.has(m.numeroRecibo))
+      todosMovimientos.value = [...listaApi, ...mocksAdicionales]
     } else {
       todosMovimientos.value = [...mockMovimientosPoliza]
     }
@@ -638,6 +645,9 @@ onUnmounted(() => {
               <button type="button" class="btn-preset btn-preset-highlight" @click="presetFecha('todos')">
                 🌐 Ver Todo
               </button>
+              <button type="button" class="btn-preset" @click="presetFecha('muestra')" title="Cargar corte de muestra fotografiado">
+                📋 Corte 29/10/2026
+              </button>
             </div>
           </div>
 
@@ -797,7 +807,14 @@ onUnmounted(() => {
             <tbody>
               <tr v-if="filasPolizaAgrupadas.length === 0">
                 <td colspan="5" class="empty-cell">
-                  <span>No hay movimientos registrados para la fecha o periodo seleccionado.</span>
+                  <div>No hay movimientos registrados para la fecha o periodo seleccionado.</div>
+                  <div class="empty-cell-hint">
+                    💡 Sugerencia: Presiona 
+                    <button type="button" class="btn-inline-pill" @click="presetFecha('muestra')">📋 Corte 29/10/2026</button>
+                    o
+                    <button type="button" class="btn-inline-pill" @click="presetFecha('todos')">🌐 Ver Todo</button>
+                    para consultar movimientos cargados.
+                  </div>
                 </td>
               </tr>
               <tr v-for="f in filasPolizaAgrupadas" :key="f.cuenta + f.concepto" class="data-row">
@@ -839,7 +856,14 @@ onUnmounted(() => {
             <tbody>
               <tr v-if="movimientosFiltrados.length === 0">
                 <td colspan="9" class="empty-cell">
-                  <span>No se encontraron movimientos individuales para este periodo.</span>
+                  <div>No se encontraron movimientos individuales para este periodo.</div>
+                  <div class="empty-cell-hint">
+                    💡 Sugerencia: Presiona 
+                    <button type="button" class="btn-inline-pill" @click="presetFecha('muestra')">📋 Corte 29/10/2026</button>
+                    o
+                    <button type="button" class="btn-inline-pill" @click="presetFecha('todos')">🌐 Ver Todo</button>
+                    para consultar los movimientos registrados.
+                  </div>
                 </td>
               </tr>
               <tr v-for="m in movimientosFiltrados" :key="m.id" class="data-row">
@@ -1469,7 +1493,47 @@ onUnmounted(() => {
   text-align: center;
   padding: 2.5rem !important;
   color: #64748B;
-  font-style: italic;
+  font-style: normal;
+}
+
+.empty-cell-hint {
+  margin-top: 0.65rem;
+  font-size: 0.8rem;
+  color: #64748B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.modal-backdrop.dark-theme .empty-cell-hint {
+  color: #94A3B8;
+}
+
+.btn-inline-pill {
+  background: #1B396A;
+  color: #FFFFFF;
+  border: 1px solid #244B88;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-inline-pill:hover {
+  background: #244B88;
+}
+
+.modal-backdrop.dark-theme .btn-inline-pill {
+  background: #244B88;
+  border-color: #3B82F6;
+  color: #F8FAFC;
+}
+
+.modal-backdrop.dark-theme .btn-inline-pill:hover {
+  background: #1D4ED8;
 }
 
 /* Panel inferior con resumen */

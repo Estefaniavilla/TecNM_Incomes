@@ -288,7 +288,7 @@ async function cargarDatos(): Promise<void> {
   try {
     const raw = await cajaApi.getReporteDetallado()
     if (raw && raw.length > 0) {
-      todosMovimientos.value = raw.map((item: ReporteDetalladoItem) => {
+      const listaApi = raw.map((item: ReporteDetalladoItem): MovimientoIngresoItem => {
         const metodo = (item.metodoPago || '').toUpperCase()
         const esEfectivo = metodo.includes('EFECT')
         return {
@@ -306,6 +306,10 @@ async function cargarDatos(): Promise<void> {
           estado: (item.estadoRecibo || 'PAGADO').toUpperCase(),
         }
       })
+      // Combinar los movimientos de BD con los movimientos oficiales de muestra (29/10/2026)
+      const idsExistentes = new Set(listaApi.map(x => x.numeroRecibo))
+      const mocksAdicionales = mockIngresosTecNM.filter(m => !idsExistentes.has(m.numeroRecibo))
+      todosMovimientos.value = [...listaApi, ...mocksAdicionales]
     } else {
       todosMovimientos.value = [...mockIngresosTecNM]
     }
