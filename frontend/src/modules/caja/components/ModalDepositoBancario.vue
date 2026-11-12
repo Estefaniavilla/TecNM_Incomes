@@ -724,6 +724,17 @@ function handleKeydown(e: KeyboardEvent): void {
   }
 }
 
+// Dropdown de exportación
+const mostrarDropdownExportar = ref(false)
+
+function toggleDropdownExportar(): void {
+  mostrarDropdownExportar.value = !mostrarDropdownExportar.value
+}
+
+function cerrarDropdownExportar(): void {
+  mostrarDropdownExportar.value = false
+}
+
 onMounted(async () => {
   window.addEventListener('keydown', handleKeydown)
 
@@ -770,20 +781,29 @@ onUnmounted(() => {
       aria-labelledby="deposito-masivo-title"
     >
       <!-- ======================================================== -->
-      <!-- 1. BARRA DE TÍTULO INSTITUCIONAL                         -->
+      <!-- 1. BARRA DE TÍTULO INSTITUCIONAL (TecNM)                 -->
       <!-- ======================================================== -->
       <header class="window-title-bar">
         <div class="window-title-left">
-          <svg class="window-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="2" y="5" width="20" height="14" rx="2" />
-            <line x1="2" y1="10" x2="22" y2="10" />
-            <path d="M7 15h2" />
-            <path d="M11 15h6" />
-          </svg>
-          <span id="deposito-masivo-title" class="window-title-text">
-            Módulo de Depósitos Bancarios
-          </span>
-          <span class="badge-modulo">Captura Masiva y Concentrado</span>
+          <div class="window-icon-box">
+            <svg class="window-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="5" width="20" height="14" rx="2" />
+              <line x1="2" y1="10" x2="22" y2="10" />
+              <path d="M7 15h2" />
+              <path d="M11 15h6" />
+            </svg>
+          </div>
+          <div class="title-text-group">
+            <div class="title-row">
+              <span id="deposito-masivo-title" class="window-title-text">
+                Módulo de Depósitos Bancarios
+              </span>
+              <span class="badge-modulo-gold">CAPTURA MASIVA Y CONCENTRADO</span>
+            </div>
+            <span class="window-subtitle-text">
+              Conciliación de pagos estudiantiles y consolidación por lote
+            </span>
+          </div>
         </div>
         <button
           type="button"
@@ -811,17 +831,17 @@ onUnmounted(() => {
           <button type="button" class="alert-btn-close" @click="depositoExitoso = false">&times;</button>
         </div>
 
-        <!-- TARJETA DE CONFIGURACIÓN DEL DEPÓSITO Y ACCESOS RÁPIDOS -->
-        <div class="deposito-header-card">
-          <div class="header-fields-grid">
-            <!-- Fecha de Operación / Depósito -->
-            <div class="field-item">
-              <label class="field-label">Fecha de Depósito:</label>
-              <div class="date-input-combo">
+        <!-- TARJETA DE CONFIGURACIÓN Y ACCIONES RÁPIDAS -->
+        <div class="config-tools-card">
+          <div class="config-fields-row">
+            <!-- Fecha de Depósito -->
+            <div class="config-field">
+              <label class="field-label-sm">Fecha de Depósito</label>
+              <div class="input-date-wrapper">
                 <input
                   v-model="fechaDeposito"
                   type="text"
-                  class="tecnm-input font-mono"
+                  class="tecnm-input-modern font-mono"
                   placeholder="AAAA-MM-DD"
                 />
                 <input
@@ -833,11 +853,11 @@ onUnmounted(() => {
                 />
                 <button
                   type="button"
-                  class="btn-calendar-trigger"
+                  class="btn-calendar-icon"
                   title="Seleccionar fecha"
                   @click="abrirCalendario"
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="calendar-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon-sm">
                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                     <line x1="16" y1="2" x2="16" y2="6" />
                     <line x1="8" y1="2" x2="8" y2="6" />
@@ -848,32 +868,30 @@ onUnmounted(() => {
             </div>
 
             <!-- Cuenta Bancaria Receptora -->
-            <div class="field-item">
-              <label class="field-label">Banco / Cuenta Receptora:</label>
-              <select v-model="bancoReceptor" class="tecnm-input tecnm-select">
-                <option v-for="cta in cuentasBancariasDisponibles" :key="cta" :value="cta">
-                  {{ cta }}
-                </option>
-              </select>
+            <div class="config-field config-field-grow">
+              <label class="field-label-sm">Banco / Cuenta Receptora</label>
+              <div class="select-wrapper">
+                <select v-model="bancoReceptor" class="tecnm-input-modern select-modern">
+                  <option v-for="cta in cuentasBancariasDisponibles" :key="cta" :value="cta">
+                    {{ cta }}
+                  </option>
+                </select>
+              </div>
             </div>
 
-            <!-- Folio del Concentrado -->
-            <div class="field-item">
-              <label class="field-label">Folio Concentrador:</label>
+            <!-- Folio Concentrador -->
+            <div class="config-field config-field-folio">
+              <label class="field-label-sm">Folio Concentrador</label>
               <input
                 v-model="folioLote"
                 type="text"
-                class="tecnm-input font-mono font-bold"
+                class="tecnm-input-modern font-mono text-center font-bold text-gold"
                 placeholder="DEP-202611-01"
               />
             </div>
-          </div>
 
-          <!-- BOTONES DE ACCIÓN RÁPIDA: Carga Masiva, Ejemplo y Plantilla -->
-          <div class="batch-tools-row">
-            <span class="tools-label">Carga y Herramientas:</span>
-            <div class="tools-buttons">
-              <!-- Input de archivo oculto -->
+            <!-- Botones de herramientas en la misma fila -->
+            <div class="tools-buttons-group">
               <input
                 ref="fileInputRef"
                 type="file"
@@ -883,94 +901,104 @@ onUnmounted(() => {
               />
               <button
                 type="button"
-                class="btn-tool-secondary"
-                title="Cargar transferencias desde un archivo CSV o TXT bancario"
+                class="btn-modern-tool"
+                title="Cargar transferencias desde un archivo CSV"
                 @click="abrirCargarArchivo"
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon-sm">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tool-icon">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                   <polyline points="17 8 12 3 7 8"/>
                   <line x1="12" y1="3" x2="12" y2="15"/>
                 </svg>
-                📂 Cargar Archivo Bancario (CSV)
+                Cargar CSV
               </button>
 
               <button
                 type="button"
-                class="btn-tool-secondary"
-                title="Descargar plantilla CSV para llenado en Excel"
+                class="btn-modern-tool"
+                title="Descargar plantilla CSV"
                 @click="descargarPlantillaCsv"
               >
-                📥 Descargar Plantilla
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tool-icon">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Plantilla
               </button>
 
               <button
                 type="button"
-                class="btn-tool-highlight"
-                title="Cargar el ejemplo oficial de 30 pagos (15 inscripciones + 15 constancias)"
+                class="btn-modern-tool btn-tool-demo"
+                title="Cargar el ejemplo oficial de 30 pagos"
                 @click="cargarEjemploRequerimiento"
               >
-                ⚡ Cargar Ejemplo (30 Pagos)
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tool-icon icon-gold">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                </svg>
+                Demo (30)
               </button>
             </div>
           </div>
         </div>
 
-        <!-- FORMULARIO DE CAPTURA RÁPIDA MANUAL DE UN ALUMNO -->
+        <!-- FORMULARIO DE CAPTURA RÁPIDA INDIVIDUAL -->
         <div class="quick-capture-card">
-          <div class="quick-capture-header">
-            <span class="quick-title">+ Captura Rápida Individual (Agregar al Lote)</span>
-            <span class="quick-hint">Permite ingresar pagos de estudiantes de forma rápida sin perder sus datos.</span>
+          <div class="quick-capture-legend">
+            <span class="status-dot-gold"></span>
+            <span class="legend-title">CAPTURA RÁPIDA INDIVIDUAL</span>
+            <span class="legend-separator">·</span>
+            <span class="legend-desc">Permite sumar pagos al lote en tiempo real sin perder datos</span>
           </div>
 
-          <div class="quick-capture-grid">
-            <!-- Búsqueda Alumno / Matrícula -->
-            <div class="field-item field-relative">
-              <label class="field-label">Matrícula o Nombre:</label>
-              <div class="input-search-wrapper">
+          <div class="quick-capture-inputs">
+            <!-- Matrícula -->
+            <div class="quick-field field-matricula">
+              <label class="compact-label">Matrícula</label>
+              <div class="search-input-rel">
                 <input
                   v-model="nuevoAlumnoMatricula"
                   type="text"
-                  class="tecnm-input font-mono"
-                  placeholder="Ej. 23050114 o Nombre..."
+                  class="tecnm-input-modern font-mono"
+                  placeholder="Ej. 23050114"
                   @input="onInputMatricula"
                   @focus="mostrarSugerencias = sugerenciasAlumnos.length > 0"
                 />
                 <span v-if="isBuscandoAlumnos" class="search-spinner">...</span>
-              </div>
 
-              <!-- Menú Flotante de Sugerencias de Alumnos -->
-              <div v-if="mostrarSugerencias && sugerenciasAlumnos.length > 0" class="suggestions-menu">
-                <div
-                  v-for="a in sugerenciasAlumnos"
-                  :key="a.matricula"
-                  class="suggestion-item"
-                  @mousedown.prevent="seleccionarAlumno(a)"
-                >
-                  <span class="sugg-mat">{{ a.matricula }}</span>
-                  <span class="sugg-nom">{{ a.nombreCompleto }}</span>
-                  <span class="sugg-car">{{ a.carrera }}</span>
+                <!-- Menú de sugerencias -->
+                <div v-if="mostrarSugerencias && sugerenciasAlumnos.length > 0" class="suggestions-menu">
+                  <div
+                    v-for="a in sugerenciasAlumnos"
+                    :key="a.matricula"
+                    class="suggestion-item"
+                    @mousedown.prevent="seleccionarAlumno(a)"
+                  >
+                    <span class="sugg-mat">{{ a.matricula }}</span>
+                    <span class="sugg-nom">{{ a.nombreCompleto }}</span>
+                    <span class="sugg-car">{{ a.carrera }}</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <!-- Nombre Alumno (Editable) -->
-            <div class="field-item">
-              <label class="field-label">Nombre del Estudiante:</label>
+            <!-- Nombre -->
+            <div class="quick-field field-nombre">
+              <label class="compact-label">Nombre del Estudiante</label>
               <input
                 v-model="nuevoAlumnoNombre"
                 type="text"
-                class="tecnm-input"
+                class="tecnm-input-modern"
                 placeholder="Nombre completo..."
               />
             </div>
 
             <!-- Concepto -->
-            <div class="field-item">
-              <label class="field-label">Concepto:</label>
+            <div class="quick-field field-concepto">
+              <label class="compact-label">Concepto</label>
               <select
                 v-model="nuevoConcepto"
-                class="tecnm-input tecnm-select"
+                class="tecnm-input-modern select-modern"
                 @change="onCambioConcepto"
               >
                 <option v-for="c in catalogoConceptos" :key="c.id" :value="c.descripcion">
@@ -980,39 +1008,38 @@ onUnmounted(() => {
             </div>
 
             <!-- Precio Unitario -->
-            <div class="field-item field-narrow">
-              <label class="field-label">Precio Unit.:</label>
+            <div class="quick-field field-precio">
+              <label class="compact-label">Precio Unitario ($)</label>
               <input
                 v-model.number="nuevoPrecioUnitario"
                 type="number"
                 min="0"
                 step="0.01"
-                class="tecnm-input font-mono text-right font-bold"
+                class="tecnm-input-modern font-mono text-right font-bold"
               />
             </div>
 
-            <!-- Referencia Bancaria -->
-            <div class="field-item">
-              <label class="field-label">Referencia Bancaria:</label>
+            <!-- Referencia -->
+            <div class="quick-field field-referencia">
+              <label class="compact-label">Referencia Bancaria</label>
               <input
                 v-model="nuevaReferencia"
                 type="text"
-                class="tecnm-input font-mono"
+                class="tecnm-input-modern font-mono"
                 placeholder="Ej. REF-BNC-98124"
                 @keyup.enter="agregarPagoManual"
               />
             </div>
 
             <!-- Botón Agregar -->
-            <div class="field-item field-btn-add">
-              <label class="field-label invisible-label">Acción</label>
+            <div class="quick-field field-btn">
               <button
                 type="button"
-                class="btn-add-pago"
-                title="Agregar pago al depósito masivo"
+                class="btn-quick-add"
+                title="Agregar pago al lote"
                 @click="agregarPagoManual"
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon-sm">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="add-icon">
                   <line x1="12" y1="5" x2="12" y2="19"/>
                   <line x1="5" y1="12" x2="19" y2="12"/>
                 </svg>
@@ -1023,92 +1050,127 @@ onUnmounted(() => {
         </div>
 
         <!-- ======================================================== -->
-        <!-- 3. BARRA DE PESTAÑAS: RESUMEN AGRUPADO VS DETALLE INDIV. -->
+        <!-- 3. TARJETAS DE INDICADORES ESTADÍSTICOS (KPI)            -->
         <!-- ======================================================== -->
-        <div class="sub-tabs-bar">
+        <div class="kpi-grid-row">
+          <div class="kpi-card-modern">
+            <div class="kpi-body">
+              <span class="kpi-caption">PAGOS REGISTRADOS</span>
+              <span class="kpi-number">{{ totalCantidadMovimientos }}</span>
+            </div>
+            <div class="kpi-icon-pill">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="kpi-svg">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+            </div>
+          </div>
+
+          <div class="kpi-card-modern">
+            <div class="kpi-body">
+              <span class="kpi-caption">CONCEPTOS DISTINTOS</span>
+              <span class="kpi-number">{{ resumenAgrupadoPorConcepto.length }}</span>
+            </div>
+            <div class="kpi-icon-pill">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="kpi-svg">
+                <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+                <polyline points="2 17 12 22 22 17"/>
+                <polyline points="2 12 12 17 22 12"/>
+              </svg>
+            </div>
+          </div>
+
+          <div class="kpi-card-modern kpi-card-gold">
+            <div class="kpi-body">
+              <span class="kpi-caption caption-gold">TOTAL GENERAL CONCENTRADO</span>
+              <span class="kpi-number text-gold">{{ formatearMoneda(totalGeneralImporte) }}</span>
+            </div>
+            <div class="kpi-icon-pill pill-gold">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="kpi-svg">
+                <line x1="12" y1="1" x2="12" y2="23"/>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- 4. BARRA DE PESTAÑAS: RESUMEN AGRUPADO VS DETALLE        -->
+        <!-- ======================================================== -->
+        <div class="tabs-line-nav">
           <button
             type="button"
-            class="sub-tab-btn"
+            class="tab-nav-btn"
             :class="{ active: pestanaActiva === 'resumen' }"
             @click="pestanaActiva = 'resumen'"
           >
-            📊 Resumen Agrupado por Concepto ({{ resumenAgrupadoPorConcepto.length }})
+            Resumen Agrupado por Concepto
+            <span class="tab-count-badge" :class="{ 'badge-active': pestanaActiva === 'resumen' }">
+              {{ resumenAgrupadoPorConcepto.length }}
+            </span>
           </button>
           <button
             type="button"
-            class="sub-tab-btn"
+            class="tab-nav-btn"
             :class="{ active: pestanaActiva === 'detalle' }"
             @click="pestanaActiva = 'detalle'"
           >
-            👥 Detalle Individual de Alumnos ({{ pagos.length }})
+            Detalle Individual de Alumnos
+            <span class="tab-count-badge" :class="{ 'badge-active': pestanaActiva === 'detalle' }">
+              {{ pagos.length }}
+            </span>
           </button>
         </div>
 
         <!-- ======================================================== -->
-        <!-- CONTENIDO PESTAÑA 1: RESUMEN AGRUPADO POR CONCEPTO       -->
-        <!-- (EXACTAMENTE LA TABLA Y EJEMPLO SOLICITADO)              -->
+        <!-- PESTAÑA 1: RESUMEN AGRUPADO POR CONCEPTO                 -->
         <!-- ======================================================== -->
-        <div v-if="pestanaActiva === 'resumen'" class="tab-view-container">
-
-          <!-- TARJETAS DE INDICADORES DE DEPÓSITO -->
-          <div class="kpi-cards-row">
-            <div class="kpi-card">
-              <span class="kpi-label">Total de Pagos Registrados:</span>
-              <span class="kpi-value font-mono">{{ totalCantidadMovimientos }}</span>
-            </div>
-            <div class="kpi-card">
-              <span class="kpi-label">Conceptos Distintos:</span>
-              <span class="kpi-value font-mono">{{ resumenAgrupadoPorConcepto.length }}</span>
-            </div>
-            <div class="kpi-card kpi-highlight">
-              <span class="kpi-label">Total General Concentrado:</span>
-              <span class="kpi-value font-mono font-bold text-success">{{ formatearMoneda(totalGeneralImporte) }}</span>
-            </div>
-          </div>
-
-          <!-- TABLA RESUMEN SOLICITADA POR EL USUARIO -->
-          <div class="table-container">
-            <table class="reporte-table">
+        <div v-if="pestanaActiva === 'resumen'" class="tab-pane-content">
+          <div class="modern-table-card">
+            <table class="modern-deposito-table">
               <thead>
                 <tr>
-                  <th class="col-cpto">Concepto</th>
-                  <th class="col-cant text-center">Cantidad</th>
-                  <th class="col-unit text-right">Precio unitario</th>
-                  <th class="col-tot text-right">Total</th>
+                  <th class="th-concepto">CONCEPTO</th>
+                  <th class="th-cantidad text-center">CANTIDAD</th>
+                  <th class="th-precio text-right">PRECIO UNITARIO</th>
+                  <th class="th-total text-right">TOTAL</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-if="resumenAgrupadoPorConcepto.length === 0">
-                  <td colspan="4" class="empty-cell">
-                    <div>No hay pagos registrados para este depósito bancario.</div>
-                    <div class="empty-cell-hint">
-                      💡 Presiona 
-                      <button type="button" class="btn-inline-pill" @click="cargarEjemploRequerimiento">
+                  <td colspan="4" class="empty-state-modern">
+                    <div class="empty-title">No hay pagos registrados para este depósito bancario</div>
+                    <div class="empty-hint">
+                      Carga un archivo bancario o presiona
+                      <button type="button" class="btn-text-gold" @click="cargarEjemploRequerimiento">
                         ⚡ Cargar Ejemplo (30 Pagos)
                       </button>
-                      o ingresa uno manualmente.
                     </div>
                   </td>
                 </tr>
 
-                <!-- RENGLONES POR CONCEPTO -->
                 <tr
-                  v-for="item in resumenAgrupadoPorConcepto"
+                  v-for="(item, idx) in resumenAgrupadoPorConcepto"
                   :key="item.concepto"
-                  class="data-row"
+                  class="tr-data-row"
                 >
-                  <td class="col-cpto font-bold text-primary">{{ item.concepto }}</td>
-                  <td class="col-cant font-mono text-center font-bold">{{ item.cantidad }}</td>
-                  <td class="col-unit font-mono text-right">{{ formatearMoneda(item.precioUnitario) }}</td>
-                  <td class="col-tot font-mono text-right font-bold">{{ formatearMoneda(item.total) }}</td>
+                  <td class="td-concepto">
+                    <span class="bullet-concept" :class="idx % 2 === 0 ? 'bullet-blue' : 'bullet-gold'"></span>
+                    <span class="concept-name">{{ item.concepto }}</span>
+                  </td>
+                  <td class="td-cantidad font-mono text-center">{{ item.cantidad }}</td>
+                  <td class="td-precio font-mono text-right">{{ formatearMoneda(item.precioUnitario) }}</td>
+                  <td class="td-total font-mono text-right font-bold">{{ formatearMoneda(item.total) }}</td>
                 </tr>
 
-                <!-- FILA DE TOTAL GENERAL (DESTACADA) -->
-                <tr v-if="resumenAgrupadoPorConcepto.length > 0" class="row-total-general">
-                  <td class="col-cpto font-bold text-uppercase">Total general</td>
-                  <td class="col-cant font-mono text-center font-bold">{{ totalCantidadMovimientos }}</td>
-                  <td class="col-unit text-right font-mono">—</td>
-                  <td class="col-tot font-mono text-right font-bold text-dorado">
+                <!-- FILA TOTAL GENERAL CONCENTRADO -->
+                <tr v-if="resumenAgrupadoPorConcepto.length > 0" class="tr-total-summary">
+                  <td class="td-concepto font-bold">TOTAL GENERAL</td>
+                  <td class="td-cantidad font-mono text-center font-bold">{{ totalCantidadMovimientos }}</td>
+                  <td class="td-precio font-mono text-right text-muted">—</td>
+                  <td class="td-total font-mono text-right font-bold text-gold">
                     {{ formatearMoneda(totalGeneralImporte) }}
                   </td>
                 </tr>
@@ -1116,19 +1178,20 @@ onUnmounted(() => {
             </table>
           </div>
 
-          <!-- NOTA NORMATIVA -->
-          <div class="audit-note">
-            ℹ️ <strong>Cálculo automático:</strong> Los importes se agrupan en tiempo real por cada concepto. Al procesar el depósito, cada pago conservará su información individual con número de recibo, matrícula y referencia bancaria para auditoría y consulta.
+          <!-- BANNER INFORMATIVO -->
+          <div class="modern-info-banner">
+            <span class="info-icon">ℹ️</span>
+            <span>
+              <strong>Cálculo automático:</strong> Los importes se agrupan en tiempo real por cada concepto. Al procesar el depósito, cada pago conservará su información individual con número de recibo, matrícula y referencia bancaria para auditoría y consulta.
+            </span>
           </div>
         </div>
 
         <!-- ======================================================== -->
-        <!-- CONTENIDO PESTAÑA 2: DETALLE INDIVIDUAL DE ALUMNOS       -->
-        <!-- (CONSERVA TODA LA INFORMACIÓN INDIVIDUAL DE CADA ESTUD.)  -->
+        <!-- PESTAÑA 2: DETALLE INDIVIDUAL DE ALUMNOS                 -->
         <!-- ======================================================== -->
-        <div v-else-if="pestanaActiva === 'detalle'" class="tab-view-container">
-
-          <!-- Buscador local para consultar alumnos dentro del lote -->
+        <div v-else-if="pestanaActiva === 'detalle'" class="tab-pane-content">
+          <!-- Barra de búsqueda local -->
           <div class="filter-bar-individual">
             <div class="search-input-box">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-icon-sm">
@@ -1138,7 +1201,7 @@ onUnmounted(() => {
               <input
                 v-model="filtroDetalle"
                 type="text"
-                class="tecnm-input font-mono"
+                class="tecnm-input-modern font-mono"
                 placeholder="Buscar por matrícula, nombre, concepto o referencia..."
               />
             </div>
@@ -1146,24 +1209,24 @@ onUnmounted(() => {
           </div>
 
           <!-- TABLA DE MOVIMIENTOS INDIVIDUALES -->
-          <div class="table-container table-scrollable">
-            <table class="reporte-table">
+          <div class="modern-table-card table-scrollable">
+            <table class="modern-deposito-table table-individual">
               <thead>
                 <tr>
-                  <th class="col-num text-center"># / Recibo</th>
-                  <th class="col-mat">Matrícula</th>
-                  <th class="col-nom">Nombre del Estudiante</th>
-                  <th class="col-carr">Carrera</th>
-                  <th class="col-cpto-sm">Concepto</th>
-                  <th class="col-ref">Referencia Bancaria</th>
-                  <th class="col-fec text-center">Fecha</th>
-                  <th class="col-imp text-right">Importe</th>
-                  <th class="col-acc text-center">Acción</th>
+                  <th class="th-num text-center"># / Recibo</th>
+                  <th class="th-mat">Matrícula</th>
+                  <th class="th-nom">Nombre del Estudiante</th>
+                  <th class="th-carr">Carrera</th>
+                  <th class="th-cpto-sm">Concepto</th>
+                  <th class="th-ref">Referencia Bancaria</th>
+                  <th class="th-fec text-center">Fecha</th>
+                  <th class="th-imp text-right">Importe</th>
+                  <th class="th-acc text-center">Acción</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-if="pagosFiltrados.length === 0">
-                  <td colspan="9" class="empty-cell">
+                  <td colspan="9" class="empty-state-modern">
                     <span>No se encontraron pagos con el criterio de búsqueda especificado.</span>
                   </td>
                 </tr>
@@ -1171,22 +1234,22 @@ onUnmounted(() => {
                 <tr
                   v-for="(p, idx) in pagosFiltrados"
                   :key="p.id"
-                  class="data-row"
+                  class="tr-data-row"
                 >
-                  <td class="col-num font-mono text-center font-bold">
+                  <td class="td-num font-mono text-center font-bold">
                     <span v-if="p.numeroRecibo" class="badge-recibo">{{ p.numeroRecibo }}</span>
                     <span v-else class="text-muted">Pendiente</span>
                   </td>
-                  <td class="col-mat font-mono font-bold">{{ p.matricula }}</td>
-                  <td class="col-nom font-bold">{{ p.nombreAlumno }}</td>
-                  <td class="col-carr text-muted text-xs">{{ p.carrera }}</td>
-                  <td class="col-cpto-sm">
+                  <td class="td-mat font-mono font-bold">{{ p.matricula }}</td>
+                  <td class="td-nom font-bold">{{ p.nombreAlumno }}</td>
+                  <td class="td-carr text-muted">{{ p.carrera }}</td>
+                  <td class="td-cpto-sm">
                     <span class="badge-concepto-pill">{{ p.concepto }}</span>
                   </td>
-                  <td class="col-ref font-mono text-xs">{{ p.referenciaBancaria }}</td>
-                  <td class="col-fec font-mono text-center">{{ formatearFechaIso(p.fechaDeposito) }}</td>
-                  <td class="col-imp font-mono font-bold text-right">{{ formatearMoneda(p.precioUnitario) }}</td>
-                  <td class="col-acc text-center">
+                  <td class="td-ref font-mono">{{ p.referenciaBancaria }}</td>
+                  <td class="td-fec font-mono text-center">{{ formatearFechaIso(p.fechaDeposito) }}</td>
+                  <td class="td-imp font-mono font-bold text-right">{{ formatearMoneda(p.precioUnitario) }}</td>
+                  <td class="td-acc text-center">
                     <button
                       type="button"
                       class="btn-delete-row"
@@ -1205,14 +1268,14 @@ onUnmounted(() => {
       </section>
 
       <!-- ======================================================== -->
-      <!-- 4. MODO VISTA PREVIA DE IMPRESIÓN DEL CONCENTRADO BANC.  -->
+      <!-- 5. MODO VISTA PREVIA DE IMPRESIÓN DEL CONCENTRADO BANC.  -->
       <!-- ======================================================== -->
       <section v-else class="preview-content-panel">
 
         <!-- BARRA SUPERIOR DE EXPORTACIÓN Y VISTA PREVIA -->
         <div class="preview-top-toolbar">
           <div class="toolbar-left-msg">
-            <span class="preview-badge">Hoja Institucional</span>
+            <span class="preview-badge">Hoja Institucional TecNM</span>
             <span class="preview-desc">Vista completa sin recortes ({{ pagos.length }} movimientos)</span>
           </div>
           <div class="toolbar-right-btns">
@@ -1358,25 +1421,27 @@ onUnmounted(() => {
       </section>
 
       <!-- ======================================================== -->
-      <!-- 5. BARRA DE ACCIONES INFERIOR                            -->
+      <!-- 6. BARRA DE ACCIONES INFERIOR (MODERNA CON DROPDOWN)     -->
       <!-- ======================================================== -->
-      <footer class="window-footer-bar">
-        <div class="footer-left-info">
-          <span class="info-tag font-mono">
-            {{ totalCantidadMovimientos }} Movimientos | Total: {{ formatearMoneda(totalGeneralImporte) }}
-          </span>
+      <footer class="modern-footer-bar">
+        <div class="footer-left">
+          <div class="footer-summary-badge">
+            <span class="badge-count font-mono">{{ totalCantidadMovimientos }} Movimientos</span>
+            <span class="badge-separator">|</span>
+            <span class="badge-amount font-mono text-gold">{{ formatearMoneda(totalGeneralImporte) }}</span>
+          </div>
         </div>
 
-        <div class="footer-buttons-group">
-          <!-- Botón de Vista Previa / Regresar -->
+        <div class="footer-right">
+          <!-- Vista Previa / Volver a Edición -->
           <button
             v-if="pestanaActiva !== 'impresion'"
             type="button"
-            class="btn-action-preview"
-            title="Ver formato impreso del concentrado bancario"
+            class="btn-footer-ghost"
+            title="Vista previa del documento oficial"
             @click="pestanaActiva = 'impresion'"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="footer-icon">
               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
               <circle cx="12" cy="12" r="3" />
             </svg>
@@ -1385,98 +1450,84 @@ onUnmounted(() => {
           <button
             v-else
             type="button"
-            class="btn-action-preview"
-            title="Regresar a la captura y edición"
+            class="btn-footer-ghost"
+            title="Volver a la edición"
             @click="pestanaActiva = 'resumen'"
           >
             Volver a Edición
           </button>
 
-          <!-- Exportar a PDF -->
-          <button
-            type="button"
-            class="btn-export-pdf"
-            :disabled="pagos.length === 0"
-            title="Exportar documento oficial a PDF"
-            @click="exportarPdf"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <polyline points="14 2 14 8 20 8" />
-            </svg>
-            PDF
+          <!-- DROPDOWN EXPORTAR -->
+          <div class="dropdown-export-wrapper">
+            <button
+              type="button"
+              class="btn-footer-ghost"
+              :disabled="pagos.length === 0"
+              @click.stop="toggleDropdownExportar"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="footer-icon">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
+              Exportar
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chevron-sm">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+
+            <!-- Menú Flotante de Opciones de Exportación -->
+            <div v-if="mostrarDropdownExportar" class="dropdown-menu-export" @click.stop>
+              <button
+                type="button"
+                class="dropdown-menu-item"
+                @click="exportarPdf(); cerrarDropdownExportar()"
+              >
+                <span class="item-tag tag-pdf">PDF</span>
+                <span>Documento Oficial PDF</span>
+              </button>
+              <button
+                type="button"
+                class="dropdown-menu-item"
+                @click="exportarCsv(); cerrarDropdownExportar()"
+              >
+                <span class="item-tag tag-csv">CSV</span>
+                <span>Hoja de Cálculo Excel / CSV</span>
+              </button>
+              <button
+                type="button"
+                class="dropdown-menu-item"
+                @click="exportarWord(); cerrarDropdownExportar()"
+              >
+                <span class="item-tag tag-word">DOC</span>
+                <span>Microsoft Word (.doc)</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Limpiar -->
+          <button type="button" class="btn-footer-ghost" @click="limpiar">
+            Limpiar
           </button>
 
-          <!-- Exportar a CSV -->
-          <button
-            type="button"
-            class="btn-export-csv"
-            :disabled="pagos.length === 0"
-            title="Exportar relación a archivo Excel / CSV"
-            @click="exportarCsv"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <polyline points="10 9 9 9 8 9" />
-            </svg>
-            CSV
+          <!-- Salir -->
+          <button type="button" class="btn-footer-ghost btn-ghost-danger" @click="cerrar">
+            Salir
           </button>
 
-          <!-- Exportar a Word -->
+          <!-- Registrar Depósito Primario (Verde Institucional) -->
           <button
             type="button"
-            class="btn-export-word"
-            :disabled="pagos.length === 0"
-            title="Exportar documento oficial a Microsoft Word (.doc)"
-            @click="exportarWord"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-              <polyline points="7 9 10 16 12 11 14 16 17 9" />
-            </svg>
-            Word
-          </button>
-
-          <!-- Botón Imprimir -->
-          <button
-            type="button"
-            class="btn-action-print"
-            :disabled="pagos.length === 0"
-            title="Imprimir formato oficial"
-            @click="imprimir"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
-              <polyline points="6 9 6 2 18 2 18 9"/>
-              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
-              <rect x="6" y="14" width="12" height="8"/>
-            </svg>
-            Imprimir
-          </button>
-
-          <!-- Botón Procesar en Base de Datos -->
-          <button
-            type="button"
-            class="btn-action-primary"
+            class="btn-footer-primary"
             :disabled="pagos.length === 0 || isProcesando"
             @click="procesarDepositoMasivo"
           >
-            <svg v-if="!isProcesando" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+            <svg v-if="!isProcesando" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="footer-icon">
               <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
               <polyline points="17 21 17 13 7 13 7 21"/>
               <polyline points="7 3 7 8 15 8"/>
             </svg>
             <span v-if="isProcesando">Guardando en Sistema...</span>
-            <span v-else>💾 Registrar Depósito ({{ totalCantidadMovimientos }})</span>
-          </button>
-
-          <!-- Botón Limpiar -->
-          <button type="button" class="btn-action-secondary" @click="limpiar">
-            Limpiar
-          </button>
-
-          <!-- Botón Salir -->
-          <button type="button" class="btn-action-danger" @click="cerrar">
-            Salir
+            <span v-else>Registrar Depósito ({{ totalCantidadMovimientos }})</span>
           </button>
         </div>
       </footer>
@@ -1486,16 +1537,17 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* =====================================================
+/* =============================================================================
    PALETA INSTITUCIONAL TecNM
-   Azul Marino: #1B396A | Cobalto: #244B88 | Dorado: #C5A059 | Rojo: #DC2626
-   ===================================================== */
+   Azul Marino: #1B396A | Azul Cobalto: #244B88 | Dorado: #C5A059 | Rojo: #DC2626
+   Fondo Dark: #0B1120 / #0F172A | Tarjetas: #151E2E / #1E293B | Bordes: #24334A
+   ============================================================================= */
 
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.7);
-  backdrop-filter: blur(4px);
+  background: rgba(8, 14, 26, 0.85);
+  backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1511,10 +1563,11 @@ onUnmounted(() => {
 
 .tecnm-window {
   width: 100%;
-  max-width: 1040px;
-  background: #FFFFFF;
-  border-radius: 10px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(27, 57, 106, 0.2);
+  max-width: 1060px;
+  background: #0B1120;
+  color: #F8FAFC;
+  border-radius: 12px;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(36, 75, 136, 0.35);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1522,31 +1575,35 @@ onUnmounted(() => {
   transition: max-width 0.2s ease;
 }
 
-.modal-backdrop.dark-theme .tecnm-window {
-  background: #0F172A;
-  color: #F8FAFC;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(197, 160, 89, 0.3);
-}
-
 .window-expanded {
-  max-width: 1120px;
+  max-width: 1140px;
 }
 
-/* BARRA DE TÍTULO INSTITUCIONAL */
+/* 1. BARRA DE TÍTULO INSTITUCIONAL */
 .window-title-bar {
-  background: linear-gradient(135deg, #1B396A 0%, #244B88 100%);
-  color: #FFFFFF;
+  background: linear-gradient(90deg, #0F172A 0%, #151E2E 100%);
+  border-bottom: 1px solid #1E293B;
+  padding: 0.85rem 1.25rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.65rem 1rem;
-  border-bottom: 2px solid #C5A059;
 }
 
 .window-title-left {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.85rem;
+}
+
+.window-icon-box {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 8px;
+  background: rgba(36, 75, 136, 0.25);
+  border: 1px solid rgba(197, 160, 89, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .window-icon {
@@ -1555,26 +1612,46 @@ onUnmounted(() => {
   color: #C5A059;
 }
 
-.window-title-text {
-  font-weight: 700;
-  font-size: 0.98rem;
-  letter-spacing: 0.02em;
+.title-text-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
 }
 
-.badge-modulo {
-  background: #C5A059;
-  color: #1B396A;
-  font-size: 0.68rem;
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.window-title-text {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: -0.01em;
+}
+
+.badge-modulo-gold {
+  background: rgba(197, 160, 89, 0.12);
+  color: #C5A059;
+  border: 1px solid rgba(197, 160, 89, 0.4);
+  font-size: 0.64rem;
   font-weight: 800;
-  text-transform: uppercase;
+  letter-spacing: 0.05em;
   padding: 0.15rem 0.5rem;
-  border-radius: 4px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+}
+
+.window-subtitle-text {
+  font-size: 0.76rem;
+  color: #94A3B8;
 }
 
 .window-btn-close {
   background: transparent;
   border: none;
-  color: #FFFFFF;
+  color: #94A3B8;
   font-size: 1.4rem;
   line-height: 1;
   width: 2rem;
@@ -1582,332 +1659,302 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: all 0.15s;
 }
 
 .window-btn-close:hover {
-  background: rgba(220, 38, 38, 0.85);
+  background: rgba(220, 38, 38, 0.2);
+  color: #EF4444;
 }
 
-/* PANEL DE CONTENIDO */
+/* 2. PANEL PRINCIPAL */
 .window-content-panel {
   padding: 1rem 1.25rem;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
-  background: #F8FAFC;
-}
-
-.modal-backdrop.dark-theme .window-content-panel {
   background: #0B1120;
 }
 
 /* ALERTA DE ÉXITO */
 .alert-success-banner {
-  background: #DCFCE7;
-  border: 1px solid #86EFAC;
-  color: #166534;
+  background: rgba(22, 163, 74, 0.15);
+  border: 1px solid rgba(22, 163, 74, 0.4);
+  color: #4ADE80;
   padding: 0.65rem 1rem;
-  border-radius: 6px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   gap: 0.75rem;
-}
-
-.modal-backdrop.dark-theme .alert-success-banner {
-  background: #064E3B;
-  border-color: #059669;
-  color: #A7F3D0;
+  font-size: 0.82rem;
 }
 
 .alert-icon {
-  width: 1.3rem;
-  height: 1.3rem;
+  width: 1.2rem;
+  height: 1.2rem;
   flex-shrink: 0;
 }
 
 .alert-text {
-  font-size: 0.85rem;
-  font-weight: 600;
   flex: 1;
 }
 
 .alert-btn-close {
   background: transparent;
   border: none;
+  color: #4ADE80;
   font-size: 1.2rem;
-  color: inherit;
   cursor: pointer;
 }
 
-/* TARJETA DE CONFIGURACIÓN DEL DEPÓSITO */
-.deposito-header-card {
-  background: #FFFFFF;
-  border: 1px solid #CBD5E1;
-  border-radius: 8px;
-  padding: 0.85rem 1rem;
+/* TARJETA DE CONFIGURACIÓN Y ACCIONES */
+.config-tools-card {
+  background: #111A2E;
+  border: 1px solid #1E2E4A;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+}
+
+.config-fields-row {
   display: flex;
-  flex-direction: column;
+  align-items: flex-end;
   gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
-.modal-backdrop.dark-theme .deposito-header-card {
-  background: #1E293B;
-  border-color: #334155;
-}
-
-.header-fields-grid {
-  display: grid;
-  grid-template-columns: 200px 1.5fr 180px;
-  gap: 1rem;
-}
-
-.field-item {
+.config-field {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.3rem;
 }
 
-.field-label {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #1B396A;
+.config-field-grow {
+  flex: 1;
+  min-width: 220px;
 }
 
-.modal-backdrop.dark-theme .field-label {
-  color: #E2E8F0;
+.config-field-folio {
+  width: 150px;
 }
 
-.invisible-label {
-  visibility: hidden;
+.field-label-sm {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #94A3B8;
+  letter-spacing: 0.02em;
 }
 
-/* Date combo */
-.date-input-combo {
+/* INPUTS MODERNOS */
+.tecnm-input-modern {
+  background: #0B1120;
+  border: 1px solid #24334A;
+  color: #F8FAFC;
+  padding: 0.45rem 0.7rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  width: 100%;
+}
+
+.tecnm-input-modern:focus {
+  border-color: #244B88;
+  box-shadow: 0 0 0 2px rgba(36, 75, 136, 0.35);
+}
+
+.select-modern {
+  cursor: pointer;
+}
+
+.input-date-wrapper {
+  position: relative;
   display: flex;
   align-items: center;
-  background: #FFFFFF;
-  border: 1px solid #CBD5E1;
-  border-radius: 4px;
-  overflow: hidden;
+  width: 140px;
 }
 
-.modal-backdrop.dark-theme .date-input-combo {
-  background: #0F172A;
-  border-color: #334155;
-}
-
-.date-input-combo .tecnm-input {
-  border: none !important;
-  box-shadow: none !important;
-  flex: 1;
+.input-date-wrapper .tecnm-input-modern {
+  padding-right: 2rem;
 }
 
 .hidden-date-picker {
+  position: absolute;
+  opacity: 0;
   width: 0;
   height: 0;
-  opacity: 0;
-  position: absolute;
   pointer-events: none;
 }
 
-.btn-calendar-trigger {
+.btn-calendar-icon {
+  position: absolute;
+  right: 0.4rem;
   background: transparent;
   border: none;
-  padding: 0.4rem 0.5rem;
+  color: #C5A059;
   cursor: pointer;
-  color: #1B396A;
   display: flex;
   align-items: center;
+  justify-content: center;
+  padding: 0.2rem;
 }
 
-.modal-backdrop.dark-theme .btn-calendar-trigger {
-  color: #C5A059;
-}
-
-.calendar-icon {
+.icon-sm {
   width: 1rem;
   height: 1rem;
 }
 
-/* Inputs y Selects */
-.tecnm-input {
-  background: #FFFFFF;
-  border: 1px solid #CBD5E1;
-  border-radius: 4px;
-  padding: 0.42rem 0.65rem;
-  font-size: 0.85rem;
-  color: #1E293B;
-  outline: none;
-  transition: all 0.15s;
-}
-
-.modal-backdrop.dark-theme .tecnm-input {
-  background: #0F172A;
-  border-color: #334155;
-  color: #F8FAFC;
-}
-
-.tecnm-input:focus {
-  border-color: #1B396A;
-  box-shadow: 0 0 0 2px rgba(27, 57, 106, 0.2);
-}
-
-.modal-backdrop.dark-theme .tecnm-input:focus {
-  border-color: #C5A059;
-  box-shadow: 0 0 0 2px rgba(197, 160, 89, 0.25);
-}
-
-.tecnm-select {
-  cursor: pointer;
-}
-
-/* Herramientas de Carga Masiva */
-.batch-tools-row {
+/* GRUPO DE BOTONES DE HERRAMIENTAS */
+.tools-buttons-group {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  border-top: 1px dashed #CBD5E1;
-  padding-top: 0.6rem;
-  gap: 0.5rem;
-}
-
-.modal-backdrop.dark-theme .batch-tools-row {
-  border-top-color: #334155;
-}
-
-.tools-label {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #64748B;
-}
-
-.tools-buttons {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  gap: 0.45rem;
+  margin-left: auto;
 }
 
 .hidden-file-input {
   display: none;
 }
 
-.btn-tool-secondary {
-  background: #E2E8F0;
-  color: #1E293B;
-  border: 1px solid #CBD5E1;
-  border-radius: 4px;
-  font-size: 0.75rem;
+.btn-modern-tool {
+  background: #151E2E;
+  border: 1px solid #24334A;
+  color: #E2E8F0;
+  border-radius: 6px;
+  padding: 0.42rem 0.75rem;
+  font-size: 0.78rem;
   font-weight: 600;
-  padding: 0.3rem 0.65rem;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.4rem;
   cursor: pointer;
   transition: all 0.15s;
 }
 
-.btn-tool-secondary:hover {
-  background: #CBD5E1;
-}
-
-.modal-backdrop.dark-theme .btn-tool-secondary {
-  background: #334155;
-  color: #F8FAFC;
-  border-color: #475569;
-}
-
-.modal-backdrop.dark-theme .btn-tool-secondary:hover {
-  background: #475569;
-}
-
-.btn-tool-highlight {
-  background: #FEF3C7;
-  color: #92400E;
-  border: 1px solid #FCD34D;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 0.3rem 0.75rem;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.btn-tool-highlight:hover {
-  background: #FDE68A;
-}
-
-.modal-backdrop.dark-theme .btn-tool-highlight {
-  background: #78350F;
-  color: #FDE68A;
-  border-color: #B45309;
-}
-
-/* TARJETA DE CAPTURA RÁPIDA */
-.quick-capture-card {
-  background: #FFFFFF;
-  border: 1px solid #CBD5E1;
-  border-radius: 8px;
-  padding: 0.75rem 1rem;
-}
-
-.modal-backdrop.dark-theme .quick-capture-card {
+.btn-modern-tool:hover {
   background: #1E293B;
   border-color: #334155;
+  color: #FFFFFF;
 }
 
-.quick-capture-header {
-  display: flex;
-  align-items: baseline;
-  gap: 0.75rem;
-  margin-bottom: 0.5rem;
+.btn-tool-demo {
+  border-color: rgba(197, 160, 89, 0.4);
+  background: rgba(197, 160, 89, 0.08);
+  color: #E2E8F0;
 }
 
-.quick-title {
-  font-size: 0.8rem;
-  font-weight: 800;
-  color: #1B396A;
-  text-transform: uppercase;
+.btn-tool-demo:hover {
+  background: rgba(197, 160, 89, 0.18);
+  border-color: #C5A059;
+  color: #FFFFFF;
 }
 
-.modal-backdrop.dark-theme .quick-title {
+.tool-icon {
+  width: 0.9rem;
+  height: 0.9rem;
+  color: #94A3B8;
+}
+
+.icon-gold {
   color: #C5A059;
 }
 
-.quick-hint {
-  font-size: 0.72rem;
-  color: #64748B;
+/* TARJETA DE CAPTURA RÁPIDA INDIVIDUAL */
+.quick-capture-card {
+  background: #111A2E;
+  border: 1px solid #1E2E4A;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
 }
 
-.quick-capture-grid {
-  display: grid;
-  grid-template-columns: 160px 1.4fr 1.3fr 110px 140px 100px;
-  gap: 0.65rem;
-  align-items: flex-end;
-}
-
-.field-relative {
-  position: relative;
-}
-
-.field-narrow {
-  width: 100%;
-}
-
-.input-search-wrapper {
-  position: relative;
+.quick-capture-legend {
   display: flex;
   align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+}
+
+.status-dot-gold {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: #C5A059;
+  box-shadow: 0 0 8px rgba(197, 160, 89, 0.6);
+}
+
+.legend-title {
+  font-size: 0.74rem;
+  font-weight: 800;
+  color: #E2E8F0;
+  letter-spacing: 0.04em;
+}
+
+.legend-separator {
+  color: #475569;
+}
+
+.legend-desc {
+  font-size: 0.72rem;
+  color: #94A3B8;
+}
+
+.quick-capture-inputs {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.quick-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.compact-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #94A3B8;
+}
+
+.field-matricula {
+  width: 130px;
+}
+
+.field-nombre {
+  flex: 1;
+  min-width: 180px;
+}
+
+.field-concepto {
+  width: 220px;
+}
+
+.field-precio {
+  width: 110px;
+}
+
+.field-referencia {
+  width: 150px;
+}
+
+.field-btn {
+  align-self: flex-end;
+}
+
+.search-input-rel {
+  position: relative;
 }
 
 .search-spinner {
   position: absolute;
   right: 0.5rem;
-  font-size: 0.75rem;
-  color: #64748B;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  color: #C5A059;
 }
 
 .suggestions-menu {
@@ -1915,320 +1962,320 @@ onUnmounted(() => {
   top: 100%;
   left: 0;
   right: 0;
-  background: #FFFFFF;
-  border: 1px solid #CBD5E1;
-  border-radius: 4px;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
   z-index: 50;
-  max-height: 180px;
-  overflow-y: auto;
-}
-
-.modal-backdrop.dark-theme .suggestions-menu {
   background: #0F172A;
-  border-color: #334155;
+  border: 1px solid #244B88;
+  border-radius: 6px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+  margin-top: 2px;
+  max-height: 160px;
+  overflow-y: auto;
 }
 
 .suggestion-item {
   padding: 0.4rem 0.6rem;
-  font-size: 0.75rem;
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  border-bottom: 1px solid #F1F5F9;
-}
-
-.modal-backdrop.dark-theme .suggestion-item {
-  border-bottom-color: #1E293B;
+  gap: 0.1rem;
+  border-bottom: 1px solid #1E293B;
 }
 
 .suggestion-item:hover {
-  background: #F1F5F9;
-}
-
-.modal-backdrop.dark-theme .suggestion-item:hover {
-  background: #1E293B;
+  background: #1B396A;
 }
 
 .sugg-mat {
+  font-size: 0.75rem;
   font-weight: 700;
-  color: #1B396A;
-}
-
-.modal-backdrop.dark-theme .sugg-mat {
   color: #C5A059;
+  font-family: monospace;
 }
 
 .sugg-nom {
-  color: #1E293B;
-}
-
-.modal-backdrop.dark-theme .sugg-nom {
-  color: #F8FAFC;
+  font-size: 0.76rem;
+  color: #FFFFFF;
 }
 
 .sugg-car {
-  font-size: 0.68rem;
-  color: #64748B;
+  font-size: 0.66rem;
+  color: #94A3B8;
 }
 
-.btn-add-pago {
-  background: #1B396A;
+.btn-quick-add {
+  background: linear-gradient(135deg, #1B396A 0%, #244B88 100%);
   color: #FFFFFF;
-  border: none;
-  border-radius: 4px;
-  padding: 0.44rem 0.75rem;
-  font-size: 0.8rem;
+  border: 1px solid rgba(197, 160, 89, 0.3);
+  border-radius: 6px;
+  padding: 0.45rem 0.95rem;
+  font-size: 0.78rem;
   font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  height: 32px;
+}
+
+.btn-quick-add:hover {
+  background: linear-gradient(135deg, #244B88 0%, #2A5A9E 100%);
+  border-color: #C5A059;
+}
+
+.add-icon {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+/* 3. TARJETAS KPI */
+.kpi-grid-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.kpi-card-modern {
+  background: #111A2E;
+  border: 1px solid #1E2E4A;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.kpi-card-gold {
+  border-color: rgba(197, 160, 89, 0.35);
+  background: rgba(197, 160, 89, 0.04);
+}
+
+.kpi-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.kpi-caption {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #94A3B8;
+  letter-spacing: 0.05em;
+}
+
+.caption-gold {
+  color: #C5A059;
+}
+
+.kpi-number {
+  font-size: 1.45rem;
+  font-weight: 800;
+  font-family: monospace;
+  color: #FFFFFF;
+  line-height: 1;
+}
+
+.text-gold {
+  color: #C5A059 !important;
+}
+
+.kpi-icon-pill {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 8px;
+  background: rgba(36, 75, 136, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.35rem;
-  cursor: pointer;
-  transition: background 0.15s;
 }
 
-.btn-add-pago:hover {
-  background: #244B88;
+.pill-gold {
+  background: rgba(197, 160, 89, 0.15);
 }
 
-.modal-backdrop.dark-theme .btn-add-pago {
-  background: #244B88;
+.kpi-svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  color: #C5A059;
 }
 
-.modal-backdrop.dark-theme .btn-add-pago:hover {
-  background: #1D4ED8;
-}
-
-/* SUB-PESTAÑAS */
-.sub-tabs-bar {
+/* 4. BARRA DE PESTAÑAS */
+.tabs-line-nav {
   display: flex;
-  gap: 0.5rem;
-  border-bottom: 2px solid #E2E8F0;
+  gap: 1.5rem;
+  border-bottom: 1px solid #1E2E4A;
+  padding-bottom: 0.1rem;
 }
 
-.modal-backdrop.dark-theme .sub-tabs-bar {
-  border-bottom-color: #334155;
-}
-
-.sub-tab-btn {
+.tab-nav-btn {
   background: transparent;
   border: none;
-  border-bottom: 3px solid transparent;
-  padding: 0.45rem 1rem;
-  font-weight: 700;
-  font-size: 0.85rem;
-  color: #64748B;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.modal-backdrop.dark-theme .sub-tab-btn {
+  border-bottom: 2px solid transparent;
+  padding: 0.5rem 0.25rem;
+  font-size: 0.84rem;
+  font-weight: 600;
   color: #94A3B8;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.15s;
+  margin-bottom: -1px;
 }
 
-.sub-tab-btn.active {
-  color: #1B396A;
-  border-bottom-color: #1B396A;
+.tab-nav-btn:hover {
+  color: #FFFFFF;
 }
 
-.modal-backdrop.dark-theme .sub-tab-btn.active {
-  color: #C5A059;
+.tab-nav-btn.active {
+  color: #FFFFFF;
+  font-weight: 700;
   border-bottom-color: #C5A059;
 }
 
-/* VISTAS DE PESTAÑAS */
-.tab-view-container {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-/* KPI CARDS */
-.kpi-cards-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1.5fr;
-  gap: 0.75rem;
-}
-
-.kpi-card {
-  background: #FFFFFF;
-  border: 1px solid #CBD5E1;
-  border-radius: 6px;
-  padding: 0.5rem 0.85rem;
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-backdrop.dark-theme .kpi-card {
+.tab-count-badge {
   background: #1E293B;
-  border-color: #334155;
-}
-
-.kpi-highlight {
-  border-color: #C5A059;
-  background: rgba(197, 160, 89, 0.08);
-}
-
-.kpi-label {
+  color: #94A3B8;
   font-size: 0.7rem;
   font-weight: 700;
-  color: #64748B;
-  text-transform: uppercase;
+  font-family: monospace;
+  padding: 0.1rem 0.45rem;
+  border-radius: 9999px;
 }
 
-.modal-backdrop.dark-theme .kpi-label {
-  color: #94A3B8;
+.tab-count-badge.badge-active {
+  background: rgba(197, 160, 89, 0.2);
+  color: #C5A059;
 }
 
-.kpi-value {
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: #1B396A;
+/* TABLA MODERNA */
+.tab-pane-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
 }
 
-.modal-backdrop.dark-theme .kpi-value {
-  color: #F8FAFC;
-}
-
-.text-success {
-  color: #16A34A !important;
-}
-
-.modal-backdrop.dark-theme .text-success {
-  color: #4ADE80 !important;
-}
-
-/* TABLAS */
-.table-container {
-  border: 1px solid #CBD5E1;
-  border-radius: 6px;
+.modern-table-card {
+  background: #111A2E;
+  border: 1px solid #1E2E4A;
+  border-radius: 10px;
   overflow: hidden;
-  background: #FFFFFF;
 }
 
-.modal-backdrop.dark-theme .table-container {
-  background: #1E293B;
-  border-color: #334155;
-}
-
-.table-scrollable {
-  max-height: 280px;
-  overflow-y: auto;
-}
-
-.reporte-table {
+.modern-deposito-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.82rem;
 }
 
-.reporte-table thead {
-  background: #1B396A;
-  color: #FFFFFF;
-  position: sticky;
-  top: 0;
-  z-index: 5;
+.modern-deposito-table thead {
+  background: #0D1525;
+  border-bottom: 1px solid #1E2E4A;
 }
 
-.modal-backdrop.dark-theme .reporte-table thead {
-  background: #0B1120;
-  color: #C5A059;
-  border-bottom: 2px solid #C5A059;
-}
-
-.reporte-table th {
-  padding: 0.55rem 0.75rem;
+.modern-deposito-table th {
+  padding: 0.55rem 0.85rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  text-align: left;
-  letter-spacing: 0.02em;
+  color: #94A3B8;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
-.reporte-table td {
-  padding: 0.45rem 0.75rem;
-  border-bottom: 1px solid #E2E8F0;
-  color: #1E293B;
+.modern-deposito-table td {
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid #151F33;
 }
 
-.modal-backdrop.dark-theme .reporte-table td {
-  border-bottom-color: #334155;
-  color: #E2E8F0;
+.tr-data-row:hover {
+  background: rgba(36, 75, 136, 0.12);
 }
 
-.data-row:hover {
-  background: #F1F5F9;
+.bullet-concept {
+  display: inline-block;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  margin-right: 0.5rem;
 }
 
-.modal-backdrop.dark-theme .data-row:hover {
-  background: #334155;
+.bullet-blue {
+  background: #38BDF8;
 }
 
-/* Fila de Total General */
-.row-total-general {
-  background: #FEF3C7;
-  border-top: 2px solid #F59E0B;
-  font-weight: 800;
+.bullet-gold {
+  background: #C5A059;
 }
 
-.modal-backdrop.dark-theme .row-total-general {
-  background: #78350F;
-  border-top-color: #C5A059;
+.concept-name {
+  font-weight: 600;
+  color: #F8FAFC;
 }
 
-.row-total-general td {
-  padding: 0.65rem 0.75rem;
-  font-size: 0.9rem;
+.tr-total-summary {
+  background: rgba(197, 160, 89, 0.06);
+  border-top: 1px solid rgba(197, 160, 89, 0.3);
 }
 
-.text-dorado {
-  color: #92400E;
+.tr-total-summary td {
+  padding: 0.75rem 0.85rem;
+  border-bottom: none;
 }
 
-.modal-backdrop.dark-theme .text-dorado {
-  color: #FDE68A;
-}
-
-.empty-cell {
+.empty-state-modern {
   text-align: center;
-  padding: 2.2rem !important;
-  color: #64748B;
-}
-
-.empty-cell-hint {
-  margin-top: 0.5rem;
-  font-size: 0.78rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-}
-
-.btn-inline-pill {
-  background: #1B396A;
-  color: #FFFFFF;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 0.15rem 0.5rem;
-  cursor: pointer;
-}
-
-.audit-note {
-  font-size: 0.73rem;
-  color: #64748B;
-  background: #F1F5F9;
-  border-radius: 4px;
-  padding: 0.4rem 0.75rem;
-  line-height: 1.4;
-}
-
-.modal-backdrop.dark-theme .audit-note {
-  background: #1E293B;
+  padding: 2.5rem 1rem;
   color: #94A3B8;
 }
 
-/* FILTRO DETALLE INDIVIDUAL */
+.empty-title {
+  font-size: 0.88rem;
+  margin-bottom: 0.35rem;
+}
+
+.empty-hint {
+  font-size: 0.78rem;
+}
+
+.btn-text-gold {
+  background: transparent;
+  border: none;
+  color: #C5A059;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0 0.2rem;
+}
+
+/* BANNER INFORMATIVO */
+.modern-info-banner {
+  background: rgba(36, 75, 136, 0.12);
+  border: 1px solid rgba(36, 75, 136, 0.3);
+  border-radius: 8px;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.74rem;
+  color: #94A3B8;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  line-height: 1.4;
+}
+
+.modern-info-banner strong {
+  color: #E2E8F0;
+}
+
+.info-icon {
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+/* TABLA INDIVIDUAL */
+.table-scrollable {
+  max-height: 380px;
+  overflow-y: auto;
+}
+
 .filter-bar-individual {
   display: flex;
   align-items: center;
@@ -2237,182 +2284,418 @@ onUnmounted(() => {
 }
 
 .search-input-box {
-  display: flex;
-  align-items: center;
-  background: #FFFFFF;
-  border: 1px solid #CBD5E1;
-  border-radius: 4px;
-  padding: 0 0.5rem;
+  position: relative;
   flex: 1;
-  max-width: 450px;
+  max-width: 480px;
 }
 
-.modal-backdrop.dark-theme .search-input-box {
-  background: #0F172A;
-  border-color: #334155;
-}
-
-.search-input-box .tecnm-input {
-  border: none !important;
-  box-shadow: none !important;
-  width: 100%;
+.search-input-box .tecnm-input-modern {
+  padding-left: 2.2rem;
 }
 
 .search-icon-sm {
+  position: absolute;
+  left: 0.7rem;
+  top: 50%;
+  transform: translateY(-50%);
   width: 0.95rem;
   height: 0.95rem;
-  color: #64748B;
+  color: #94A3B8;
 }
 
 .count-badge {
   font-size: 0.75rem;
-  font-weight: 700;
-  color: #64748B;
-}
-
-.modal-backdrop.dark-theme .count-badge {
   color: #94A3B8;
 }
 
-/* Badges */
+.table-individual th,
+.table-individual td {
+  padding: 0.45rem 0.7rem;
+  font-size: 0.78rem;
+}
+
 .badge-recibo {
-  background: #E0E7FF;
-  color: #3730A3;
+  background: rgba(197, 160, 89, 0.15);
+  color: #C5A059;
+  border: 1px solid rgba(197, 160, 89, 0.35);
   padding: 0.1rem 0.4rem;
   border-radius: 4px;
 }
 
-.modal-backdrop.dark-theme .badge-recibo {
-  background: #312E81;
-  color: #C7D2FE;
-}
-
 .badge-concepto-pill {
-  background: #E2E8F0;
-  color: #1E293B;
-  padding: 0.1rem 0.45rem;
-  border-radius: 12px;
+  background: rgba(36, 75, 136, 0.25);
+  color: #93C5FD;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
   font-size: 0.72rem;
-  font-weight: 600;
-}
-
-.modal-backdrop.dark-theme .badge-concepto-pill {
-  background: #334155;
-  color: #F8FAFC;
 }
 
 .btn-delete-row {
   background: transparent;
   border: none;
-  color: #DC2626;
-  font-size: 1.2rem;
-  font-weight: 800;
+  color: #94A3B8;
+  font-size: 1.1rem;
   cursor: pointer;
-  line-height: 1;
-  padding: 0.1rem 0.4rem;
   border-radius: 4px;
-  transition: background 0.15s;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-delete-row:hover {
-  background: rgba(220, 38, 38, 0.15);
+  background: rgba(220, 38, 38, 0.2);
+  color: #EF4444;
 }
 
-/* =====================================================
-   VISTA PREVIA DE IMPRESIÓN (HOJA FÍSICA)
-   ===================================================== */
-.preview-content-panel {
-  padding: 1.25rem;
-  overflow-y: auto;
-  background: #475569;
+/* 6. BARRA INFERIOR MODERNA */
+.modern-footer-bar {
+  background: #0D1525;
+  border-top: 1px solid #1E2E4A;
+  padding: 0.75rem 1.25rem;
   display: flex;
-  flex-direction: column;
   align-items: center;
-}
-
-.preview-top-toolbar {
-  display: flex;
   justify-content: space-between;
+  gap: 1rem;
+}
+
+.footer-summary-badge {
+  background: #111A2E;
+  border: 1px solid #1E2E4A;
+  border-radius: 8px;
+  padding: 0.45rem 0.85rem;
+  display: inline-flex;
   align-items: center;
-  margin-bottom: 1rem;
-  background: #1E293B;
-  padding: 0.6rem 1rem;
-  border-radius: 6px;
-  border: 1px solid #334155;
-  width: 100%;
-  max-width: 900px;
+  gap: 0.65rem;
+  font-size: 0.82rem;
+  font-weight: 700;
 }
 
-.toolbar-left-msg {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  color: #F8FAFC;
-  font-size: 0.8rem;
+.badge-separator {
+  color: #334155;
 }
 
-.preview-badge {
-  background: #C5A059;
-  color: #1B396A;
-  font-size: 0.68rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  padding: 0.15rem 0.5rem;
-  border-radius: 4px;
-}
-
-.preview-desc {
-  color: #CBD5E1;
-  font-size: 0.78rem;
-}
-
-.toolbar-right-btns {
+.footer-right {
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
+.btn-footer-ghost {
+  background: #151E2E;
+  border: 1px solid #24334A;
+  color: #E2E8F0;
+  border-radius: 6px;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-footer-ghost:hover:not(:disabled) {
+  background: #1E293B;
+  border-color: #334155;
+  color: #FFFFFF;
+}
+
+.btn-footer-ghost:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-ghost-danger {
+  color: #EF4444;
+}
+
+.btn-ghost-danger:hover {
+  background: rgba(220, 38, 38, 0.15);
+  border-color: rgba(220, 38, 38, 0.4);
+}
+
+.btn-footer-primary {
+  background: linear-gradient(135deg, #16A34A 0%, #15803D 100%);
+  color: #FFFFFF;
+  border: 1px solid rgba(22, 163, 74, 0.4);
+  border-radius: 6px;
+  padding: 0.45rem 1.05rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.25);
+}
+
+.btn-footer-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #15803D 0%, #166534 100%);
+}
+
+.btn-footer-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.footer-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.chevron-sm {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+/* DROPDOWN DE EXPORTACIÓN */
+.dropdown-export-wrapper {
+  position: relative;
+}
+
+.dropdown-menu-export {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0;
+  background: #0F172A;
+  border: 1px solid #244B88;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+  padding: 0.35rem;
+  min-width: 210px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  z-index: 60;
+  animation: fadeIn 0.12s ease-out;
+}
+
+.dropdown-menu-item {
+  background: transparent;
+  border: none;
+  color: #E2E8F0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  cursor: pointer;
+  transition: background 0.12s;
+  text-align: left;
+}
+
+.dropdown-menu-item:hover {
+  background: #1B396A;
+  color: #FFFFFF;
+}
+
+.item-tag {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+}
+
+.tag-pdf {
+  background: rgba(220, 38, 38, 0.2);
+  color: #F87171;
+}
+
+.tag-csv {
+  background: rgba(22, 163, 74, 0.2);
+  color: #4ADE80;
+}
+
+.tag-word {
+  background: rgba(37, 99, 235, 0.2);
+  color: #60A5FA;
+}
+
+/* =============================================================================
+   VISTA PREVIA DE IMPRESIÓN (HOJA INSTITUCIONAL TecNM)
+   ============================================================================= */
+.preview-content-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  background: #1E293B;
+}
+
+.preview-top-toolbar {
+  background: #0F172A;
+  border-bottom: 1px solid #334155;
+  padding: 0.65rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.toolbar-left-msg {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.preview-badge {
+  background: #1B396A;
+  color: #C5A059;
+  border: 1px solid #C5A059;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+}
+
+.preview-desc {
+  font-size: 0.78rem;
+  color: #CBD5E1;
+}
+
+.toolbar-right-btns {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.btn-icon-sm {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.btn-export-pdf {
+  background: #DC2626;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 4px;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+}
+
+.btn-export-pdf:hover { background: #B91C1C; }
+
+.btn-export-csv {
+  background: #16A34A;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 4px;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+}
+
+.btn-export-csv:hover { background: #15803D; }
+
+.btn-export-word {
+  background: #2563EB;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 4px;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+}
+
+.btn-export-word:hover { background: #1D4ED8; }
+
+.btn-action-print {
+  background: #334155;
+  color: #FFFFFF;
+  border: 1px solid #475569;
+  border-radius: 4px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+}
+
+.btn-action-print:hover { background: #475569; }
+
+.btn-action-secondary {
+  background: #E2E8F0;
+  color: #0F172A;
+  border: none;
+  border-radius: 4px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-action-secondary:hover { background: #CBD5E1; }
+
 .print-sheet-wrapper {
-  max-width: 900px;
-  width: 100%;
+  padding: 1.5rem 1rem;
+  display: flex;
+  justify-content: center;
+  background: #334155;
+  min-height: 100%;
 }
 
 .print-paper-sheet {
   background: #FFFFFF;
   color: #000000;
-  padding: 2.2rem;
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.35);
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  min-height: 700px;
+  width: 100%;
+  max-width: 860px;
+  padding: 2.2rem 2.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
   position: relative;
-  font-family: 'Times New Roman', Times, serif, Arial, sans-serif;
+  font-family: Arial, sans-serif;
 }
 
 .sheet-header {
   text-align: center;
   border-bottom: 2px solid #000000;
   padding-bottom: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .sheet-title-institucion {
-  font-size: 1.15rem;
-  font-weight: 900;
-  letter-spacing: 0.03em;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #1B396A;
 }
 
 .sheet-subtitle-sistema {
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   font-weight: 700;
-  margin-top: 0.15rem;
+  color: #334155;
+  margin-top: 0.2rem;
 }
 
 .sheet-doc-name {
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   font-weight: 800;
-  margin-top: 0.4rem;
   text-decoration: underline;
+  margin-top: 0.45rem;
+  letter-spacing: 0.03em;
 }
 
 .sheet-meta-grid {
@@ -2420,69 +2703,52 @@ onUnmounted(() => {
   grid-template-columns: 1fr 1fr;
   gap: 0.35rem 1rem;
   margin-top: 0.75rem;
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   text-align: left;
 }
 
 .sheet-section-title {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 800;
-  color: #000000;
-  margin-top: 0.4rem;
-  letter-spacing: 0.02em;
+  margin: 0.9rem 0 0.4rem 0;
+  text-transform: uppercase;
+  color: #1B396A;
 }
 
-/* Tabla de hoja */
 .sheet-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.82rem;
+  font-size: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.sheet-table th,
+.sheet-table td {
+  border: 1px solid #000000;
+  padding: 0.35rem 0.55rem;
 }
 
 .sheet-table th {
-  border: 1px solid #000000;
-  padding: 0.45rem 0.6rem;
+  background: #1B396A;
+  color: #FFFFFF;
+  font-weight: 700;
+  font-size: 0.72rem;
+}
+
+.tr-sheet-total td {
   background: #F1F5F9;
   font-weight: 800;
 }
 
-.sheet-table td {
-  border: 1px solid #000000;
-  padding: 0.4rem 0.6rem;
-}
-
-.tr-sheet-total td {
-  font-weight: 900;
-  background: #F8FAFC;
-}
-
-/* Relación Completa de Alumnos */
-.sheet-alumnos-section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  margin-top: 0.5rem;
-}
-
-.sheet-table-alumnos {
-  font-size: 0.73rem !important;
-}
-
 .sheet-table-alumnos th {
-  background: #E2E8F0 !important;
-  color: #000000 !important;
-  padding: 0.35rem 0.5rem !important;
+  background: #E2E8F0;
+  color: #000000;
 }
 
-.sheet-table-alumnos td {
-  padding: 0.3rem 0.5rem !important;
-}
-
-/* Firmas */
 .sheet-signatures-footer {
   display: flex;
   justify-content: space-around;
-  margin-top: 2rem;
+  margin-top: 2.2rem;
   padding-top: 0.5rem;
 }
 
@@ -2500,12 +2766,12 @@ onUnmounted(() => {
 }
 
 .sig-name {
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 700;
 }
 
 .sig-role {
-  font-size: 0.68rem;
+  font-size: 0.66rem;
   color: #475569;
   font-weight: 700;
 }
@@ -2518,233 +2784,9 @@ onUnmounted(() => {
   color: #64748B;
 }
 
-/* BARRA INFERIOR DE ACCIONES */
-.window-footer-bar {
-  background: #FFFFFF;
-  border-top: 1px solid #CBD5E1;
-  padding: 0.65rem 1.25rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-}
-
-.modal-backdrop.dark-theme .window-footer-bar {
-  background: #0F172A;
-  border-top-color: #334155;
-}
-
-.footer-left-info .info-tag {
-  background: #E2E8F0;
-  color: #1E293B;
-  padding: 0.3rem 0.65rem;
-  border-radius: 4px;
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-
-.modal-backdrop.dark-theme .footer-left-info .info-tag {
-  background: #1E293B;
-  color: #C5A059;
-}
-
-.footer-buttons-group {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.btn-icon {
-  width: 1rem;
-  height: 1rem;
-}
-
-.btn-icon-sm {
-  width: 0.85rem;
-  height: 0.85rem;
-}
-
-/* BOTONES DE EXPORTACIÓN (PDF, CSV, WORD) */
-.btn-export-pdf {
-  background: #DC2626;
-  color: #FFFFFF;
-  border: none;
-  border-radius: 4px;
-  padding: 0.42rem 0.75rem;
-  font-size: 0.78rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.btn-export-pdf:hover:not(:disabled) {
-  background: #B91C1C;
-}
-
-.btn-export-pdf:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-export-csv {
-  background: #16A34A;
-  color: #FFFFFF;
-  border: none;
-  border-radius: 4px;
-  padding: 0.42rem 0.75rem;
-  font-size: 0.78rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.btn-export-csv:hover:not(:disabled) {
-  background: #15803D;
-}
-
-.btn-export-csv:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-export-word {
-  background: #2563EB;
-  color: #FFFFFF;
-  border: none;
-  border-radius: 4px;
-  padding: 0.42rem 0.75rem;
-  font-size: 0.78rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.btn-export-word:hover:not(:disabled) {
-  background: #1D4ED8;
-}
-
-.btn-export-word:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-action-primary {
-  background: #16A34A;
-  color: #FFFFFF;
-  border: none;
-  border-radius: 4px;
-  padding: 0.45rem 1rem;
-  font-size: 0.82rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.btn-action-primary:hover:not(:disabled) {
-  background: #15803D;
-}
-
-.btn-action-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-action-preview {
-  background: #1B396A;
-  color: #FFFFFF;
-  border: none;
-  border-radius: 4px;
-  padding: 0.45rem 0.85rem;
-  font-size: 0.82rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  cursor: pointer;
-}
-
-.btn-action-preview:hover {
-  background: #244B88;
-}
-
-.modal-backdrop.dark-theme .btn-action-preview {
-  background: #244B88;
-}
-
-.btn-action-print {
-  background: #475569;
-  color: #FFFFFF;
-  border: none;
-  border-radius: 4px;
-  padding: 0.45rem 0.85rem;
-  font-size: 0.82rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  cursor: pointer;
-}
-
-.btn-action-print:hover:not(:disabled) {
-  background: #334155;
-}
-
-.btn-action-print:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-action-secondary {
-  background: #E2E8F0;
-  color: #1E293B;
-  border: 1px solid #CBD5E1;
-  border-radius: 4px;
-  padding: 0.45rem 0.85rem;
-  font-size: 0.82rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.btn-action-secondary:hover {
-  background: #CBD5E1;
-}
-
-.modal-backdrop.dark-theme .btn-action-secondary {
-  background: #334155;
-  color: #F8FAFC;
-  border-color: #475569;
-}
-
-.btn-action-danger {
-  background: #DC2626;
-  color: #FFFFFF;
-  border: none;
-  border-radius: 4px;
-  padding: 0.45rem 0.95rem;
-  font-size: 0.82rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.btn-action-danger:hover {
-  background: #B91C1C;
-}
-
-/* =====================================================
-   MEDIA PRINT: IMPRESIÓN COMPLETA SIN RECORTES NI SCROLL
-   ===================================================== */
+/* =============================================================================
+   MEDIA PRINT
+   ============================================================================= */
 @media print {
   @page {
     size: letter portrait;
@@ -2757,7 +2799,6 @@ onUnmounted(() => {
     background: #FFFFFF !important;
   }
 
-  /* Ocultar toda la UI externa y controles de la ventana */
   body * {
     visibility: hidden;
   }
@@ -2769,8 +2810,8 @@ onUnmounted(() => {
 
   .preview-top-toolbar,
   .window-title-bar,
-  .window-footer-bar,
-  .sub-tabs-bar {
+  .modern-footer-bar,
+  .tabs-line-nav {
     display: none !important;
   }
 
@@ -2807,6 +2848,7 @@ onUnmounted(() => {
     width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
+    background: transparent !important;
   }
 
   .print-paper-sheet {
