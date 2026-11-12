@@ -261,15 +261,6 @@ setInterval(actualizarHora, 1000)
               <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalReporteDeudores">
                 <span>Reporte Deudores</span>
               </button>
-              <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalReporteDeudoresFechaCorte">
-                <span>Reporte Deudores Fecha de Corte</span>
-              </button>
-              <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalReporteDeudoresFechaCuenta">
-                <span>Reporte Deudores Fecha y Cuenta</span>
-              </button>
-              <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalReporteDeudoresInscritos">
-                <span>Reporte Deudores Inscritos</span>
-              </button>
               <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalDepositoBancario">
                 <span>Deposito Bancario</span>
               </button>
