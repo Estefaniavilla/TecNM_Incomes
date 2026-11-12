@@ -904,9 +904,6 @@ onMounted(async () => {
               <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalReporteIngresos">
                 <span>Reporte de Ingresos</span>
               </button>
-              <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalPolizaIngresoPeriodo">
-                <span>Poliza de Ingreso Periodo</span>
-              </button>
               <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalReporteVarios">
                 <span>Reporte Varios</span>
               </button>
