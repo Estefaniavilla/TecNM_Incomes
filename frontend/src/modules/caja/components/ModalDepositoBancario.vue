@@ -1272,44 +1272,49 @@ onUnmounted(() => {
       <!-- ======================================================== -->
       <section v-else class="preview-content-panel">
 
-        <!-- BARRA SUPERIOR DE EXPORTACIÓN Y VISTA PREVIA -->
+        <!-- BARRA SUPERIOR DE HERRAMIENTAS DE VISTA PREVIA (MODERNA TecNM) -->
         <div class="preview-top-toolbar">
           <div class="toolbar-left-msg">
-            <span class="preview-badge">Hoja Institucional TecNM</span>
-            <span class="preview-desc">Vista completa sin recortes ({{ pagos.length }} movimientos)</span>
+            <span class="preview-badge-gold">VISTA PREVIA INSTITUCIONAL</span>
+            <span class="toolbar-stat-chip font-mono">{{ totalCantidadMovimientos }} Pagos Concentrados</span>
+            <span class="toolbar-stat-chip font-mono text-gold">Total: {{ formatearMoneda(totalGeneralImporte) }}</span>
           </div>
           <div class="toolbar-right-btns">
-            <button type="button" class="btn-export-pdf" title="Exportar a PDF" @click="exportarPdf">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon-sm">
+            <button type="button" class="btn-preview-tool btn-tool-pdf" title="Descargar / Imprimir en PDF" @click="exportarPdf">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tool-icon-sm">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                 <polyline points="14 2 14 8 20 8" />
               </svg>
-              PDF
+              <span>PDF</span>
             </button>
-            <button type="button" class="btn-export-csv" title="Exportar a CSV" @click="exportarCsv">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon-sm">
+            <button type="button" class="btn-preview-tool btn-tool-csv" title="Exportar a archivo Excel / CSV" @click="exportarCsv">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tool-icon-sm">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                 <polyline points="10 9 9 9 8 9" />
               </svg>
-              CSV
+              <span>CSV</span>
             </button>
-            <button type="button" class="btn-export-word" title="Exportar a Word" @click="exportarWord">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon-sm">
+            <button type="button" class="btn-preview-tool btn-tool-word" title="Exportar a Microsoft Word (.doc)" @click="exportarWord">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tool-icon-sm">
                 <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
                 <polyline points="7 9 10 16 12 11 14 16 17 9" />
               </svg>
-              Word
+              <span>Word</span>
             </button>
-            <button type="button" class="btn-action-print" title="Mandar a imprimir" @click="imprimir">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon-sm">
+            <button type="button" class="btn-preview-tool btn-tool-print" title="Mandar a imprimir" @click="imprimir">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tool-icon-sm">
                 <polyline points="6 9 6 2 18 2 18 9"/>
                 <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
                 <rect x="6" y="14" width="12" height="8"/>
               </svg>
-              Imprimir
+              <span>Imprimir</span>
             </button>
-            <button type="button" class="btn-action-secondary" title="Volver a la edición" @click="pestanaActiva = 'resumen'">
-              Volver a Edición
+            <button type="button" class="btn-preview-tool btn-tool-back" title="Volver a la edición del lote" @click="pestanaActiva = 'resumen'">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tool-icon-sm">
+                <polyline points="9 14 4 9 9 4" />
+                <path d="M20 20v-7a4 4 0 0 0-4-4H4" />
+              </svg>
+              <span>Volver a Edición</span>
             </button>
           </div>
         </div>
@@ -1317,7 +1322,7 @@ onUnmounted(() => {
         <div class="print-sheet-wrapper">
           <div class="print-paper-sheet">
 
-            <!-- ENCABEZADO OFICIAL INSTITUCIONAL -->
+            <!-- ENCABEZADO OFICIAL INSTITUCIONAL (TecNM) -->
             <header class="sheet-header">
               <div class="sheet-title-institucion">
                 INSTITUTO TECNOLÓGICO SUPERIOR DE MONCLOVA
@@ -1328,79 +1333,106 @@ onUnmounted(() => {
               <div class="sheet-doc-name">
                 RESUMEN CONCENTRADOR DE DEPÓSITOS BANCARIOS
               </div>
+
+              <!-- Fila de Metadatos del Documento -->
               <div class="sheet-meta-grid">
-                <div><strong>FECHA DE OPERACIÓN:</strong> {{ formatearFechaIso(fechaDeposito) }}</div>
-                <div><strong>FOLIO CONCENTRADOR:</strong> {{ folioLote }}</div>
-                <div><strong>BANCO Y CUENTA:</strong> {{ bancoReceptor }}</div>
-                <div><strong>TOTAL MOVIMIENTOS:</strong> {{ totalCantidadMovimientos }} PAGOS</div>
+                <div class="meta-card">
+                  <span class="meta-label">FECHA DE OPERACIÓN:</span>
+                  <span class="meta-val font-mono">{{ formatearFechaIso(fechaDeposito) }}</span>
+                </div>
+                <div class="meta-card">
+                  <span class="meta-label">FOLIO CONCENTRADOR:</span>
+                  <span class="meta-val font-mono font-bold text-gold">{{ folioLote }}</span>
+                </div>
+                <div class="meta-card">
+                  <span class="meta-label">BANCO Y CUENTA:</span>
+                  <span class="meta-val font-mono">{{ bancoReceptor }}</span>
+                </div>
+                <div class="meta-card">
+                  <span class="meta-label">TOTAL MOVIMIENTOS:</span>
+                  <span class="meta-val font-mono font-bold">{{ totalCantidadMovimientos }} PAGOS</span>
+                </div>
               </div>
             </header>
 
-            <!-- TABLA DE CONCEPTOS AGRUPADOS (FORMATO OFICIAL) -->
+            <!-- SECCIÓN 1: RESUMEN CONCENTRADO POR CONCEPTO -->
             <div class="sheet-section-title">
+              <span class="section-bullet"></span>
               RESUMEN CONCENTRADO POR CONCEPTO:
             </div>
-            <table class="sheet-table">
-              <thead>
-                <tr>
-                  <th class="th-concepto">CONCEPTO</th>
-                  <th class="th-cantidad text-center">CANTIDAD</th>
-                  <th class="th-unitario text-right">PRECIO UNITARIO</th>
-                  <th class="th-total text-right">TOTAL</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="item in resumenAgrupadoPorConcepto" :key="item.concepto">
-                  <td class="td-concepto">{{ item.concepto.toUpperCase() }}</td>
-                  <td class="td-cantidad font-mono text-center">{{ item.cantidad }}</td>
-                  <td class="td-unitario font-mono text-right">{{ formatearMoneda(item.precioUnitario) }}</td>
-                  <td class="td-total font-mono text-right font-bold">{{ formatearMoneda(item.total) }}</td>
-                </tr>
-
-                <!-- FILA DE TOTAL GENERAL -->
-                <tr class="tr-sheet-total">
-                  <td class="td-concepto font-bold">TOTAL GENERAL</td>
-                  <td class="td-cantidad font-mono text-center font-bold">{{ totalCantidadMovimientos }}</td>
-                  <td class="td-unitario text-right font-mono">—</td>
-                  <td class="td-total font-mono text-right font-bold">
-                    {{ formatearMoneda(totalGeneralImporte) }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-
-            <!-- RELACIÓN COMPLETA DE ALUMNOS (TODA LA LISTA COMPLETA SIN RECORTES NI SCROLL) -->
-            <div class="sheet-alumnos-section">
-              <div class="sheet-section-title">
-                RELACIÓN COMPLETA DE ALUMNOS Y REFERENCIAS BANCARIAS ({{ pagos.length }} MOVIMIENTOS):
-              </div>
-              <table class="sheet-table sheet-table-alumnos">
+            <div class="preview-table-box">
+              <table class="modern-deposito-table sheet-table">
                 <thead>
                   <tr>
-                    <th class="th-rec text-center">RECIBO</th>
-                    <th class="th-mat text-center">MATRÍCULA</th>
-                    <th class="th-nom">NOMBRE DEL ALUMNO</th>
-                    <th class="th-cpto">CONCEPTO</th>
-                    <th class="th-ref text-center">REFERENCIA BANCARIA</th>
-                    <th class="th-fec text-center">FECHA</th>
-                    <th class="th-imp text-right">IMPORTE</th>
+                    <th class="th-concepto">CONCEPTO</th>
+                    <th class="th-cantidad text-center">CANTIDAD</th>
+                    <th class="th-precio text-right">PRECIO UNITARIO</th>
+                    <th class="th-total text-right">TOTAL</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="(p, i) in pagos" :key="p.id">
-                    <td class="td-rec text-center font-mono font-bold">{{ p.numeroRecibo || (i + 1) }}</td>
-                    <td class="td-mat text-center font-mono font-bold">{{ p.matricula }}</td>
-                    <td class="td-nom font-bold">{{ p.nombreAlumno }}</td>
-                    <td class="td-cpto">{{ p.concepto }}</td>
-                    <td class="td-ref text-center font-mono">{{ p.referenciaBancaria }}</td>
-                    <td class="td-fec text-center font-mono">{{ formatearFechaIso(p.fechaDeposito) }}</td>
-                    <td class="td-imp text-right font-mono font-bold">{{ formatearMoneda(p.precioUnitario) }}</td>
+                  <tr v-for="(item, idx) in resumenAgrupadoPorConcepto" :key="item.concepto" class="tr-data-row">
+                    <td class="td-concepto">
+                      <span class="bullet-concept" :class="idx % 2 === 0 ? 'bullet-blue' : 'bullet-gold'"></span>
+                      <span class="concept-name">{{ item.concepto.toUpperCase() }}</span>
+                    </td>
+                    <td class="td-cantidad font-mono text-center">{{ item.cantidad }}</td>
+                    <td class="td-precio font-mono text-right">{{ formatearMoneda(item.precioUnitario) }}</td>
+                    <td class="td-total font-mono text-right font-bold">{{ formatearMoneda(item.total) }}</td>
+                  </tr>
+
+                  <!-- FILA DE TOTAL GENERAL CONCENTRADO -->
+                  <tr class="tr-total-summary tr-sheet-total">
+                    <td class="td-concepto font-bold">TOTAL GENERAL</td>
+                    <td class="td-cantidad font-mono text-center font-bold">{{ totalCantidadMovimientos }}</td>
+                    <td class="td-precio font-mono text-right text-muted">—</td>
+                    <td class="td-total font-mono text-right font-bold text-gold">
+                      {{ formatearMoneda(totalGeneralImporte) }}
+                    </td>
                   </tr>
                 </tbody>
               </table>
             </div>
 
-            <!-- CUADRO DE FIRMAS -->
+            <!-- SECCIÓN 2: RELACIÓN COMPLETA DE ALUMNOS (SIN RECORTES) -->
+            <div class="sheet-alumnos-section">
+              <div class="sheet-section-title">
+                <span class="section-bullet"></span>
+                RELACIÓN COMPLETA DE ALUMNOS Y REFERENCIAS BANCARIAS ({{ pagos.length }} MOVIMIENTOS):
+              </div>
+              <div class="preview-table-box">
+                <table class="modern-deposito-table sheet-table sheet-table-alumnos">
+                  <thead>
+                    <tr>
+                      <th class="th-rec text-center">RECIBO</th>
+                      <th class="th-mat text-center">MATRÍCULA</th>
+                      <th class="th-nom">NOMBRE DEL ALUMNO</th>
+                      <th class="th-cpto">CONCEPTO</th>
+                      <th class="th-ref text-center">REFERENCIA BANCARIA</th>
+                      <th class="th-fec text-center">FECHA</th>
+                      <th class="th-imp text-right">IMPORTE</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(p, i) in pagos" :key="p.id" class="tr-data-row">
+                      <td class="td-rec text-center font-mono font-bold">
+                        <span class="badge-recibo">{{ p.numeroRecibo || (i + 1) }}</span>
+                      </td>
+                      <td class="td-mat text-center font-mono font-bold">{{ p.matricula }}</td>
+                      <td class="td-nom font-bold">{{ p.nombreAlumno }}</td>
+                      <td class="td-cpto">
+                        <span class="badge-concepto-pill">{{ p.concepto }}</span>
+                      </td>
+                      <td class="td-ref text-center font-mono">{{ p.referenciaBancaria }}</td>
+                      <td class="td-fec text-center font-mono">{{ formatearFechaIso(p.fechaDeposito) }}</td>
+                      <td class="td-imp text-right font-mono font-bold">{{ formatearMoneda(p.precioUnitario) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- CUADRO DE FIRMAS INSTITUCIONAL -->
             <footer class="sheet-signatures-footer">
               <div class="sig-box">
                 <div class="sig-line"></div>
@@ -1414,7 +1446,7 @@ onUnmounted(() => {
               </div>
             </footer>
 
-            <div class="sheet-page-indicator">1 DE 1</div>
+            <div class="sheet-page-indicator font-mono">1 DE 1 · SISTEMA DE CONTROL DE CAJA TecNM</div>
 
           </div>
         </div>
@@ -1433,81 +1465,103 @@ onUnmounted(() => {
         </div>
 
         <div class="footer-right">
-          <!-- Vista Previa / Volver a Edición -->
-          <button
-            v-if="pestanaActiva !== 'impresion'"
-            type="button"
-            class="btn-footer-ghost"
-            title="Vista previa del documento oficial"
-            @click="pestanaActiva = 'impresion'"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="footer-icon">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-              <circle cx="12" cy="12" r="3" />
-            </svg>
-            Vista Previa
-          </button>
-          <button
-            v-else
-            type="button"
-            class="btn-footer-ghost"
-            title="Volver a la edición"
-            @click="pestanaActiva = 'resumen'"
-          >
-            Volver a Edición
-          </button>
-
-          <!-- DROPDOWN EXPORTAR -->
-          <div class="dropdown-export-wrapper">
+          <!-- Botón cuando estamos en Edición: Ir a Vista Previa -->
+          <template v-if="pestanaActiva !== 'impresion'">
             <button
               type="button"
               class="btn-footer-ghost"
-              :disabled="pagos.length === 0"
-              @click.stop="toggleDropdownExportar"
+              title="Vista previa del documento oficial"
+              @click="pestanaActiva = 'impresion'"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="footer-icon">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
               </svg>
-              Exportar
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chevron-sm">
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
+              Vista Previa
             </button>
 
-            <!-- Menú Flotante de Opciones de Exportación -->
-            <div v-if="mostrarDropdownExportar" class="dropdown-menu-export" @click.stop>
+            <!-- DROPDOWN EXPORTAR -->
+            <div class="dropdown-export-wrapper">
               <button
                 type="button"
-                class="dropdown-menu-item"
-                @click="exportarPdf(); cerrarDropdownExportar()"
+                class="btn-footer-ghost"
+                :disabled="pagos.length === 0"
+                @click.stop="toggleDropdownExportar"
               >
-                <span class="item-tag tag-pdf">PDF</span>
-                <span>Documento Oficial PDF</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="footer-icon">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                </svg>
+                Exportar
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chevron-sm">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
               </button>
-              <button
-                type="button"
-                class="dropdown-menu-item"
-                @click="exportarCsv(); cerrarDropdownExportar()"
-              >
-                <span class="item-tag tag-csv">CSV</span>
-                <span>Hoja de Cálculo Excel / CSV</span>
-              </button>
-              <button
-                type="button"
-                class="dropdown-menu-item"
-                @click="exportarWord(); cerrarDropdownExportar()"
-              >
-                <span class="item-tag tag-word">DOC</span>
-                <span>Microsoft Word (.doc)</span>
-              </button>
-            </div>
-          </div>
 
-          <!-- Limpiar -->
-          <button type="button" class="btn-footer-ghost" @click="limpiar">
-            Limpiar
-          </button>
+              <!-- Menú Flotante de Opciones de Exportación -->
+              <div v-if="mostrarDropdownExportar" class="dropdown-menu-export" @click.stop>
+                <button
+                  type="button"
+                  class="dropdown-menu-item"
+                  @click="exportarPdf(); cerrarDropdownExportar()"
+                >
+                  <span class="item-tag tag-pdf">PDF</span>
+                  <span>Documento Oficial PDF</span>
+                </button>
+                <button
+                  type="button"
+                  class="dropdown-menu-item"
+                  @click="exportarCsv(); cerrarDropdownExportar()"
+                >
+                  <span class="item-tag tag-csv">CSV</span>
+                  <span>Hoja de Cálculo Excel / CSV</span>
+                </button>
+                <button
+                  type="button"
+                  class="dropdown-menu-item"
+                  @click="exportarWord(); cerrarDropdownExportar()"
+                >
+                  <span class="item-tag tag-word">DOC</span>
+                  <span>Microsoft Word (.doc)</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Limpiar -->
+            <button type="button" class="btn-footer-ghost" @click="limpiar">
+              Limpiar
+            </button>
+          </template>
+
+          <!-- Botones cuando estamos en Vista Previa -->
+          <template v-else>
+            <button
+              type="button"
+              class="btn-footer-ghost"
+              title="Volver a la edición del lote"
+              @click="pestanaActiva = 'resumen'"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="footer-icon">
+                <polyline points="9 14 4 9 9 4" />
+                <path d="M20 20v-7a4 4 0 0 0-4-4H4" />
+              </svg>
+              Volver a Edición
+            </button>
+
+            <button
+              type="button"
+              class="btn-footer-ghost btn-ghost-print"
+              title="Imprimir formato oficial"
+              @click="imprimir"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="footer-icon">
+                <polyline points="6 9 6 2 18 2 18 9"/>
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                <rect x="6" y="14" width="12" height="8"/>
+              </svg>
+              Imprimir
+            </button>
+          </template>
 
           <!-- Salir -->
           <button type="button" class="btn-footer-ghost btn-ghost-danger" @click="cerrar">
@@ -2518,19 +2572,19 @@ onUnmounted(() => {
 }
 
 /* =============================================================================
-   VISTA PREVIA DE IMPRESIÓN (HOJA INSTITUCIONAL TecNM)
+   VISTA PREVIA DE IMPRESIÓN (DISEÑO MODERNO INSTITUCIONAL TecNM)
    ============================================================================= */
 .preview-content-panel {
   display: flex;
   flex-direction: column;
   height: 100%;
   overflow-y: auto;
-  background: #1E293B;
+  background: #0B1120;
 }
 
 .preview-top-toolbar {
-  background: #0F172A;
-  border-bottom: 1px solid #334155;
+  background: #0D1525;
+  border-bottom: 1px solid #1E2E4A;
   padding: 0.65rem 1.25rem;
   display: flex;
   align-items: center;
@@ -2545,21 +2599,29 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 0.65rem;
+  flex-wrap: wrap;
 }
 
-.preview-badge {
-  background: #1B396A;
+.preview-badge-gold {
+  background: rgba(197, 160, 89, 0.12);
   color: #C5A059;
-  border: 1px solid #C5A059;
-  font-size: 0.7rem;
-  font-weight: 700;
+  border: 1px solid rgba(197, 160, 89, 0.4);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
   padding: 0.2rem 0.55rem;
-  border-radius: 4px;
+  border-radius: 9999px;
+  text-transform: uppercase;
 }
 
-.preview-desc {
-  font-size: 0.78rem;
+.toolbar-stat-chip {
+  background: #111A2E;
+  border: 1px solid #1E2E4A;
   color: #CBD5E1;
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
 }
 
 .toolbar-right-btns {
@@ -2568,224 +2630,225 @@ onUnmounted(() => {
   gap: 0.45rem;
 }
 
-.btn-icon-sm {
-  width: 0.85rem;
-  height: 0.85rem;
+.tool-icon-sm {
+  width: 0.9rem;
+  height: 0.9rem;
 }
 
-.btn-export-pdf {
-  background: #DC2626;
-  color: #FFFFFF;
-  border: none;
-  border-radius: 4px;
-  padding: 0.4rem 0.7rem;
+.btn-preview-tool {
+  background: #151E2E;
+  border: 1px solid #24334A;
+  color: #E2E8F0;
+  border-radius: 6px;
+  padding: 0.42rem 0.75rem;
   font-size: 0.76rem;
-  font-weight: 700;
-  display: flex;
+  font-weight: 600;
+  display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.4rem;
   cursor: pointer;
+  transition: all 0.15s;
 }
 
-.btn-export-pdf:hover { background: #B91C1C; }
-
-.btn-export-csv {
-  background: #16A34A;
+.btn-preview-tool:hover {
+  background: #1E293B;
+  border-color: #334155;
   color: #FFFFFF;
-  border: none;
-  border-radius: 4px;
-  padding: 0.4rem 0.7rem;
-  font-size: 0.76rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  cursor: pointer;
 }
 
-.btn-export-csv:hover { background: #15803D; }
+.btn-tool-pdf:hover {
+  border-color: rgba(220, 38, 38, 0.6);
+  color: #F87171;
+}
 
-.btn-export-word {
-  background: #2563EB;
+.btn-tool-csv:hover {
+  border-color: rgba(22, 163, 74, 0.6);
+  color: #4ADE80;
+}
+
+.btn-tool-word:hover {
+  border-color: rgba(37, 99, 235, 0.6);
+  color: #60A5FA;
+}
+
+.btn-tool-print {
+  background: linear-gradient(135deg, #1B396A 0%, #244B88 100%);
+  border-color: rgba(197, 160, 89, 0.35);
   color: #FFFFFF;
-  border: none;
-  border-radius: 4px;
-  padding: 0.4rem 0.7rem;
-  font-size: 0.76rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  cursor: pointer;
 }
 
-.btn-export-word:hover { background: #1D4ED8; }
-
-.btn-action-print {
-  background: #334155;
-  color: #FFFFFF;
-  border: 1px solid #475569;
-  border-radius: 4px;
-  padding: 0.4rem 0.75rem;
-  font-size: 0.76rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  cursor: pointer;
+.btn-tool-print:hover {
+  background: linear-gradient(135deg, #244B88 0%, #2A5A9E 100%);
+  border-color: #C5A059;
 }
 
-.btn-action-print:hover { background: #475569; }
-
-.btn-action-secondary {
-  background: #E2E8F0;
-  color: #0F172A;
-  border: none;
-  border-radius: 4px;
-  padding: 0.4rem 0.75rem;
-  font-size: 0.76rem;
-  font-weight: 700;
-  cursor: pointer;
+.btn-tool-back {
+  background: #1E293B;
 }
 
-.btn-action-secondary:hover { background: #CBD5E1; }
+.btn-ghost-print:hover {
+  background: rgba(36, 75, 136, 0.25);
+  border-color: #244B88;
+}
 
+/* CONTENEDOR DE LA HOJA (EN PANTALLA: TARJETA ELEGANTE TecNM) */
 .print-sheet-wrapper {
-  padding: 1.5rem 1rem;
+  padding: 1.25rem 1.5rem;
   display: flex;
   justify-content: center;
-  background: #334155;
+  background: #0B1120;
   min-height: 100%;
 }
 
 .print-paper-sheet {
-  background: #FFFFFF;
-  color: #000000;
+  background: #111A2E;
+  color: #F8FAFC;
   width: 100%;
-  max-width: 860px;
-  padding: 2.2rem 2.5rem;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  max-width: 980px;
+  padding: 1.75rem 2rem;
+  border-radius: 12px;
+  border: 1px solid #1E2E4A;
+  box-shadow: 0 15px 45px rgba(0, 0, 0, 0.6);
   position: relative;
-  font-family: Arial, sans-serif;
+  font-family: inherit;
 }
 
 .sheet-header {
   text-align: center;
-  border-bottom: 2px solid #000000;
-  padding-bottom: 0.75rem;
-  margin-bottom: 1rem;
+  border-bottom: 1px solid #1E2E4A;
+  padding-bottom: 1rem;
+  margin-bottom: 1.2rem;
 }
 
 .sheet-title-institucion {
-  font-size: 1.1rem;
+  font-size: 1.12rem;
   font-weight: 800;
-  letter-spacing: 0.02em;
-  color: #1B396A;
+  letter-spacing: 0.03em;
+  color: #FFFFFF;
 }
 
 .sheet-subtitle-sistema {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: #334155;
-  margin-top: 0.2rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #94A3B8;
+  margin-top: 0.25rem;
+  letter-spacing: 0.02em;
 }
 
 .sheet-doc-name {
-  font-size: 0.88rem;
+  font-size: 0.92rem;
   font-weight: 800;
-  text-decoration: underline;
-  margin-top: 0.45rem;
+  color: #C5A059;
+  letter-spacing: 0.04em;
+  margin-top: 0.5rem;
+}
+
+/* Metadatos */
+.sheet-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.55rem 1rem;
+  margin-top: 1rem;
+}
+
+.meta-card {
+  background: #0D1525;
+  border: 1px solid #1E2E4A;
+  border-radius: 6px;
+  padding: 0.45rem 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.meta-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #94A3B8;
   letter-spacing: 0.03em;
 }
 
-.sheet-meta-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.35rem 1rem;
-  margin-top: 0.75rem;
-  font-size: 0.74rem;
-  text-align: left;
+.meta-val {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #F8FAFC;
 }
 
 .sheet-section-title {
   font-size: 0.78rem;
   font-weight: 800;
-  margin: 0.9rem 0 0.4rem 0;
+  margin: 1.2rem 0 0.55rem 0;
   text-transform: uppercase;
-  color: #1B396A;
+  color: #C5A059;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  letter-spacing: 0.03em;
+}
+
+.section-bullet {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: #C5A059;
+}
+
+.preview-table-box {
+  background: #0D1525;
+  border: 1px solid #1E2E4A;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 0.85rem;
 }
 
 .sheet-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.75rem;
-  margin-bottom: 0.85rem;
-}
-
-.sheet-table th,
-.sheet-table td {
-  border: 1px solid #000000;
-  padding: 0.35rem 0.55rem;
-}
-
-.sheet-table th {
-  background: #1B396A;
-  color: #FFFFFF;
-  font-weight: 700;
-  font-size: 0.72rem;
-}
-
-.tr-sheet-total td {
-  background: #F1F5F9;
-  font-weight: 800;
-}
-
-.sheet-table-alumnos th {
-  background: #E2E8F0;
-  color: #000000;
 }
 
 .sheet-signatures-footer {
   display: flex;
   justify-content: space-around;
-  margin-top: 2.2rem;
-  padding-top: 0.5rem;
+  margin-top: 2.5rem;
+  padding-top: 0.75rem;
 }
 
 .sig-box {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 250px;
+  width: 260px;
 }
 
 .sig-line {
   width: 100%;
-  border-top: 1px solid #000000;
-  margin-bottom: 0.35rem;
+  border-top: 1px solid #24334A;
+  margin-bottom: 0.45rem;
 }
 
 .sig-name {
-  font-size: 0.76rem;
+  font-size: 0.78rem;
   font-weight: 700;
+  color: #FFFFFF;
 }
 
 .sig-role {
-  font-size: 0.66rem;
-  color: #475569;
+  font-size: 0.68rem;
+  color: #94A3B8;
   font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
 .sheet-page-indicator {
   position: absolute;
-  bottom: 0.75rem;
+  bottom: 0.85rem;
   right: 1.5rem;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   color: #64748B;
 }
 
 /* =============================================================================
-   MEDIA PRINT
+   MEDIA PRINT (IMPRESIÓN FÍSICA LIMPIA EN BLANCO Y NEGRO OFICIAL)
    ============================================================================= */
 @media print {
   @page {
@@ -2797,6 +2860,7 @@ onUnmounted(() => {
     margin: 0 !important;
     padding: 0 !important;
     background: #FFFFFF !important;
+    color: #000000 !important;
   }
 
   body * {
@@ -2811,7 +2875,8 @@ onUnmounted(() => {
   .preview-top-toolbar,
   .window-title-bar,
   .modern-footer-bar,
-  .tabs-line-nav {
+  .tabs-line-nav,
+  .btn-preview-tool {
     display: none !important;
   }
 
@@ -2859,6 +2924,41 @@ onUnmounted(() => {
     position: static !important;
     min-height: auto !important;
     overflow: visible !important;
+    background: #FFFFFF !important;
+    color: #000000 !important;
+    border: none !important;
+  }
+
+  .sheet-title-institucion {
+    color: #1B396A !important;
+  }
+
+  .sheet-subtitle-sistema {
+    color: #334155 !important;
+  }
+
+  .sheet-doc-name {
+    color: #000000 !important;
+    text-decoration: underline !important;
+  }
+
+  .sheet-header {
+    border-bottom: 2px solid #000000 !important;
+  }
+
+  .meta-card {
+    background: transparent !important;
+    border: none !important;
+    padding: 2px 0 !important;
+  }
+
+  .meta-label, .meta-val {
+    color: #000000 !important;
+  }
+
+  .preview-table-box {
+    background: transparent !important;
+    border: none !important;
   }
 
   .sheet-table {
@@ -2869,6 +2969,42 @@ onUnmounted(() => {
   .sheet-table th,
   .sheet-table td {
     border: 1px solid #000000 !important;
+    color: #000000 !important;
+    padding: 0.35rem 0.55rem !important;
+  }
+
+  .sheet-table th {
+    background: #1B396A !important;
+    color: #FFFFFF !important;
+  }
+
+  .sheet-table-alumnos th {
+    background: #E2E8F0 !important;
+    color: #000000 !important;
+  }
+
+  .tr-sheet-total td {
+    background: #F1F5F9 !important;
+    font-weight: 800 !important;
+  }
+
+  .bullet-concept {
+    display: none !important;
+  }
+
+  .badge-recibo, .badge-concepto-pill {
+    background: transparent !important;
+    border: none !important;
+    color: #000000 !important;
+    padding: 0 !important;
+  }
+
+  .sig-line {
+    border-top: 1px solid #000000 !important;
+  }
+
+  .sig-name, .sig-role {
+    color: #000000 !important;
   }
 
   .sheet-table tr {
