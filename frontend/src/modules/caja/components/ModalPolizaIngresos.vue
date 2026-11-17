@@ -66,31 +66,6 @@ function onFechaSeleccionada(campo: 'inicio' | 'fin', event: Event): void {
   }
 }
 
-function presetFecha(tipo: 'ayer' | 'hoy' | 'mes' | 'todos' | 'muestra'): void {
-  if (tipo === 'ayer') {
-    const ayer = obtenerFechaAyer()
-    fechaInicio.value = ayer
-    fechaFin.value = ayer
-  } else if (tipo === 'hoy') {
-    const hoy = obtenerFechaHoy()
-    fechaInicio.value = hoy
-    fechaFin.value = hoy
-  } else if (tipo === 'mes') {
-    const hoy = new Date()
-    const y = hoy.getFullYear()
-    const m = String(hoy.getMonth() + 1).padStart(2, '0')
-    fechaInicio.value = `${y}-${m}-01`
-    fechaFin.value = obtenerFechaHoy()
-  } else if (tipo === 'todos') {
-    fechaInicio.value = ''
-    fechaFin.value = ''
-  } else if (tipo === 'muestra') {
-    fechaInicio.value = '2026-10-29'
-    fechaFin.value = '2026-10-29'
-  }
-  buscar()
-}
-
 // ==========================================
 // Filtros Adicionales
 // ==========================================
@@ -423,7 +398,7 @@ async function cargarDatos(): Promise<void> {
           fecha: item.fechaOperacion ? item.fechaOperacion.split('T')[0] : '',
           fechaFormatted: formatearFechaIso(item.fechaOperacion),
           matricula: item.alumnoMatricula || 'N/D',
-          nombreAlumno: item.alumnoNombre || 'ESTUDIANTE REGISTRADO',
+          nombreAlumno: item.alumnoNombre || 'ALUMNOS EN GENERAL',
           cuenta: cuentaAsignada,
           concepto: conceptoDesc,
           conceptoImpresion: `${conceptoDesc}${sufijo}`,
@@ -433,10 +408,9 @@ async function cargarDatos(): Promise<void> {
           estado: (item.estadoRecibo || 'PAGADO').toUpperCase(),
         }
       })
-      // Combinar los movimientos de BD con los movimientos oficiales de la póliza de prueba (29/10/2026)
-      const idsExistentes = new Set(listaApi.map(x => x.numeroRecibo))
-      const mocksAdicionales = mockMovimientosPoliza.filter(m => !idsExistentes.has(m.numeroRecibo))
-      todosMovimientos.value = [...listaApi, ...mocksAdicionales]
+      // Ordenar por número de recibo ascendente (128628..128655)
+      listaApi.sort((a, b) => a.numeroRecibo - b.numeroRecibo)
+      todosMovimientos.value = listaApi
     } else {
       todosMovimientos.value = [...mockMovimientosPoliza]
     }
@@ -450,10 +424,7 @@ function buscar(): void {
 
   let lista = [...todosMovimientos.value]
 
-  // Excluir recibos cancelados de la póliza de ingresos
-  lista = lista.filter(m => m.estado !== 'CANCELADO')
-
-  // Filtro por Fechas / Periodo
+  // Filtro por Fechas / Periodo (búsqueda reutilizable)
   if (fechaInicio.value) {
     lista = lista.filter(m => !m.fecha || m.fecha >= fechaInicio.value)
   }
@@ -466,7 +437,7 @@ function buscar(): void {
     lista = lista.filter(m => m.formaPago === formaPagoFiltro.value)
   }
 
-  // Filtro por Cuenta
+  // Filtro por Cuenta o Concepto
   if (cuentaFiltro.value.trim()) {
     const c = cuentaFiltro.value.trim().toLowerCase()
     lista = lista.filter(m => m.cuenta.toLowerCase().includes(c) || m.concepto.toLowerCase().includes(c))
@@ -478,12 +449,14 @@ function buscar(): void {
 
 // ==========================================
 // Agrupación Contable para la Póliza Oficial
-// (Idéntica a la hoja fotografiada)
+// (Excluye movimientos cancelados)
 // ==========================================
 const filasPolizaAgrupadas = computed<FilaPolizaAgrupada[]>(() => {
   const mapa = new Map<string, FilaPolizaAgrupada>()
 
   for (const m of movimientosFiltrados.value) {
+    if (m.estado === 'CANCELADO') continue
+
     // La clave agrupa por Cuenta y Concepto de Impresión (distinguiendo efectivo de depósito)
     const clave = `${m.cuenta}_${m.conceptoImpresion}`
     if (!mapa.has(clave)) {
@@ -505,16 +478,17 @@ const filasPolizaAgrupadas = computed<FilaPolizaAgrupada[]>(() => {
 
 // ==========================================
 // Totales y Desglose de Caja
+// (Los recibos cancelados no suman)
 // ==========================================
 const totalCobroCaja = computed(() => {
   return movimientosFiltrados.value
-    .filter(m => m.formaPago === 'EFECTIVO')
+    .filter(m => m.formaPago === 'EFECTIVO' && m.estado !== 'CANCELADO')
     .reduce((acc, m) => acc + m.importe, 0)
 })
 
 const totalDepositoBancario = computed(() => {
   return movimientosFiltrados.value
-    .filter(m => m.formaPago === 'DEPOSITO')
+    .filter(m => m.formaPago === 'DEPOSITO' && m.estado !== 'CANCELADO')
     .reduce((acc, m) => acc + m.importe, 0)
 })
 
@@ -525,6 +499,26 @@ const totalGeneral = computed(() => {
 function formatearMoneda(valor: number): string {
   return valor.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 }
+
+function formatearMonedaReporte(valor: number): string {
+  const formateado = valor.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+  return `$ ${formateado}`
+}
+
+const tituloReporteImpresion = computed(() => {
+  if (fechaInicio.value && fechaFin.value) {
+    if (fechaInicio.value === fechaFin.value) {
+      return `REPORTE DE INGRESOS DE LA FECHA: ${formatearFechaIso(fechaInicio.value)}`
+    }
+    return `REPORTE DE INGRESOS DEL PERIODO: ${formatearFechaIso(fechaInicio.value)} AL ${formatearFechaIso(fechaFin.value)}`
+  }
+  if (fechaInicio.value) return `REPORTE DE INGRESOS A PARTIR DE: ${formatearFechaIso(fechaInicio.value)}`
+  if (fechaFin.value) return `REPORTE DE INGRESOS HASTA: ${formatearFechaIso(fechaFin.value)}`
+  return 'REPORTE GENERAL DE INGRESOS'
+})
 
 const subtituloPeriodo = computed(() => {
   if (fechaInicio.value && fechaFin.value) {
@@ -551,7 +545,12 @@ function limpiar(): void {
   buscar()
 }
 
+// Tipo de reporte para la vista previa: 'cuentas' (Resumen contable) o 'detalle' (Folios y movimientos)
+const tipoReporteVista = ref<'cuentas' | 'detalle'>('cuentas')
+
 function abrirVistaPrevia(): void {
+  // Sincronizar automáticamente con la pestaña activa del usuario
+  tipoReporteVista.value = pestanaActiva.value === 'movimientos' ? 'detalle' : 'cuentas'
   modoVistaPrevia.value = true
 }
 
@@ -560,7 +559,190 @@ function cerrarVistaPrevia(): void {
 }
 
 function imprimir(): void {
-  window.print()
+  const sheet = document.querySelector('.print-paper-sheet') as HTMLElement | null
+  if (!sheet) {
+    window.print()
+    return
+  }
+
+  // Eliminar iframes anteriores si existieran
+  const anterior = document.getElementById('print-poliza-isolated-iframe')
+  if (anterior) anterior.remove()
+
+  // Crear un iframe invisible exclusivo para imprimir únicamente la hoja blanca ("hoja de máquina")
+  const iframe = document.createElement('iframe')
+  iframe.id = 'print-poliza-isolated-iframe'
+  iframe.style.position = 'fixed'
+  iframe.style.right = '0'
+  iframe.style.bottom = '0'
+  iframe.style.width = '0'
+  iframe.style.height = '0'
+  iframe.style.border = '0'
+  document.body.appendChild(iframe)
+
+  const doc = iframe.contentWindow?.document
+  if (!doc) {
+    window.print()
+    return
+  }
+
+  const css = `
+    @page {
+      size: letter portrait;
+      margin: 8mm 10mm 8mm 10mm;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      color: #000000;
+      background: #ffffff;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      padding: 0;
+      margin: 0;
+    }
+    .print-paper-sheet {
+      width: 100%;
+      background: #ffffff;
+      color: #000000;
+      padding: 0;
+      min-height: 250mm;
+      display: flex;
+      flex-direction: column;
+    }
+    .paper-top-meta {
+      display: flex;
+      justify-content: flex-start;
+      margin-bottom: 2px;
+      font-size: 7.5pt;
+      font-weight: bold;
+    }
+    .page-indicator-top {
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    .paper-header {
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    .institution-name {
+      font-size: 11pt;
+      font-weight: 900;
+      margin: 0;
+      line-height: 1.2;
+      text-transform: uppercase;
+    }
+    .report-main-title {
+      font-size: 9.5pt;
+      font-weight: 900;
+      margin: 3px 0 0 0;
+      line-height: 1.2;
+      text-transform: uppercase;
+    }
+    .paper-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 7.5pt;
+      margin-bottom: 8px;
+    }
+    .paper-table th,
+    .paper-table td {
+      border: 1px solid #000000;
+      padding: 2.2px 4px;
+      line-height: 1.15;
+      color: #000000;
+    }
+    .paper-table th {
+      font-weight: 900;
+      text-align: center;
+      background: transparent;
+      text-transform: uppercase;
+      font-size: 7.8pt;
+    }
+    .th-cta { width: 160px; text-align: center; }
+    .th-cpto { width: auto; text-align: left; }
+    .th-imp { width: 120px; text-align: right; }
+
+    .th-folio { width: 75px; text-align: center; }
+    .th-concepto { width: 220px; text-align: left; }
+    .th-nombre { width: auto; text-align: left; }
+    .th-status { width: 90px; text-align: center; }
+    .th-total { width: 95px; text-align: right; }
+
+    .td-cta { text-align: center; font-family: monospace; font-weight: bold; }
+    .td-cpto { text-align: left; text-transform: uppercase; font-weight: bold; }
+    .td-imp { text-align: right; font-family: monospace; font-weight: bold; white-space: nowrap; }
+
+    .td-folio { text-align: center; font-family: monospace; font-weight: bold; }
+    .td-concepto { text-align: left; text-transform: uppercase; font-weight: bold; }
+    .td-nombre { text-align: left; text-transform: uppercase; font-weight: bold; }
+    .td-status { text-align: center; font-weight: bold; }
+    .td-total { text-align: right; font-family: monospace; font-weight: bold; white-space: nowrap; }
+
+    .row-fill td { height: 16px; }
+
+    .paper-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-top: auto;
+      padding-top: 6px;
+    }
+    .paper-date-stamp {
+      font-size: 7.5pt;
+      width: 200px;
+    }
+    .paper-signature-box {
+      width: 160px;
+      margin-left: 20px;
+      text-align: center;
+    }
+    .signature-line {
+      width: 100%;
+      border-bottom: 1px solid #000000;
+      margin-bottom: 3px;
+    }
+    .signature-label {
+      font-size: 7.8pt;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-align: center;
+      display: block;
+    }
+    .paper-totals-box {
+      border: 1px solid #000000;
+      width: 240px;
+      border-collapse: collapse;
+    }
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 2.2px 5px;
+      border-bottom: 1px solid #000000;
+      font-size: 7.5pt;
+      font-weight: 700;
+    }
+    .total-row:last-child {
+      border-bottom: none;
+    }
+    .t-lbl { font-weight: 700; }
+    .t-grand-total { font-weight: 900; font-size: 7.8pt; }
+  `
+
+  doc.open()
+  doc.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Póliza de Ingresos</title><style>' + css + '</style></head><body>' + sheet.innerHTML + '</body></html>')
+  doc.close()
+
+  setTimeout(() => {
+    iframe.contentWindow?.focus()
+    iframe.contentWindow?.print()
+    setTimeout(() => {
+      iframe.remove()
+    }, 1500)
+  }, 250)
 }
 
 function cerrar(): void {
@@ -580,6 +762,20 @@ function handleKeydown(e: KeyboardEvent): void {
 onMounted(async () => {
   window.addEventListener('keydown', handleKeydown)
   await cargarDatos()
+  // Si existen movimientos de la fecha del corte oficial (2026-10-29) o ayer, inicializar
+  const tieneCorteOficial = todosMovimientos.value.some(m => m.fecha === '2026-10-29')
+  const tieneAyer = todosMovimientos.value.some(m => m.fecha === obtenerFechaAyer())
+
+  if (tieneCorteOficial) {
+    fechaInicio.value = '2026-10-29'
+    fechaFin.value = '2026-10-29'
+  } else if (tieneAyer) {
+    fechaInicio.value = obtenerFechaAyer()
+    fechaFin.value = obtenerFechaAyer()
+  } else {
+    fechaInicio.value = ''
+    fechaFin.value = ''
+  }
   buscar()
 })
 
@@ -628,27 +824,10 @@ onUnmounted(() => {
       <!-- ======================================================== -->
       <section v-if="!modoVistaPrevia" class="window-content-panel">
 
-        <!-- BLOQUE DE FILTRO DE FECHAS / PERIODO CON ACCESOS DIRECTOS -->
+        <!-- BLOQUE DE FILTRO DE FECHAS / PERIODO -->
         <div class="filters-card">
           <div class="filters-header-row">
             <span class="filters-title">Criterio de Periodo y Corte de Ingresos</span>
-            <div class="presets-group">
-              <button type="button" class="btn-preset" @click="presetFecha('ayer')">
-                📅 Día Anterior (Corte)
-              </button>
-              <button type="button" class="btn-preset" @click="presetFecha('hoy')">
-                Hoy
-              </button>
-              <button type="button" class="btn-preset" @click="presetFecha('mes')">
-                Mes en Curso
-              </button>
-              <button type="button" class="btn-preset btn-preset-highlight" @click="presetFecha('todos')">
-                🌐 Ver Todo
-              </button>
-              <button type="button" class="btn-preset" @click="presetFecha('muestra')" title="Cargar corte de muestra fotografiado">
-                📋 Corte 29/10/2026
-              </button>
-            </div>
           </div>
 
           <div class="filters-grid">
@@ -923,14 +1102,36 @@ onUnmounted(() => {
         <!-- Barra de herramientas superior de la vista previa -->
         <div class="preview-toolbar no-print">
           <div class="toolbar-info">
-            <span class="doc-badge">HOJA CONTABLE DE PÓLIZA DE INGRESOS PROPIOS</span>
+            <span class="doc-badge">{{ tipoReporteVista === 'cuentas' ? 'PÓLIZA DE INGRESOS PROPIOS (RESUMEN CONTABLE)' : 'REPORTE DETALLADO DE INGRESOS' }}</span>
             <span class="doc-subtitle">{{ subtituloPeriodo }}</span>
           </div>
           <div class="toolbar-actions">
+            <!-- Selector interactivo para alternar entre Resumen de Cuentas y Detalle de Movimientos -->
+            <div class="view-switch-group">
+              <button
+                type="button"
+                class="btn-view-toggle"
+                :class="{ active: tipoReporteVista === 'cuentas' }"
+                title="Ver e imprimir Resumen de Cuentas Contables"
+                @click="tipoReporteVista = 'cuentas'"
+              >
+                📑 Resumen Cuentas Contables
+              </button>
+              <button
+                type="button"
+                class="btn-view-toggle"
+                :class="{ active: tipoReporteVista === 'detalle' }"
+                title="Ver e imprimir Detalle de Folios y Movimientos"
+                @click="tipoReporteVista = 'detalle'"
+              >
+                📄 Detalle de Folios
+              </button>
+            </div>
+
             <button
               type="button"
               class="btn-action-primary"
-              title="Mandar a imprimir la póliza oficial"
+              title="Mandar a imprimir la hoja oficial"
               @click="imprimir"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
@@ -952,13 +1153,19 @@ onUnmounted(() => {
 
         <!-- SIMULACIÓN EXACTA DEL FORMATO FOTOGRAFIADO -->
         <div class="print-paper-sheet printable-area">
-          <div class="paper-header">
-            <h2 class="institution-name">INSTITUTO TECNOLOGICO SUPERIOR DE MONCLOVA</h2>
-            <h3 class="report-main-title">POLIZA DE INGRESOS PROPIOS</h3>
+          <div class="paper-top-meta">
+            <span class="page-indicator-top">1 DE 1</span>
           </div>
 
-          <!-- Tabla contable con Cuenta, Concepto e Importe -->
-          <table class="paper-table">
+          <div class="paper-header">
+            <h2 class="institution-name">INSTITUTO TECNOLOGICO SUPERIOR DE MONCLOVA</h2>
+            <h3 class="report-main-title">
+              {{ tipoReporteVista === 'cuentas' ? 'POLIZA DE INGRESOS PROPIOS' : tituloReporteImpresion }}
+            </h3>
+          </div>
+
+          <!-- FORMATO A: RESUMEN DE CUENTAS CONTABLES (PÓLIZA INSTITUCIONAL) -->
+          <table v-if="tipoReporteVista === 'cuentas'" class="paper-table">
             <thead>
               <tr>
                 <th class="th-cta">CUENTA</th>
@@ -970,13 +1177,51 @@ onUnmounted(() => {
               <tr v-for="f in filasPolizaAgrupadas" :key="f.cuenta + f.concepto">
                 <td class="td-cta font-mono font-bold">{{ f.cuenta }}</td>
                 <td class="td-cpto font-bold">{{ f.concepto }}</td>
-                <td class="td-imp font-mono text-right font-bold">{{ formatearMoneda(f.importeTotal) }}</td>
+                <td class="td-imp font-mono text-right font-bold">{{ formatearMonedaReporte(f.importeTotal) }}</td>
               </tr>
-              <!-- Renglones vacíos estéticos como el papel oficial -->
-              <tr v-for="i in Math.max(0, 10 - filasPolizaAgrupadas.length)" :key="'empty_' + i" class="row-fill">
+              <!-- Renglones vacíos estéticos como el papel oficial de póliza -->
+              <tr v-for="i in Math.max(0, 10 - filasPolizaAgrupadas.length)" :key="'empty_cta_' + i" class="row-fill">
                 <td class="td-cta">&nbsp;</td>
                 <td class="td-cpto">&nbsp;</td>
                 <td class="td-imp">&nbsp;</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- FORMATO B: DETALLE DE MOVIMIENTOS Y FOLIOS (5 COLUMNAS) -->
+          <table v-else class="paper-table">
+            <thead>
+              <tr>
+                <th class="th-folio">FOLIO</th>
+                <th class="th-concepto">CONCEPTO</th>
+                <th class="th-nombre">NOMBRE</th>
+                <th class="th-status">STATUS</th>
+                <th class="th-total">TOTAL</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="m in movimientosFiltrados"
+                :key="m.id"
+                :class="{ 'row-cancelado': m.estado === 'CANCELADO' }"
+              >
+                <td class="td-folio font-mono font-bold">{{ m.folio }}</td>
+                <td class="td-concepto font-bold">{{ m.concepto }}</td>
+                <td class="td-nombre font-bold">{{ m.nombreAlumno }}</td>
+                <td class="td-status font-bold text-center">
+                  {{ m.estado === 'CANCELADO' ? 'CANCELADO' : (m.formaPago === 'EFECTIVO' ? 'CAJA' : 'DEPOSITO') }}
+                </td>
+                <td class="td-total font-mono font-bold text-right">
+                  {{ formatearMonedaReporte(m.importe) }}
+                </td>
+              </tr>
+              <!-- Renglones vacíos estéticos para simular el rayado continuo del reporte impreso -->
+              <tr v-for="i in Math.max(0, 12 - movimientosFiltrados.length)" :key="'empty_fol_' + i" class="row-fill no-print-overflow">
+                <td class="td-folio">&nbsp;</td>
+                <td class="td-concepto">&nbsp;</td>
+                <td class="td-nombre">&nbsp;</td>
+                <td class="td-status">&nbsp;</td>
+                <td class="td-total">&nbsp;</td>
               </tr>
             </tbody>
           </table>
@@ -987,25 +1232,24 @@ onUnmounted(() => {
               <span class="font-bold">{{ subtituloPeriodo }}</span>
             </div>
 
+            <div class="paper-signature-box">
+              <div class="signature-line"></div>
+              <span class="signature-label">ELABORÓ</span>
+            </div>
+
             <div class="paper-totals-box">
               <div class="total-row">
                 <span class="t-lbl">TOTAL DE COBRO EN CAJA</span>
-                <span class="t-val font-mono">{{ formatearMoneda(totalCobroCaja) }}</span>
+                <span class="t-val font-mono">{{ formatearMonedaReporte(totalCobroCaja) }}</span>
               </div>
               <div class="total-row">
                 <span class="t-lbl">TOTAL DE DEPÓSITO BANCARIO</span>
-                <span class="t-val font-mono">{{ formatearMoneda(totalDepositoBancario) }}</span>
+                <span class="t-val font-mono">{{ formatearMonedaReporte(totalDepositoBancario) }}</span>
               </div>
               <div class="total-row t-grand-total">
                 <span class="t-lbl">TOTAL:</span>
-                <span class="t-val font-mono font-bold">{{ formatearMoneda(totalGeneral) }}</span>
+                <span class="t-val font-mono font-bold">{{ formatearMonedaReporte(totalGeneral) }}</span>
               </div>
-            </div>
-
-            <div class="paper-signature-box">
-              <div class="signature-line"></div>
-              <span class="signature-label">Elaboró</span>
-              <span class="page-indicator">1 DE 1</span>
             </div>
           </div>
         </div>
@@ -1637,64 +1881,139 @@ onUnmounted(() => {
 /* Hoja en blanco simulación papel */
 .print-paper-sheet {
   width: 100%;
-  max-width: 900px;
+  max-width: 950px;
+  min-height: 980px;
+  display: flex;
+  flex-direction: column;
   background: #ffffff;
   color: #000000;
-  padding: 2.2rem 2.8rem;
+  padding: 1.8rem 2.2rem;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
   border-radius: 2px;
-  font-family: 'Arial', sans-serif;
+  font-family: Arial, Helvetica, sans-serif;
   margin-bottom: 1.5rem;
+}
+
+.paper-top-meta {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 0.35rem;
+}
+
+.page-indicator-top {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #000000;
 }
 
 .paper-header {
   text-align: center;
-  border-bottom: 2px solid #000000;
-  padding-bottom: 0.65rem;
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.85rem;
 }
 
 .institution-name {
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   font-weight: 900;
   margin: 0;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: #000000;
 }
 
 .report-main-title {
-  font-size: 0.95rem;
-  font-weight: 800;
+  font-size: 0.92rem;
+  font-weight: 900;
   margin: 0.25rem 0 0 0;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: #000000;
 }
 
 .paper-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.78rem;
-  margin-bottom: 1.5rem;
+  font-size: 0.72rem;
+  margin-bottom: 1.25rem;
 }
 
 .paper-table th,
 .paper-table td {
   border: 1px solid #000000;
-  padding: 0.4rem 0.65rem;
+  padding: 0.22rem 0.45rem;
+  line-height: 1.2;
+  color: #000000;
 }
 
 .paper-table th {
-  background: #F1F5F9;
+  background: transparent;
   font-weight: 900;
   text-align: center;
+  font-size: 0.74rem;
+  letter-spacing: 0.3px;
 }
 
-.th-cta { width: 180px; }
-.th-cpto { width: auto; }
-.th-imp { width: 140px; text-align: right; }
+.view-switch-group {
+  display: inline-flex;
+  background: #0F172A;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 3px;
+  gap: 3px;
+}
 
-.td-cta { text-align: center; }
+.btn-view-toggle {
+  background: transparent;
+  color: #94A3B8;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-view-toggle:hover {
+  color: #FFFFFF;
+}
+
+.btn-view-toggle.active {
+  background: #1B396A;
+  color: #FFFFFF;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.th-cta { width: 160px; text-align: center; }
+.th-cpto { width: auto; text-align: left; }
+.th-imp { width: 120px; text-align: right; }
+
+.td-cta { text-align: center; font-family: monospace; }
+.td-cpto { text-align: left; text-transform: uppercase; }
+.td-imp { text-align: right; font-family: monospace; white-space: nowrap; }
+
+.paper-date-stamp {
+  font-size: 0.74rem;
+  width: 190px;
+}
+
+.th-folio { width: 75px; text-align: center; }
+.th-concepto { width: 240px; text-align: left; }
+.th-nombre { width: auto; text-align: left; }
+.th-status { width: 95px; text-align: center; }
+.th-total { width: 100px; text-align: right; }
+
+.td-folio { text-align: center; }
+.td-concepto { text-align: left; text-transform: uppercase; }
+.td-nombre { text-align: left; text-transform: uppercase; }
+.td-status { text-align: center; }
+.td-total { text-align: right; white-space: nowrap; }
+
+.row-cancelado td {
+  color: #000000;
+}
 
 .row-fill td {
-  height: 22px;
+  height: 19px;
 }
 
 /* Bloque Inferior con Totales Contables y Firma */
@@ -1702,45 +2021,16 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  margin-top: 2rem;
+  margin-top: auto;
   padding-top: 1rem;
-}
-
-.paper-date-stamp {
-  font-size: 0.82rem;
-  width: 220px;
-}
-
-.paper-totals-box {
-  border: 1px solid #000000;
-  width: 280px;
-}
-
-.total-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 0.35rem 0.65rem;
-  border-bottom: 1px solid #E2E8F0;
-  font-size: 0.75rem;
-}
-
-.total-row:last-child {
-  border-bottom: none;
-}
-
-.t-lbl { font-weight: 700; }
-
-.t-grand-total {
-  background: #F1F5F9;
-  font-weight: 900;
-  font-size: 0.82rem;
 }
 
 .paper-signature-box {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 200px;
+  width: 180px;
+  margin-left: 2rem;
 }
 
 .signature-line {
@@ -1750,14 +2040,38 @@ onUnmounted(() => {
 }
 
 .signature-label {
-  font-size: 0.85rem;
-  font-weight: 700;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #000000;
 }
 
-.page-indicator {
-  font-size: 0.72rem;
-  color: #64748B;
-  margin-top: 0.25rem;
+.paper-totals-box {
+  border: 1px solid #000000;
+  width: 230px;
+  background: transparent;
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.22rem 0.55rem;
+  border-bottom: 1px solid #000000;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #000000;
+}
+
+.total-row:last-child {
+  border-bottom: none;
+}
+
+.t-lbl { font-weight: 700; }
+
+.t-grand-total {
+  background: transparent;
+  font-weight: 900;
+  font-size: 0.76rem;
 }
 
 /* Footer institucional */
@@ -1849,26 +2163,224 @@ onUnmounted(() => {
 
 /* =====================================================
    ESTILOS DE IMPRESIÓN OFICIAL (@media print)
+   Garantiza exactamente 1 hoja limpia (sin páginas sobrantes)
    ===================================================== */
 @media print {
+  @page {
+    size: letter portrait;
+    margin: 6mm 8mm 6mm 8mm;
+  }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Ocultar el resto de la aplicación y elementos que generan páginas en blanco */
   body * {
     visibility: hidden;
   }
-  .printable-area, .printable-area * {
-    visibility: visible;
+
+  nav,
+  header,
+  aside,
+  .no-print,
+  .no-print-overflow,
+  .preview-toolbar,
+  .window-title-bar,
+  .window-footer-bar,
+  .window-content-panel {
+    display: none !important;
   }
-  .printable-area {
-    position: absolute;
-    left: 0;
-    top: 0;
+
+  /* Modal y ventana en flujo normal sin alturas fijas */
+  .modal-backdrop {
+    position: static !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+    visibility: visible !important;
+    backdrop-filter: none !important;
+    overflow: visible !important;
+  }
+
+  .tecnm-window {
+    position: static !important;
     width: 100% !important;
     max-width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
     margin: 0 !important;
-    padding: 1.5cm !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    animation: none !important;
+    display: block !important;
+    visibility: visible !important;
+    overflow: visible !important;
+  }
+
+  .print-preview-container {
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    max-height: none !important;
+    overflow: visible !important;
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  /* La hoja impresa: visible y con page-break controlado */
+  .printable-area,
+  .printable-area * {
+    visibility: visible !important;
+  }
+
+  .printable-area {
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 250mm !important;
+    display: flex !important;
+    flex-direction: column !important;
+    margin: 0 !important;
+    padding: 0 !important;
     box-shadow: none !important;
     border: none !important;
+    background: #ffffff !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
-  .no-print {
+
+  .paper-top-meta {
+    margin-bottom: 1px !important;
+  }
+
+  .page-indicator-top {
+    font-size: 7.5pt !important;
+    font-weight: bold !important;
+  }
+
+  .paper-header {
+    text-align: center !important;
+    margin-bottom: 4px !important;
+    padding-bottom: 0 !important;
+  }
+
+  .institution-name {
+    font-size: 10.5pt !important;
+    font-weight: 900 !important;
+    margin: 0 !important;
+    line-height: 1.15 !important;
+  }
+
+  .report-main-title {
+    font-size: 9pt !important;
+    font-weight: 900 !important;
+    margin: 2px 0 0 0 !important;
+    line-height: 1.15 !important;
+  }
+
+  .paper-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 7pt !important;
+    margin-bottom: 6px !important;
+    page-break-inside: avoid !important;
+  }
+
+  .paper-table th,
+  .paper-table td {
+    border: 1px solid #000000 !important;
+    padding: 1.5px 3px !important;
+    line-height: 1.12 !important;
+    font-size: 7pt !important;
+  }
+
+  .paper-table th {
+    font-size: 7.3pt !important;
+    font-weight: 900 !important;
+    background: transparent !important;
+    padding: 2px 3px !important;
+  }
+
+  .th-folio { width: 68px !important; }
+  .th-concepto { width: 220px !important; }
+  .th-nombre { width: auto !important; }
+  .th-status { width: 85px !important; }
+  .th-total { width: 90px !important; }
+
+  .paper-footer {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-end !important;
+    margin-top: auto !important;
+    padding-top: 4px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .paper-signature-box {
+    width: 150px !important;
+    margin-left: 20px !important;
+  }
+
+  .signature-line {
+    width: 100% !important;
+    border-bottom: 1px solid #000000 !important;
+    margin-bottom: 2px !important;
+  }
+
+  .signature-label {
+    font-size: 7.5pt !important;
+    font-weight: 800 !important;
+  }
+
+  .paper-totals-box {
+    border: 1px solid #000000 !important;
+    width: 200px !important;
+  }
+
+  .total-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    padding: 1.2px 3.5px !important;
+    border-bottom: 1px solid #000000 !important;
+    font-size: 7pt !important;
+    font-weight: 700 !important;
+  }
+
+  .t-grand-total {
+    font-size: 7.3pt !important;
+    font-weight: 900 !important;
+  }
+}
+</style>
+
+<!-- Estilos globales no-scopados para garantizar que el diálogo de impresión nunca imprima la aplicación de fondo -->
+<style>
+@media print {
+  body > #app,
+  body > div:not(#print-poliza-isolated-iframe):not(.modal-backdrop) {
     display: none !important;
   }
 }

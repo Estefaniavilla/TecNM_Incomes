@@ -30,7 +30,6 @@ import ModalReporteDeudoresFechaCorte from '../components/ModalReporteDeudoresFe
 import ModalReporteDeudoresFechaCuenta from '../components/ModalReporteDeudoresFechaCuenta.vue'
 import ModalReporteDeudoresInscritos from '../components/ModalReporteDeudoresInscritos.vue'
 import ModalDepositoBancario from '../components/ModalDepositoBancario.vue'
-import ModalDepositoBancarioPropedeutico from '../components/ModalDepositoBancarioPropedeutico.vue'
 import ModalReciboProvisional from '../components/ModalReciboProvisional.vue'
 import ModalReciboProvisionalCancelar from '../components/ModalReciboProvisionalCancelar.vue'
 import ModalConsultaCancelacionRecibos from '../components/ModalConsultaCancelacionRecibos.vue'
@@ -99,13 +98,12 @@ const mostrarModalReporteDeudoresFechaCorte = ref(false)
 const mostrarModalReporteDeudoresFechaCuenta = ref(false)
 const mostrarModalReporteDeudoresInscritos = ref(false)
 const mostrarModalDepositoBancario = ref(false)
-const mostrarModalDepositoBancarioPropedeutico = ref(false)
 const mostrarModalReciboProvisional = ref(false)
 const mostrarModalReciboProvisionalCancelar = ref(false)
 const mostrarModalConsultaCancelacionRecibos = ref(false)
-const menuAbierto = ref<'catalogo' | 'imprimir' | 'control' | 'utilerias' | null>(null)
+const menuAbierto = ref<'catalogo' | 'imprimir' | 'control' | null>(null)
 
-function toggleMenu(menu: 'catalogo' | 'imprimir' | 'control' | 'utilerias'): void {
+function toggleMenu(menu: 'catalogo' | 'imprimir' | 'control'): void {
   menuAbierto.value = menuAbierto.value === menu ? null : menu
 }
 
@@ -175,11 +173,6 @@ function abrirModalReporteDeudoresInscritos(): void {
 
 function abrirModalDepositoBancario(): void {
   mostrarModalDepositoBancario.value = true
-  cerrarMenus()
-}
-
-function abrirModalDepositoBancarioPropedeutico(): void {
-  mostrarModalDepositoBancarioPropedeutico.value = true
   cerrarMenus()
 }
 
@@ -305,14 +298,22 @@ const alumno = ref<AlumnoCaja>({
 // Catálogo dinámico de carreras desde PostgreSQL (con respaldo institucional)
 const opcionesCarreras = ref([
   { value: '', label: 'Seleccionar carrera...' },
-  { value: 'Ing. Industrial', label: 'Ing. Industrial (INGENIERIA INDUSTRIAL)' },
-  { value: 'Ing. Mecánica', label: 'Ing. Mecánica (INGENIERIA MECANICA)' },
-  { value: 'Ing. Electrónica', label: 'Ing. Electrónica (INGENIERIA ELECTRONICA)' },
-  { value: 'Ing. Gestión Emp.', label: 'Ing. Gestión Emp. (INGENIERIA EN GESTION EMPRESARIAL)' },
-  { value: 'Ing. Informática', label: 'Ing. Informática (INGENIERIA INFORMATICA)' },
-  { value: 'Lic. Informática', label: 'Lic. Informática (LICENCIATURA EN INFORMATICA)' },
+  { value: 'Ing. Industrial', label: 'Ing. Industrial' },
+  { value: 'INGENIERIA INDUSTRIAL', label: 'Ing. Industrial' },
+  { value: 'Ing. Mecánica', label: 'Ing. Mecánica' },
+  { value: 'INGENIERIA MECANICA', label: 'Ing. Mecánica' },
+  { value: 'Ing. Electrónica', label: 'Ing. Electrónica' },
+  { value: 'INGENIERIA ELECTRONICA', label: 'Ing. Electrónica' },
+  { value: 'Ing. Gestión Emp.', label: 'Ing. Gestión Emp.' },
+  { value: 'INGENIERIA EN GESTION EMPRESARIAL', label: 'Ing. Gestión Emp.' },
+  { value: 'Ing. Informática', label: 'Ing. Informática' },
+  { value: 'INGENIERIA INFORMATICA', label: 'Ing. Informática' },
+  { value: 'Lic. Informática', label: 'Lic. Informática' },
+  { value: 'LICENCIATURA EN INFORMATICA', label: 'Lic. Informática' },
   { value: 'Ing. Energías Renovables', label: 'Ing. Energías Renovables' },
-  { value: 'Ing. Mecatrónica', label: 'Ing. Mecatrónica (INGENIERIA MECATRONICA)' },
+  { value: 'INGENIERIA EN ENERGIAS RENOVABLES', label: 'Ing. Energías Renovables' },
+  { value: 'Ing. Mecatrónica', label: 'Ing. Mecatrónica' },
+  { value: 'INGENIERIA MECATRONICA', label: 'Ing. Mecatrónica' },
 ])
 
 const sugerenciasEstudiantes = ref<AlumnoCaja[]>([])
@@ -437,7 +438,7 @@ function aplicarAlumnoDeReferencia(): void {
 async function seleccionarEstudiante(est: AlumnoCaja, showNotification = true): Promise<void> {
   alumno.value.matricula = est.matricula
   alumno.value.nombreCompleto = est.nombreCompleto
-  alumno.value.carrera = est.carrera
+  alumno.value.carrera = (est.carrera || '').replace(/\s*\([^)]*\)/g, '').trim()
   alumno.value.semestre = est.semestre
   alumno.value.turno = est.turno || 'Matutino'
   alumno.value.estatus = est.estatus || 'Inscrito'
@@ -816,13 +817,17 @@ onMounted(async () => {
   try {
     const carreras = await cajaApi.getCarreras()
     if (carreras && carreras.length > 0) {
-      opcionesCarreras.value = [
+      const opts: { value: string; label: string }[] = [
         { value: '', label: 'Seleccionar carrera...' },
-        ...carreras.map(c => ({
-          value: c.carrera,
-          label: `${c.carrera} (${c.nombreCarrera})`,
-        })),
       ]
+      carreras.forEach(c => {
+        const nombreLimpio = (c.carrera || c.nombreCarrera || '').replace(/\s*\([^)]*\)/g, '').trim()
+        opts.push({ value: c.carrera, label: nombreLimpio })
+        if (c.nombreCarrera && c.nombreCarrera !== c.carrera) {
+          opts.push({ value: c.nombreCarrera, label: nombreLimpio })
+        }
+      })
+      opcionesCarreras.value = opts
     }
   } catch {
     // Mantiene las carreras base
@@ -963,9 +968,6 @@ onMounted(async () => {
               <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalReciboProvisionalCancelar">
                 <span>Recibo Provisional Cancelar</span>
               </button>
-              <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalDepositoBancarioPropedeutico">
-                <span>Deposito Bancario - Curso Propedeutico</span>
-              </button>
               <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalImprimeVerano">
                 <span>Imprime Verano</span>
               </button>
@@ -989,30 +991,6 @@ onMounted(async () => {
               </button>
               <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
                 <span>Corte por Empleado</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- 5. Utilerías (3 opciones) -->
-          <div class="menubar-item dropdown-parent" :class="{ open: menuAbierto === 'utilerias' }">
-            <button
-              type="button"
-              class="menubar-btn btn-dropdown"
-              :aria-expanded="menuAbierto === 'utilerias'"
-              @click.stop="toggleMenu('utilerias')"
-            >
-              Utilerías <span class="arrow-indicator">▾</span>
-            </button>
-
-            <div v-if="menuAbierto === 'utilerias'" class="menubar-dropdown-panel" role="menu">
-              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
-                <span>Cambio de Contraseña</span>
-              </button>
-              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
-                <span>Cierre de Semestre</span>
-              </button>
-              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
-                <span>Crear Usuario</span>
               </button>
             </div>
           </div>
@@ -1699,11 +1677,6 @@ onMounted(async () => {
     <ModalDepositoBancario
       v-if="mostrarModalDepositoBancario"
       @close="mostrarModalDepositoBancario = false"
-    />
-
-    <ModalDepositoBancarioPropedeutico
-      v-if="mostrarModalDepositoBancarioPropedeutico"
-      @close="mostrarModalDepositoBancarioPropedeutico = false"
     />
 
     <ModalReciboProvisional
