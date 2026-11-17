@@ -268,14 +268,22 @@ const alumno = ref<AlumnoCaja>({
 // Catálogo dinámico de carreras desde PostgreSQL (con respaldo institucional)
 const opcionesCarreras = ref([
   { value: '', label: 'Seleccionar carrera...' },
-  { value: 'Ing. Industrial', label: 'Ing. Industrial (INGENIERIA INDUSTRIAL)' },
-  { value: 'Ing. Mecánica', label: 'Ing. Mecánica (INGENIERIA MECANICA)' },
-  { value: 'Ing. Electrónica', label: 'Ing. Electrónica (INGENIERIA ELECTRONICA)' },
-  { value: 'Ing. Gestión Emp.', label: 'Ing. Gestión Emp. (INGENIERIA EN GESTION EMPRESARIAL)' },
-  { value: 'Ing. Informática', label: 'Ing. Informática (INGENIERIA INFORMATICA)' },
-  { value: 'Lic. Informática', label: 'Lic. Informática (LICENCIATURA EN INFORMATICA)' },
+  { value: 'Ing. Industrial', label: 'Ing. Industrial' },
+  { value: 'INGENIERIA INDUSTRIAL', label: 'Ing. Industrial' },
+  { value: 'Ing. Mecánica', label: 'Ing. Mecánica' },
+  { value: 'INGENIERIA MECANICA', label: 'Ing. Mecánica' },
+  { value: 'Ing. Electrónica', label: 'Ing. Electrónica' },
+  { value: 'INGENIERIA ELECTRONICA', label: 'Ing. Electrónica' },
+  { value: 'Ing. Gestión Emp.', label: 'Ing. Gestión Emp.' },
+  { value: 'INGENIERIA EN GESTION EMPRESARIAL', label: 'Ing. Gestión Emp.' },
+  { value: 'Ing. Informática', label: 'Ing. Informática' },
+  { value: 'INGENIERIA INFORMATICA', label: 'Ing. Informática' },
+  { value: 'Lic. Informática', label: 'Lic. Informática' },
+  { value: 'LICENCIATURA EN INFORMATICA', label: 'Lic. Informática' },
   { value: 'Ing. Energías Renovables', label: 'Ing. Energías Renovables' },
-  { value: 'Ing. Mecatrónica', label: 'Ing. Mecatrónica (INGENIERIA MECATRONICA)' },
+  { value: 'INGENIERIA EN ENERGIAS RENOVABLES', label: 'Ing. Energías Renovables' },
+  { value: 'Ing. Mecatrónica', label: 'Ing. Mecatrónica' },
+  { value: 'INGENIERIA MECATRONICA', label: 'Ing. Mecatrónica' },
 ])
 
 const sugerenciasEstudiantes = ref<AlumnoCaja[]>([])
@@ -400,7 +408,7 @@ function aplicarAlumnoDeReferencia(): void {
 async function seleccionarEstudiante(est: AlumnoCaja, showNotification = true): Promise<void> {
   alumno.value.matricula = est.matricula
   alumno.value.nombreCompleto = est.nombreCompleto
-  alumno.value.carrera = est.carrera
+  alumno.value.carrera = (est.carrera || '').replace(/\s*\([^)]*\)/g, '').trim()
   alumno.value.semestre = est.semestre
   alumno.value.turno = est.turno || 'Matutino'
   alumno.value.estatus = est.estatus || 'Inscrito'
@@ -779,13 +787,17 @@ onMounted(async () => {
   try {
     const carreras = await cajaApi.getCarreras()
     if (carreras && carreras.length > 0) {
-      opcionesCarreras.value = [
+      const opts: { value: string; label: string }[] = [
         { value: '', label: 'Seleccionar carrera...' },
-        ...carreras.map(c => ({
-          value: c.carrera,
-          label: `${c.carrera} (${c.nombreCarrera})`,
-        })),
       ]
+      carreras.forEach(c => {
+        const nombreLimpio = (c.carrera || c.nombreCarrera || '').replace(/\s*\([^)]*\)/g, '').trim()
+        opts.push({ value: c.carrera, label: nombreLimpio })
+        if (c.nombreCarrera && c.nombreCarrera !== c.carrera) {
+          opts.push({ value: c.nombreCarrera, label: nombreLimpio })
+        }
+      })
+      opcionesCarreras.value = opts
     }
   } catch {
     // Mantiene las carreras base
