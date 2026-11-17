@@ -545,7 +545,12 @@ function limpiar(): void {
   buscar()
 }
 
+// Tipo de reporte para la vista previa: 'cuentas' (Resumen contable) o 'detalle' (Folios y movimientos)
+const tipoReporteVista = ref<'cuentas' | 'detalle'>('cuentas')
+
 function abrirVistaPrevia(): void {
+  // Sincronizar automáticamente con la pestaña activa del usuario
+  tipoReporteVista.value = pestanaActiva.value === 'movimientos' ? 'detalle' : 'cuentas'
   modoVistaPrevia.value = true
 }
 
@@ -554,7 +559,187 @@ function cerrarVistaPrevia(): void {
 }
 
 function imprimir(): void {
-  window.print()
+  const sheet = document.querySelector('.print-paper-sheet') as HTMLElement | null
+  if (!sheet) {
+    window.print()
+    return
+  }
+
+  // Eliminar iframes anteriores si existieran
+  const anterior = document.getElementById('print-poliza-isolated-iframe')
+  if (anterior) anterior.remove()
+
+  // Crear un iframe invisible exclusivo para imprimir únicamente la hoja blanca ("hoja de máquina")
+  const iframe = document.createElement('iframe')
+  iframe.id = 'print-poliza-isolated-iframe'
+  iframe.style.position = 'fixed'
+  iframe.style.right = '0'
+  iframe.style.bottom = '0'
+  iframe.style.width = '0'
+  iframe.style.height = '0'
+  iframe.style.border = '0'
+  document.body.appendChild(iframe)
+
+  const doc = iframe.contentWindow?.document
+  if (!doc) {
+    window.print()
+    return
+  }
+
+  const css = `
+    @page {
+      size: letter portrait;
+      margin: 8mm 10mm 8mm 10mm;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      color: #000000;
+      background: #ffffff;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      padding: 0;
+      margin: 0;
+    }
+    .print-paper-sheet {
+      width: 100%;
+      background: #ffffff;
+      color: #000000;
+      padding: 0;
+    }
+    .paper-top-meta {
+      display: flex;
+      justify-content: flex-start;
+      margin-bottom: 2px;
+      font-size: 7.5pt;
+      font-weight: bold;
+    }
+    .page-indicator-top {
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    .paper-header {
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    .institution-name {
+      font-size: 11pt;
+      font-weight: 900;
+      margin: 0;
+      line-height: 1.2;
+      text-transform: uppercase;
+    }
+    .report-main-title {
+      font-size: 9.5pt;
+      font-weight: 900;
+      margin: 3px 0 0 0;
+      line-height: 1.2;
+      text-transform: uppercase;
+    }
+    .paper-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 7.5pt;
+      margin-bottom: 8px;
+    }
+    .paper-table th,
+    .paper-table td {
+      border: 1px solid #000000;
+      padding: 2.2px 4px;
+      line-height: 1.15;
+      color: #000000;
+    }
+    .paper-table th {
+      font-weight: 900;
+      text-align: center;
+      background: transparent;
+      text-transform: uppercase;
+      font-size: 7.8pt;
+    }
+    .th-cta { width: 160px; text-align: center; }
+    .th-cpto { width: auto; text-align: left; }
+    .th-imp { width: 120px; text-align: right; }
+
+    .th-folio { width: 75px; text-align: center; }
+    .th-concepto { width: 220px; text-align: left; }
+    .th-nombre { width: auto; text-align: left; }
+    .th-status { width: 90px; text-align: center; }
+    .th-total { width: 95px; text-align: right; }
+
+    .td-cta { text-align: center; font-family: monospace; font-weight: bold; }
+    .td-cpto { text-align: left; text-transform: uppercase; font-weight: bold; }
+    .td-imp { text-align: right; font-family: monospace; font-weight: bold; white-space: nowrap; }
+
+    .td-folio { text-align: center; font-family: monospace; font-weight: bold; }
+    .td-concepto { text-align: left; text-transform: uppercase; font-weight: bold; }
+    .td-nombre { text-align: left; text-transform: uppercase; font-weight: bold; }
+    .td-status { text-align: center; font-weight: bold; }
+    .td-total { text-align: right; font-family: monospace; font-weight: bold; white-space: nowrap; }
+
+    .row-fill td { height: 16px; }
+
+    .paper-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-top: 8px;
+      padding-top: 2px;
+    }
+    .paper-date-stamp {
+      font-size: 7.5pt;
+      width: 200px;
+    }
+    .paper-signature-box {
+      width: 160px;
+      margin-left: 20px;
+      text-align: center;
+    }
+    .signature-line {
+      width: 100%;
+      border-bottom: 1px solid #000000;
+      margin-bottom: 3px;
+    }
+    .signature-label {
+      font-size: 7.8pt;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-align: center;
+      display: block;
+    }
+    .paper-totals-box {
+      border: 1px solid #000000;
+      width: 240px;
+      border-collapse: collapse;
+    }
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 2.2px 5px;
+      border-bottom: 1px solid #000000;
+      font-size: 7.5pt;
+      font-weight: 700;
+    }
+    .total-row:last-child {
+      border-bottom: none;
+    }
+    .t-lbl { font-weight: 700; }
+    .t-grand-total { font-weight: 900; font-size: 7.8pt; }
+  `
+
+  doc.open()
+  doc.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Póliza de Ingresos</title><style>' + css + '</style></head><body>' + sheet.innerHTML + '</body></html>')
+  doc.close()
+
+  setTimeout(() => {
+    iframe.contentWindow?.focus()
+    iframe.contentWindow?.print()
+    setTimeout(() => {
+      iframe.remove()
+    }, 1500)
+  }, 250)
 }
 
 function cerrar(): void {
@@ -914,14 +1099,36 @@ onUnmounted(() => {
         <!-- Barra de herramientas superior de la vista previa -->
         <div class="preview-toolbar no-print">
           <div class="toolbar-info">
-            <span class="doc-badge">HOJA CONTABLE DE PÓLIZA DE INGRESOS PROPIOS</span>
+            <span class="doc-badge">{{ tipoReporteVista === 'cuentas' ? 'PÓLIZA DE INGRESOS PROPIOS (RESUMEN CONTABLE)' : 'REPORTE DETALLADO DE INGRESOS' }}</span>
             <span class="doc-subtitle">{{ subtituloPeriodo }}</span>
           </div>
           <div class="toolbar-actions">
+            <!-- Selector interactivo para alternar entre Resumen de Cuentas y Detalle de Movimientos -->
+            <div class="view-switch-group">
+              <button
+                type="button"
+                class="btn-view-toggle"
+                :class="{ active: tipoReporteVista === 'cuentas' }"
+                title="Ver e imprimir Resumen de Cuentas Contables"
+                @click="tipoReporteVista = 'cuentas'"
+              >
+                📑 Resumen Cuentas Contables
+              </button>
+              <button
+                type="button"
+                class="btn-view-toggle"
+                :class="{ active: tipoReporteVista === 'detalle' }"
+                title="Ver e imprimir Detalle de Folios y Movimientos"
+                @click="tipoReporteVista = 'detalle'"
+              >
+                📄 Detalle de Folios
+              </button>
+            </div>
+
             <button
               type="button"
               class="btn-action-primary"
-              title="Mandar a imprimir la póliza oficial"
+              title="Mandar a imprimir la hoja oficial"
               @click="imprimir"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
@@ -941,7 +1148,7 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- SIMULACIÓN EXACTA DEL FORMATO FOTOGRAFIADO (5 COLUMNAS OFICIALES) -->
+        <!-- SIMULACIÓN EXACTA DEL FORMATO FOTOGRAFIADO -->
         <div class="print-paper-sheet printable-area">
           <div class="paper-top-meta">
             <span class="page-indicator-top">1 DE 1</span>
@@ -949,11 +1156,37 @@ onUnmounted(() => {
 
           <div class="paper-header">
             <h2 class="institution-name">INSTITUTO TECNOLOGICO SUPERIOR DE MONCLOVA</h2>
-            <h3 class="report-main-title">{{ tituloReporteImpresion }}</h3>
+            <h3 class="report-main-title">
+              {{ tipoReporteVista === 'cuentas' ? 'POLIZA DE INGRESOS PROPIOS' : tituloReporteImpresion }}
+            </h3>
           </div>
 
-          <!-- Tabla contable de 5 columnas oficial idéntica a la hoja física -->
-          <table class="paper-table">
+          <!-- FORMATO A: RESUMEN DE CUENTAS CONTABLES (PÓLIZA INSTITUCIONAL) -->
+          <table v-if="tipoReporteVista === 'cuentas'" class="paper-table">
+            <thead>
+              <tr>
+                <th class="th-cta">CUENTA</th>
+                <th class="th-cpto">CONCEPTO</th>
+                <th class="th-imp">IMPORTE</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="f in filasPolizaAgrupadas" :key="f.cuenta + f.concepto">
+                <td class="td-cta font-mono font-bold">{{ f.cuenta }}</td>
+                <td class="td-cpto font-bold">{{ f.concepto }}</td>
+                <td class="td-imp font-mono text-right font-bold">{{ formatearMonedaReporte(f.importeTotal) }}</td>
+              </tr>
+              <!-- Renglones vacíos estéticos como el papel oficial de póliza -->
+              <tr v-for="i in Math.max(0, 10 - filasPolizaAgrupadas.length)" :key="'empty_cta_' + i" class="row-fill">
+                <td class="td-cta">&nbsp;</td>
+                <td class="td-cpto">&nbsp;</td>
+                <td class="td-imp">&nbsp;</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- FORMATO B: DETALLE DE MOVIMIENTOS Y FOLIOS (5 COLUMNAS) -->
+          <table v-else class="paper-table">
             <thead>
               <tr>
                 <th class="th-folio">FOLIO</th>
@@ -980,7 +1213,7 @@ onUnmounted(() => {
                 </td>
               </tr>
               <!-- Renglones vacíos estéticos para simular el rayado continuo del reporte impreso -->
-              <tr v-for="i in Math.max(0, 16 - movimientosFiltrados.length)" :key="'empty_' + i" class="row-fill no-print-overflow">
+              <tr v-for="i in Math.max(0, 12 - movimientosFiltrados.length)" :key="'empty_fol_' + i" class="row-fill no-print-overflow">
                 <td class="td-folio">&nbsp;</td>
                 <td class="td-concepto">&nbsp;</td>
                 <td class="td-nombre">&nbsp;</td>
@@ -992,6 +1225,10 @@ onUnmounted(() => {
 
           <!-- Bloque Inferior con Totales Contables y Firma -->
           <div class="paper-footer">
+            <div class="paper-date-stamp">
+              <span class="font-bold">{{ subtituloPeriodo }}</span>
+            </div>
+
             <div class="paper-signature-box">
               <div class="signature-line"></div>
               <span class="signature-label">ELABORÓ</span>
@@ -999,15 +1236,15 @@ onUnmounted(() => {
 
             <div class="paper-totals-box">
               <div class="total-row">
-                <span class="t-lbl">EFECTIVO</span>
+                <span class="t-lbl">TOTAL DE COBRO EN CAJA</span>
                 <span class="t-val font-mono">{{ formatearMonedaReporte(totalCobroCaja) }}</span>
               </div>
               <div class="total-row">
-                <span class="t-lbl">DEPOSITO</span>
+                <span class="t-lbl">TOTAL DE DEPÓSITO BANCARIO</span>
                 <span class="t-val font-mono">{{ formatearMonedaReporte(totalDepositoBancario) }}</span>
               </div>
               <div class="total-row t-grand-total">
-                <span class="t-lbl">TOTAL</span>
+                <span class="t-lbl">TOTAL:</span>
                 <span class="t-val font-mono font-bold">{{ formatearMonedaReporte(totalGeneral) }}</span>
               </div>
             </div>
@@ -1709,6 +1946,50 @@ onUnmounted(() => {
   letter-spacing: 0.3px;
 }
 
+.view-switch-group {
+  display: inline-flex;
+  background: #0F172A;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 3px;
+  gap: 3px;
+}
+
+.btn-view-toggle {
+  background: transparent;
+  color: #94A3B8;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-view-toggle:hover {
+  color: #FFFFFF;
+}
+
+.btn-view-toggle.active {
+  background: #1B396A;
+  color: #FFFFFF;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.th-cta { width: 160px; text-align: center; }
+.th-cpto { width: auto; text-align: left; }
+.th-imp { width: 120px; text-align: right; }
+
+.td-cta { text-align: center; font-family: monospace; }
+.td-cpto { text-align: left; text-transform: uppercase; }
+.td-imp { text-align: right; font-family: monospace; white-space: nowrap; }
+
+.paper-date-stamp {
+  font-size: 0.74rem;
+  width: 190px;
+}
+
 .th-folio { width: 75px; text-align: center; }
 .th-concepto { width: 240px; text-align: left; }
 .th-nombre { width: auto; text-align: left; }
@@ -2082,6 +2363,16 @@ onUnmounted(() => {
   .t-grand-total {
     font-size: 7.3pt !important;
     font-weight: 900 !important;
+  }
+}
+</style>
+
+<!-- Estilos globales no-scopados para garantizar que el diálogo de impresión nunca imprima la aplicación de fondo -->
+<style>
+@media print {
+  body > #app,
+  body > div:not(#print-poliza-isolated-iframe):not(.modal-backdrop) {
+    display: none !important;
   }
 }
 </style>
