@@ -211,7 +211,6 @@ function irARecibo(): void {
   mostrarModalReporteDeudoresFechaCuenta.value = false
   mostrarModalReporteDeudoresInscritos.value = false
   mostrarModalDepositoBancario.value = false
-  mostrarModalDepositoBancarioPropedeutico.value = false
   mostrarModalReciboProvisional.value = false
   mostrarModalReciboProvisionalCancelar.value = false
   mostrarModalConsultaCancelacionRecibos.value = false

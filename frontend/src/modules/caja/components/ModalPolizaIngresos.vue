@@ -749,6 +749,17 @@ function cerrar(): void {
   emit('close')
 }
 
+function presetFecha(tipo: 'muestra' | 'todos'): void {
+  if (tipo === 'muestra') {
+    fechaInicio.value = '2026-10-29'
+    fechaFin.value = '2026-10-29'
+  } else {
+    fechaInicio.value = ''
+    fechaFin.value = ''
+  }
+  buscar()
+}
+
 function handleKeydown(e: KeyboardEvent): void {
   if (e.key === 'Escape') {
     if (modoVistaPrevia.value) {
