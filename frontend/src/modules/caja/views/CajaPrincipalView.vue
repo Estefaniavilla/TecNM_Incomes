@@ -30,7 +30,6 @@ import ModalReporteDeudoresFechaCorte from '../components/ModalReporteDeudoresFe
 import ModalReporteDeudoresFechaCuenta from '../components/ModalReporteDeudoresFechaCuenta.vue'
 import ModalReporteDeudoresInscritos from '../components/ModalReporteDeudoresInscritos.vue'
 import ModalDepositoBancario from '../components/ModalDepositoBancario.vue'
-import ModalDepositoBancarioPropedeutico from '../components/ModalDepositoBancarioPropedeutico.vue'
 import ModalReciboProvisional from '../components/ModalReciboProvisional.vue'
 import ModalReciboProvisionalCancelar from '../components/ModalReciboProvisionalCancelar.vue'
 import ModalConsultaCancelacionRecibos from '../components/ModalConsultaCancelacionRecibos.vue'
@@ -99,13 +98,12 @@ const mostrarModalReporteDeudoresFechaCorte = ref(false)
 const mostrarModalReporteDeudoresFechaCuenta = ref(false)
 const mostrarModalReporteDeudoresInscritos = ref(false)
 const mostrarModalDepositoBancario = ref(false)
-const mostrarModalDepositoBancarioPropedeutico = ref(false)
 const mostrarModalReciboProvisional = ref(false)
 const mostrarModalReciboProvisionalCancelar = ref(false)
 const mostrarModalConsultaCancelacionRecibos = ref(false)
-const menuAbierto = ref<'catalogo' | 'imprimir' | 'control' | 'utilerias' | null>(null)
+const menuAbierto = ref<'catalogo' | 'imprimir' | 'control' | null>(null)
 
-function toggleMenu(menu: 'catalogo' | 'imprimir' | 'control' | 'utilerias'): void {
+function toggleMenu(menu: 'catalogo' | 'imprimir' | 'control'): void {
   menuAbierto.value = menuAbierto.value === menu ? null : menu
 }
 
@@ -175,11 +173,6 @@ function abrirModalReporteDeudoresInscritos(): void {
 
 function abrirModalDepositoBancario(): void {
   mostrarModalDepositoBancario.value = true
-  cerrarMenus()
-}
-
-function abrirModalDepositoBancarioPropedeutico(): void {
-  mostrarModalDepositoBancarioPropedeutico.value = true
   cerrarMenus()
 }
 
@@ -919,9 +912,6 @@ onMounted(async () => {
               <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalReciboProvisionalCancelar">
                 <span>Recibo Provisional Cancelar</span>
               </button>
-              <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalDepositoBancarioPropedeutico">
-                <span>Deposito Bancario - Curso Propedeutico</span>
-              </button>
               <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalImprimeVerano">
                 <span>Imprime Verano</span>
               </button>
@@ -945,30 +935,6 @@ onMounted(async () => {
               </button>
               <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
                 <span>Corte por Empleado</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- 5. Utilerías (3 opciones) -->
-          <div class="menubar-item dropdown-parent" :class="{ open: menuAbierto === 'utilerias' }">
-            <button
-              type="button"
-              class="menubar-btn btn-dropdown"
-              :aria-expanded="menuAbierto === 'utilerias'"
-              @click.stop="toggleMenu('utilerias')"
-            >
-              Utilerías <span class="arrow-indicator">▾</span>
-            </button>
-
-            <div v-if="menuAbierto === 'utilerias'" class="menubar-dropdown-panel" role="menu">
-              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
-                <span>Cambio de Contraseña</span>
-              </button>
-              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
-                <span>Cierre de Semestre</span>
-              </button>
-              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
-                <span>Crear Usuario</span>
               </button>
             </div>
           </div>
@@ -1655,11 +1621,6 @@ onMounted(async () => {
     <ModalDepositoBancario
       v-if="mostrarModalDepositoBancario"
       @close="mostrarModalDepositoBancario = false"
-    />
-
-    <ModalDepositoBancarioPropedeutico
-      v-if="mostrarModalDepositoBancarioPropedeutico"
-      @close="mostrarModalDepositoBancarioPropedeutico = false"
     />
 
     <ModalReciboProvisional

@@ -18,7 +18,6 @@ import ModalReporteDeudoresFechaCorte from '../../caja/components/ModalReporteDe
 import ModalReporteDeudoresFechaCuenta from '../../caja/components/ModalReporteDeudoresFechaCuenta.vue'
 import ModalReporteDeudoresInscritos from '../../caja/components/ModalReporteDeudoresInscritos.vue'
 import ModalDepositoBancario from '../../caja/components/ModalDepositoBancario.vue'
-import ModalDepositoBancarioPropedeutico from '../../caja/components/ModalDepositoBancarioPropedeutico.vue'
 import ModalReciboProvisional from '../../caja/components/ModalReciboProvisional.vue'
 import ModalReciboProvisionalCancelar from '../../caja/components/ModalReciboProvisionalCancelar.vue'
 import ModalConsultaCancelacionRecibos from '../../caja/components/ModalConsultaCancelacionRecibos.vue'
@@ -61,7 +60,7 @@ async function endSession(): Promise<void> {
 // ==========================================
 // Control de Menú
 // ==========================================
-const menuAbierto = ref<'catalogo' | 'imprimir' | 'control' | 'utilerias' | null>(null)
+const menuAbierto = ref<'catalogo' | 'imprimir' | 'control' | null>(null)
 const mostrarModalCuentas = ref(false)
 const mostrarModalEmpleados = ref(false)
 const mostrarModalImprimeVerano = ref(false)
@@ -75,12 +74,11 @@ const mostrarModalReporteDeudoresFechaCorte = ref(false)
 const mostrarModalReporteDeudoresFechaCuenta = ref(false)
 const mostrarModalReporteDeudoresInscritos = ref(false)
 const mostrarModalDepositoBancario = ref(false)
-const mostrarModalDepositoBancarioPropedeutico = ref(false)
 const mostrarModalReciboProvisional = ref(false)
 const mostrarModalReciboProvisionalCancelar = ref(false)
 const mostrarModalConsultaCancelacionRecibos = ref(false)
 
-function toggleMenu(menu: 'catalogo' | 'imprimir' | 'control' | 'utilerias'): void {
+function toggleMenu(menu: 'catalogo' | 'imprimir' | 'control'): void {
   menuAbierto.value = menuAbierto.value === menu ? null : menu
 }
 
@@ -150,11 +148,6 @@ function abrirModalReporteDeudoresInscritos(): void {
 
 function abrirModalDepositoBancario(): void {
   mostrarModalDepositoBancario.value = true
-  cerrarMenus()
-}
-
-function abrirModalDepositoBancarioPropedeutico(): void {
-  mostrarModalDepositoBancarioPropedeutico.value = true
   cerrarMenus()
 }
 
@@ -264,9 +257,6 @@ setInterval(actualizarHora, 1000)
               <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalReciboProvisionalCancelar">
                 <span>Recibo Provisional Cancelar</span>
               </button>
-              <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalDepositoBancarioPropedeutico">
-                <span>Deposito Bancario - Curso Propedeutico</span>
-              </button>
               <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalImprimeVerano">
                 <span>Imprime Verano</span>
               </button>
@@ -289,29 +279,6 @@ setInterval(actualizarHora, 1000)
               </button>
               <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
                 <span>Corte por Empleado</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- 5. Utilerías -->
-          <div class="menubar-item dropdown-parent" :class="{ open: menuAbierto === 'utilerias' }">
-            <button
-              type="button"
-              class="menubar-btn btn-dropdown"
-              :aria-expanded="menuAbierto === 'utilerias'"
-              @click.stop="toggleMenu('utilerias')"
-            >
-              Utilerías <span class="arrow-indicator">▾</span>
-            </button>
-            <div v-if="menuAbierto === 'utilerias'" class="menubar-dropdown-panel" role="menu">
-              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
-                <span>Cambio de Contraseña</span>
-              </button>
-              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
-                <span>Cierre de Semestre</span>
-              </button>
-              <button type="button" class="dropdown-entry" role="menuitem" @click="cerrarMenus">
-                <span>Crear Usuario</span>
               </button>
             </div>
           </div>
@@ -524,7 +491,6 @@ setInterval(actualizarHora, 1000)
     <ModalReporteDeudoresFechaCuenta v-if="mostrarModalReporteDeudoresFechaCuenta" @close="mostrarModalReporteDeudoresFechaCuenta = false" />
     <ModalReporteDeudoresInscritos v-if="mostrarModalReporteDeudoresInscritos" @close="mostrarModalReporteDeudoresInscritos = false" />
     <ModalDepositoBancario v-if="mostrarModalDepositoBancario" @close="mostrarModalDepositoBancario = false" />
-    <ModalDepositoBancarioPropedeutico v-if="mostrarModalDepositoBancarioPropedeutico" @close="mostrarModalDepositoBancarioPropedeutico = false" />
     <ModalReciboProvisional v-if="mostrarModalReciboProvisional" @close="mostrarModalReciboProvisional = false" />
     <ModalReciboProvisionalCancelar v-if="mostrarModalReciboProvisionalCancelar" @close="mostrarModalReciboProvisionalCancelar = false" />
     <ModalConsultaCancelacionRecibos v-if="mostrarModalConsultaCancelacionRecibos" @close="mostrarModalConsultaCancelacionRecibos = false" />

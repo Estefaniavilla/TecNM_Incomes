@@ -610,6 +610,9 @@ function imprimir(): void {
       background: #ffffff;
       color: #000000;
       padding: 0;
+      min-height: 250mm;
+      display: flex;
+      flex-direction: column;
     }
     .paper-top-meta {
       display: flex;
@@ -685,8 +688,8 @@ function imprimir(): void {
       display: flex;
       justify-content: space-between;
       align-items: flex-end;
-      margin-top: 8px;
-      padding-top: 2px;
+      margin-top: auto;
+      padding-top: 6px;
     }
     .paper-date-stamp {
       font-size: 7.5pt;
@@ -1879,6 +1882,9 @@ onUnmounted(() => {
 .print-paper-sheet {
   width: 100%;
   max-width: 950px;
+  min-height: 980px;
+  display: flex;
+  flex-direction: column;
   background: #ffffff;
   color: #000000;
   padding: 1.8rem 2.2rem;
@@ -2015,8 +2021,8 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  margin-top: 1.5rem;
-  padding-top: 0.5rem;
+  margin-top: auto;
+  padding-top: 1rem;
 }
 
 .paper-signature-box {
@@ -2252,6 +2258,9 @@ onUnmounted(() => {
     position: static !important;
     width: 100% !important;
     max-width: 100% !important;
+    min-height: 250mm !important;
+    display: flex !important;
+    flex-direction: column !important;
     margin: 0 !important;
     padding: 0 !important;
     box-shadow: none !important;
@@ -2324,8 +2333,8 @@ onUnmounted(() => {
     display: flex !important;
     justify-content: space-between !important;
     align-items: flex-end !important;
-    margin-top: 6px !important;
-    padding-top: 0 !important;
+    margin-top: auto !important;
+    padding-top: 4px !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
