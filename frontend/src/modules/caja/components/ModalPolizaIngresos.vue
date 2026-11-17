@@ -66,31 +66,6 @@ function onFechaSeleccionada(campo: 'inicio' | 'fin', event: Event): void {
   }
 }
 
-function presetFecha(tipo: 'ayer' | 'hoy' | 'mes' | 'todos' | 'muestra'): void {
-  if (tipo === 'ayer') {
-    const ayer = obtenerFechaAyer()
-    fechaInicio.value = ayer
-    fechaFin.value = ayer
-  } else if (tipo === 'hoy') {
-    const hoy = obtenerFechaHoy()
-    fechaInicio.value = hoy
-    fechaFin.value = hoy
-  } else if (tipo === 'mes') {
-    const hoy = new Date()
-    const y = hoy.getFullYear()
-    const m = String(hoy.getMonth() + 1).padStart(2, '0')
-    fechaInicio.value = `${y}-${m}-01`
-    fechaFin.value = obtenerFechaHoy()
-  } else if (tipo === 'todos') {
-    fechaInicio.value = ''
-    fechaFin.value = ''
-  } else if (tipo === 'muestra') {
-    fechaInicio.value = '2026-10-29'
-    fechaFin.value = '2026-10-29'
-  }
-  buscar()
-}
-
 // ==========================================
 // Filtros Adicionales
 // ==========================================
@@ -661,27 +636,10 @@ onUnmounted(() => {
       <!-- ======================================================== -->
       <section v-if="!modoVistaPrevia" class="window-content-panel">
 
-        <!-- BLOQUE DE FILTRO DE FECHAS / PERIODO CON ACCESOS DIRECTOS -->
+        <!-- BLOQUE DE FILTRO DE FECHAS / PERIODO -->
         <div class="filters-card">
           <div class="filters-header-row">
             <span class="filters-title">Criterio de Periodo y Corte de Ingresos</span>
-            <div class="presets-group">
-              <button type="button" class="btn-preset" @click="presetFecha('ayer')">
-                📅 Día Anterior (Corte)
-              </button>
-              <button type="button" class="btn-preset" @click="presetFecha('hoy')">
-                Hoy
-              </button>
-              <button type="button" class="btn-preset" @click="presetFecha('mes')">
-                Mes en Curso
-              </button>
-              <button type="button" class="btn-preset btn-preset-highlight" @click="presetFecha('todos')">
-                🌐 Ver Todo
-              </button>
-              <button type="button" class="btn-preset" @click="presetFecha('muestra')" title="Cargar corte de muestra fotografiado">
-                📋 Corte 29/10/2026
-              </button>
-            </div>
           </div>
 
           <div class="filters-grid">
@@ -1022,7 +980,7 @@ onUnmounted(() => {
                 </td>
               </tr>
               <!-- Renglones vacíos estéticos para simular el rayado continuo del reporte impreso -->
-              <tr v-for="i in Math.max(0, 22 - movimientosFiltrados.length)" :key="'empty_' + i" class="row-fill">
+              <tr v-for="i in Math.max(0, 16 - movimientosFiltrados.length)" :key="'empty_' + i" class="row-fill no-print-overflow">
                 <td class="td-folio">&nbsp;</td>
                 <td class="td-concepto">&nbsp;</td>
                 <td class="td-nombre">&nbsp;</td>
@@ -1918,27 +1876,212 @@ onUnmounted(() => {
 
 /* =====================================================
    ESTILOS DE IMPRESIÓN OFICIAL (@media print)
+   Garantiza exactamente 1 hoja limpia (sin páginas sobrantes)
    ===================================================== */
 @media print {
+  @page {
+    size: letter portrait;
+    margin: 6mm 8mm 6mm 8mm;
+  }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Ocultar el resto de la aplicación y elementos que generan páginas en blanco */
   body * {
     visibility: hidden;
   }
-  .printable-area, .printable-area * {
-    visibility: visible;
+
+  nav,
+  header,
+  aside,
+  .no-print,
+  .no-print-overflow,
+  .preview-toolbar,
+  .window-title-bar,
+  .window-footer-bar,
+  .window-content-panel {
+    display: none !important;
   }
+
+  /* Modal y ventana en flujo normal sin alturas fijas */
+  .modal-backdrop {
+    position: static !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+    visibility: visible !important;
+    backdrop-filter: none !important;
+    overflow: visible !important;
+  }
+
+  .tecnm-window {
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    animation: none !important;
+    display: block !important;
+    visibility: visible !important;
+    overflow: visible !important;
+  }
+
+  .print-preview-container {
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    max-height: none !important;
+    overflow: visible !important;
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  /* La hoja impresa: visible y con page-break controlado */
+  .printable-area,
+  .printable-area * {
+    visibility: visible !important;
+  }
+
   .printable-area {
-    position: absolute;
-    left: 0;
-    top: 0;
+    position: static !important;
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
-    padding: 1.5cm !important;
+    padding: 0 !important;
     box-shadow: none !important;
     border: none !important;
+    background: #ffffff !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
-  .no-print {
-    display: none !important;
+
+  .paper-top-meta {
+    margin-bottom: 1px !important;
+  }
+
+  .page-indicator-top {
+    font-size: 7.5pt !important;
+    font-weight: bold !important;
+  }
+
+  .paper-header {
+    text-align: center !important;
+    margin-bottom: 4px !important;
+    padding-bottom: 0 !important;
+  }
+
+  .institution-name {
+    font-size: 10.5pt !important;
+    font-weight: 900 !important;
+    margin: 0 !important;
+    line-height: 1.15 !important;
+  }
+
+  .report-main-title {
+    font-size: 9pt !important;
+    font-weight: 900 !important;
+    margin: 2px 0 0 0 !important;
+    line-height: 1.15 !important;
+  }
+
+  .paper-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 7pt !important;
+    margin-bottom: 6px !important;
+    page-break-inside: avoid !important;
+  }
+
+  .paper-table th,
+  .paper-table td {
+    border: 1px solid #000000 !important;
+    padding: 1.5px 3px !important;
+    line-height: 1.12 !important;
+    font-size: 7pt !important;
+  }
+
+  .paper-table th {
+    font-size: 7.3pt !important;
+    font-weight: 900 !important;
+    background: transparent !important;
+    padding: 2px 3px !important;
+  }
+
+  .th-folio { width: 68px !important; }
+  .th-concepto { width: 220px !important; }
+  .th-nombre { width: auto !important; }
+  .th-status { width: 85px !important; }
+  .th-total { width: 90px !important; }
+
+  .paper-footer {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-end !important;
+    margin-top: 6px !important;
+    padding-top: 0 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .paper-signature-box {
+    width: 150px !important;
+    margin-left: 20px !important;
+  }
+
+  .signature-line {
+    width: 100% !important;
+    border-bottom: 1px solid #000000 !important;
+    margin-bottom: 2px !important;
+  }
+
+  .signature-label {
+    font-size: 7.5pt !important;
+    font-weight: 800 !important;
+  }
+
+  .paper-totals-box {
+    border: 1px solid #000000 !important;
+    width: 200px !important;
+  }
+
+  .total-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    padding: 1.2px 3.5px !important;
+    border-bottom: 1px solid #000000 !important;
+    font-size: 7pt !important;
+    font-weight: 700 !important;
+  }
+
+  .t-grand-total {
+    font-size: 7.3pt !important;
+    font-weight: 900 !important;
   }
 }
 </style>
