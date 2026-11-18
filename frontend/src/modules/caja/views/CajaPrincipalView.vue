@@ -109,6 +109,7 @@ function toggleMenu(menu: 'catalogo' | 'imprimir' | 'control'): void {
 
 function cerrarMenus(): void {
   menuAbierto.value = null
+  mostrarDropdownConceptos.value = false
 }
 
 function abrirModalCuentas(): void {
@@ -531,6 +532,56 @@ const catalogoConceptos = ref<ConceptoCatalogo[]>([
 
 const conceptoSeleccionadoId = ref('c1')
 const partidas = ref<DetalleConceptoRecibo[]>([])
+
+// Manejo del selector desplegable hacia abajo con búsqueda integrada
+const mostrarDropdownConceptos = ref(false)
+const busquedaConcepto = ref('')
+const inputBusquedaConceptoRef = ref<HTMLInputElement | null>(null)
+const conceptPickerContainerRef = ref<HTMLElement | null>(null)
+
+const conceptoSeleccionado = computed(() => {
+  return catalogoConceptos.value.find(
+    c => c.id === conceptoSeleccionadoId.value || c.clave === conceptoSeleccionadoId.value
+  )
+})
+
+const conceptosFiltrados = computed(() => {
+  const query = busquedaConcepto.value.trim().toLowerCase()
+  if (!query) {
+    return catalogoConceptos.value
+  }
+  return catalogoConceptos.value.filter(c => {
+    const clave = (c.clave || '').toLowerCase()
+    const desc = (c.descripcion || '').toLowerCase()
+    const cuota = (c.cuotaBase ?? '').toString()
+    const cat = (c.categoria || '').toLowerCase()
+    return clave.includes(query) || desc.includes(query) || cuota.includes(query) || cat.includes(query)
+  })
+})
+
+function toggleDropdownConceptos(): void {
+  mostrarDropdownConceptos.value = !mostrarDropdownConceptos.value
+  if (mostrarDropdownConceptos.value) {
+    setTimeout(() => {
+      inputBusquedaConceptoRef.value?.focus()
+    }, 60)
+  }
+}
+
+function cerrarDropdownConceptos(): void {
+  mostrarDropdownConceptos.value = false
+}
+
+function seleccionarConcepto(concepto: ConceptoCatalogo): void {
+  conceptoSeleccionadoId.value = concepto.id
+  cerrarDropdownConceptos()
+}
+
+function seleccionarPrimerConceptoFiltrado(): void {
+  if (conceptosFiltrados.value.length > 0) {
+    seleccionarConcepto(conceptosFiltrados.value[0])
+  }
+}
 
 function agregarConcepto(): void {
   const itemCatalogo = catalogoConceptos.value.find(c => c.id === conceptoSeleccionadoId.value || c.clave === conceptoSeleccionadoId.value)
@@ -1242,13 +1293,128 @@ onMounted(async () => {
         <UiCard title="Conceptos a Cobrar" description="Detalle de cuotas, becas aplicadas e importes netos">
           <!-- Selector para añadir partidas -->
           <div class="add-concept-bar">
-            <div class="select-concept-wrap">
-              <label for="concept-picker">Seleccionar Concepto:</label>
-              <select id="concept-picker" v-model="conceptoSeleccionadoId" class="concept-dropdown">
-                <option v-for="c in catalogoConceptos" :key="c.id" :value="c.id">
-                  {{ c.clave }} - {{ c.descripcion }} (${{ c.cuotaBase.toFixed(2) }})
-                </option>
-              </select>
+            <div ref="conceptPickerContainerRef" class="select-concept-wrap" @click.stop>
+              <label id="concept-picker-label">Seleccionar Concepto:</label>
+              
+              <div class="custom-concept-select" :class="{ 'is-open': mostrarDropdownConceptos }">
+                <!-- Barra principal / Trigger que abre el menú hacia abajo -->
+                <div
+                  class="concept-select-trigger"
+                  tabindex="0"
+                  role="combobox"
+                  aria-haspopup="listbox"
+                  :aria-expanded="mostrarDropdownConceptos"
+                  aria-labelledby="concept-picker-label"
+                  @click="toggleDropdownConceptos"
+                  @keydown.down.prevent="toggleDropdownConceptos"
+                  @keydown.enter.prevent="toggleDropdownConceptos"
+                >
+                  <div v-if="conceptoSeleccionado" class="trigger-selected-content">
+                    <span class="trigger-clave">{{ conceptoSeleccionado.clave }}</span>
+                    <span class="trigger-desc">{{ conceptoSeleccionado.descripcion }}</span>
+                    <span class="trigger-precio">${{ conceptoSeleccionado.cuotaBase.toFixed(2) }}</span>
+                  </div>
+                  <div v-else class="trigger-placeholder">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="trigger-icon">
+                      <circle cx="11" cy="11" r="8"/>
+                      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <span>Seleccionar o buscar concepto de cobro...</span>
+                  </div>
+                  
+                  <div class="trigger-actions">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      class="chevron-icon"
+                      :class="{ 'rotate-180': mostrarDropdownConceptos }"
+                    >
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </div>
+                </div>
+
+                <!-- Menú desplegable SIEMPRE hacia ABAJO -->
+                <div
+                  v-if="mostrarDropdownConceptos"
+                  class="concept-dropdown-menu"
+                  role="listbox"
+                >
+                  <!-- Campo de búsqueda integrado en la parte superior -->
+                  <div class="dropdown-search-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-box-icon">
+                      <circle cx="11" cy="11" r="8"/>
+                      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <input
+                      ref="inputBusquedaConceptoRef"
+                      v-model="busquedaConcepto"
+                      type="text"
+                      class="dropdown-search-input"
+                      placeholder="Filtrar por clave, descripción o importe (ej. 5400, reinscripcion, kardex)..."
+                      @keydown.esc="cerrarDropdownConceptos"
+                      @keydown.enter="seleccionarPrimerConceptoFiltrado"
+                    />
+                    <button
+                      v-if="busquedaConcepto"
+                      type="button"
+                      class="btn-clear-search"
+                      title="Limpiar búsqueda"
+                      @click="busquedaConcepto = ''"
+                    >
+                      &times;
+                    </button>
+                  </div>
+
+                  <!-- Barra de conteo ordenada -->
+                  <div class="dropdown-meta-bar">
+                    <span>Mostrando {{ conceptosFiltrados.length }} concepto{{ conceptosFiltrados.length === 1 ? '' : 's' }} ordenado{{ conceptosFiltrados.length === 1 ? '' : 's' }}</span>
+                    <span v-if="busquedaConcepto" class="meta-hint">Enter para seleccionar el primero</span>
+                  </div>
+
+                  <!-- Lista con scroll ordenado hacia abajo -->
+                  <div class="concept-options-scroll">
+                    <div
+                      v-for="c in conceptosFiltrados"
+                      :key="c.id"
+                      class="concept-option-row"
+                      :class="{ 'is-active': c.id === conceptoSeleccionadoId }"
+                      role="option"
+                      :aria-selected="c.id === conceptoSeleccionadoId"
+                      @click="seleccionarConcepto(c)"
+                    >
+                      <div class="option-left">
+                        <span class="option-clave">{{ c.clave }}</span>
+                        <div class="option-text-group">
+                          <span class="option-desc">{{ c.descripcion }}</span>
+                          <span v-if="c.categoria" class="option-categoria">{{ c.categoria }}</span>
+                        </div>
+                      </div>
+                      
+                      <div class="option-right">
+                        <span v-if="c.aplicaBeca" class="badge-beca" title="Aplica descuento por beca">Beca</span>
+                        <span class="option-cuota">${{ c.cuotaBase.toFixed(2) }}</span>
+                        <span v-if="c.id === conceptoSeleccionadoId" class="check-mark">✓</span>
+                      </div>
+                    </div>
+
+                    <!-- Estado sin resultados -->
+                    <div v-if="conceptosFiltrados.length === 0" class="empty-results-box">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="empty-icon">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        <line x1="8" y1="11" x2="14" y2="11"/>
+                      </svg>
+                      <p>No se encontraron conceptos para "{{ busquedaConcepto }}"</p>
+                      <button type="button" class="btn-reset-filter" @click="busquedaConcepto = ''">
+                        Ver todos los conceptos
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
             <UiButton variant="accent" @click="agregarConcepto">
               + Agregar Concepto
@@ -2273,22 +2439,449 @@ button.menubar-title-tag:active {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  position: relative;
 }
 
 .select-concept-wrap label {
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.2px;
   color: var(--color-text-secondary, #64748B);
 }
 
-.concept-dropdown {
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--color-border-medium, #CBD5E1);
+/* CUSTOM SEARCHABLE CONCEPT DROPDOWN */
+.custom-concept-select {
+  position: relative;
+  width: 100%;
+}
+
+.concept-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 8px 14px;
   background: var(--color-surface-white, #FFFFFF);
+  border: 1.5px solid var(--color-border-medium, #CBD5E1);
+  border-radius: 8px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.concept-select-trigger:hover {
+  border-color: #1B396A;
+  box-shadow: 0 2px 6px rgba(27, 57, 106, 0.08);
+}
+
+.custom-concept-select.is-open .concept-select-trigger {
+  border-color: #1B396A;
+  box-shadow: 0 0 0 3px rgba(27, 57, 106, 0.15);
+}
+
+.dark-theme .concept-select-trigger {
+  background: #1E293B;
+  border-color: #334155;
+  color: #F8FAFC;
+}
+
+.dark-theme .concept-select-trigger:hover,
+.dark-theme .custom-concept-select.is-open .concept-select-trigger {
+  border-color: #C5A059;
+  box-shadow: 0 0 0 3px rgba(197, 160, 89, 0.2);
+}
+
+.trigger-selected-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  overflow: hidden;
+}
+
+.trigger-clave {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #1B396A;
+  background: #EEF2F6;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid #E2E8F0;
+  flex-shrink: 0;
+}
+
+.dark-theme .trigger-clave {
+  background: #0F172A;
+  color: #D4B06A;
+  border-color: #334155;
+}
+
+.trigger-desc {
+  font-size: 0.92rem;
+  font-weight: 600;
   color: var(--color-text-primary, #1E293B);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.dark-theme .trigger-desc {
+  color: #F8FAFC;
+}
+
+.trigger-precio {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #166534;
+  background: #DCFCE7;
+  padding: 2px 8px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.dark-theme .trigger-precio {
+  color: #4ADE80;
+  background: rgba(34, 197, 94, 0.15);
+}
+
+.trigger-placeholder {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #94A3B8;
+  font-size: 0.9rem;
+}
+
+.trigger-icon {
+  width: 16px;
+  height: 16px;
+  color: #94A3B8;
+}
+
+.trigger-actions {
+  display: flex;
+  align-items: center;
+  padding-left: 6px;
+  border-left: 1px solid var(--color-border-light, #E2E8F0);
+}
+
+.dark-theme .trigger-actions {
+  border-left-color: #334155;
+}
+
+.chevron-icon {
+  width: 18px;
+  height: 18px;
+  color: #64748B;
+  transition: transform 0.2s ease;
+}
+
+.rotate-180 {
+  transform: rotate(180deg);
+}
+
+/* MENÚ DESPLEGABLE HACIA ABAJO */
+.concept-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 1050;
+  background: #FFFFFF;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 10px;
+  box-shadow: 0 16px 36px -4px rgba(15, 37, 72, 0.22), 0 4px 12px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  animation: slideFadeDown 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dark-theme .concept-dropdown-menu {
+  background: #111827;
+  border-color: #334155;
+  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(197, 160, 89, 0.25);
+}
+
+@keyframes slideFadeDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Buscador interno del menú */
+.dropdown-search-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #F8FAFC;
+  border-bottom: 1px solid #E2E8F0;
+}
+
+.dark-theme .dropdown-search-box {
+  background: #1E293B;
+  border-bottom-color: #334155;
+}
+
+.search-box-icon {
+  width: 18px;
+  height: 18px;
+  color: #1B396A;
+  flex-shrink: 0;
+}
+
+.dark-theme .search-box-icon {
+  color: #C5A059;
+}
+
+.dropdown-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 0.92rem;
+  color: #1E293B;
+  font-weight: 500;
+}
+
+.dark-theme .dropdown-search-input {
+  color: #F8FAFC;
+}
+
+.dropdown-search-input::placeholder {
+  color: #94A3B8;
+  font-size: 0.85rem;
+}
+
+.btn-clear-search {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  line-height: 1;
+  color: #94A3B8;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.btn-clear-search:hover {
+  color: #EF4444;
+}
+
+/* Barra de metadatos/conteo */
+.dropdown-meta-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 14px;
+  background: #F1F5F9;
+  border-bottom: 1px solid #E2E8F0;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.dark-theme .dropdown-meta-bar {
+  background: #0B0F19;
+  border-bottom-color: #1E293B;
+  color: #94A3B8;
+}
+
+.meta-hint {
+  font-weight: 500;
+  text-transform: none;
+  color: #94A3B8;
+}
+
+/* Lista con Scroll Ordenada */
+.concept-options-scroll {
+  max-height: 290px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.concept-option-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #F1F5F9;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.dark-theme .concept-option-row {
+  border-bottom-color: #1E293B;
+}
+
+.concept-option-row:last-child {
+  border-bottom: none;
+}
+
+.concept-option-row:hover {
+  background: #F8FAFC;
+}
+
+.dark-theme .concept-option-row:hover {
+  background: #1E293B;
+}
+
+.concept-option-row.is-active {
+  background: #EFF6FF;
+  border-left: 4px solid #1B396A;
+}
+
+.dark-theme .concept-option-row.is-active {
+  background: rgba(197, 160, 89, 0.15);
+  border-left: 4px solid #C5A059;
+}
+
+.option-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.option-clave {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #1B396A;
+  background: #E2E8F0;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.dark-theme .option-clave {
+  background: #1E293B;
+  color: #D4B06A;
+  border: 1px solid #334155;
+}
+
+.option-text-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.option-desc {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1E293B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dark-theme .option-desc {
+  color: #F8FAFC;
+}
+
+.option-categoria {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748B;
+  text-transform: uppercase;
+}
+
+.dark-theme .option-categoria {
+  color: #94A3B8;
+}
+
+.option-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.badge-beca {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #1D4ED8;
+  background: #DBEAFE;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.dark-theme .badge-beca {
+  color: #93C5FD;
+  background: rgba(30, 64, 175, 0.35);
+}
+
+.option-cuota {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.95rem;
+  font-weight: 800;
+  color: #166534;
+}
+
+.dark-theme .option-cuota {
+  color: #4ADE80;
+}
+
+.check-mark {
+  color: #1B396A;
+  font-weight: 900;
+  font-size: 1rem;
+}
+
+.dark-theme .check-mark {
+  color: #C5A059;
+}
+
+/* Estado sin resultados */
+.empty-results-box {
+  padding: 2rem 1.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: #64748B;
+}
+
+.dark-theme .empty-results-box {
+  color: #94A3B8;
+}
+
+.empty-icon {
+  width: 32px;
+  height: 32px;
+  color: #CBD5E1;
+}
+
+.btn-reset-filter {
+  background: none;
+  border: 1px solid #CBD5E1;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #1B396A;
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+.dark-theme .btn-reset-filter {
+  border-color: #334155;
+  color: #C5A059;
 }
 
 .receipt-grid-wrap {
