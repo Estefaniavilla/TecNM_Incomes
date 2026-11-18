@@ -171,6 +171,11 @@ function irARecibo(): void {
   void router.push({ name: 'caja-recibo' })
 }
 
+function irAMenuPrincipal(): void {
+  cerrarMenus()
+  void router.push({ name: 'home' })
+}
+
 // ==========================================
 // Hora actual en tiempo real
 // ==========================================
@@ -187,11 +192,25 @@ setInterval(actualizarHora, 1000)
     <!-- BARRA DE MENÚ (igual que CajaPrincipalView) -->
     <nav class="tecnm-classic-menubar" aria-label="Menú principal del sistema" @click.stop>
       <div class="menubar-left-group">
-        <span class="menubar-title-tag">Menú</span>
+        <button
+          type="button"
+          class="menubar-title-tag menubar-title-btn"
+          title="Ir al Menú Principal"
+          @click="irAMenuPrincipal"
+        >
+          MENÚ
+        </button>
         <div class="menubar-items-group">
           <!-- 1. Archivo -->
           <div class="menubar-item">
-            <button type="button" class="menubar-btn">Archivo</button>
+            <button
+              type="button"
+              class="menubar-btn"
+              title="Ir a Pantalla de Recibo"
+              @click="irARecibo"
+            >
+              Archivo
+            </button>
           </div>
 
           <!-- 2. Catálogo -->
@@ -554,6 +573,23 @@ setInterval(actualizarHora, 1000)
   padding: 0 14px 0 4px;
   margin-right: 6px;
   text-transform: uppercase;
+}
+
+button.menubar-title-tag {
+  background: transparent;
+  border-top: none;
+  border-bottom: none;
+  border-left: none;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.1s ease;
+}
+
+button.menubar-title-tag:hover {
+  opacity: 0.8;
+}
+
+button.menubar-title-tag:active {
+  transform: scale(0.96);
 }
 
 .menubar-items-group {

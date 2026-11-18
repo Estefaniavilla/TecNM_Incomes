@@ -191,6 +191,35 @@ function abrirModalConsultaCancelacionRecibos(): void {
   cerrarMenus()
 }
 
+function irAMenuPrincipal(): void {
+  cerrarMenus()
+  void router.push('/')
+}
+
+function irARecibo(): void {
+  cerrarMenus()
+  mostrarModalCuentas.value = false
+  mostrarModalEmpleados.value = false
+  mostrarModalImprimeVerano.value = false
+  mostrarModalPolizaIngresos.value = false
+  mostrarModalReporteIngresos.value = false
+  mostrarModalPolizaIngresoPeriodo.value = false
+  mostrarModalReporteIngresosPeriodo.value = false
+  mostrarModalReporteVarios.value = false
+  mostrarModalReporteDeudores.value = false
+  mostrarModalReporteDeudoresFechaCorte.value = false
+  mostrarModalReporteDeudoresFechaCuenta.value = false
+  mostrarModalReporteDeudoresInscritos.value = false
+  mostrarModalDepositoBancario.value = false
+  mostrarModalReciboProvisional.value = false
+  mostrarModalReciboProvisionalCancelar.value = false
+  mostrarModalConsultaCancelacionRecibos.value = false
+
+  if (route.name !== 'caja-recibo') {
+    void router.push({ name: 'caja-recibo' })
+  }
+}
+
 function cerrarModalCuentas(): void {
   mostrarModalCuentas.value = false
   if (route.hash === '#cuentas') {
@@ -841,11 +870,25 @@ onMounted(async () => {
     <!-- BARRA DE MENÚ CLÁSICA INSTITUCIONAL TECNM -->
     <nav class="tecnm-classic-menubar" aria-label="Menú principal del sistema" @click.stop>
       <div class="menubar-left-group">
-        <span class="menubar-title-tag">Menú</span>
+        <button
+          type="button"
+          class="menubar-title-tag menubar-title-btn"
+          title="Ir al Menú Principal"
+          @click="irAMenuPrincipal"
+        >
+          MENÚ
+        </button>
         <div class="menubar-items-group">
           <!-- 1. Archivo -->
           <div class="menubar-item">
-            <button type="button" class="menubar-btn">Archivo</button>
+            <button
+              type="button"
+              class="menubar-btn"
+              title="Ir a Pantalla de Recibo"
+              @click="irARecibo"
+            >
+              Archivo
+            </button>
           </div>
 
           <!-- 2. Catálogo (Empleados, Cuentas) -->
@@ -1718,6 +1761,23 @@ onMounted(async () => {
   border-right: 1px solid var(--color-border, #E2E8F0);
 }
 
+button.menubar-title-tag {
+  background: transparent;
+  border-top: none;
+  border-bottom: none;
+  border-left: none;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.1s ease;
+}
+
+button.menubar-title-tag:hover {
+  opacity: 0.8;
+}
+
+button.menubar-title-tag:active {
+  transform: scale(0.96);
+}
+
 .menubar-items-group {
   display: flex;
   align-items: center;
@@ -1830,6 +1890,10 @@ onMounted(async () => {
 
 .dark-theme .menubar-title-tag {
   border-right-color: #2E3F5E;
+  color: #D4B06A;
+}
+
+.dark-theme button.menubar-title-tag {
   color: #D4B06A;
 }
 
