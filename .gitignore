@@ -41,10 +41,12 @@ appsettings.Local.json
 !.env.example
 
 # ==========================================
-# Editores e IDEs (VS Code, Visual Studio, JetBrains)
+# Editores e IDEs (VS Code, Visual Studio, JetBrains, Obsidian)
 # ==========================================
 .vs/
 .idea/
+.obsidian/
+*.canvas
 *.sln.docstates
 .vscode/*
 !.vscode/settings.json

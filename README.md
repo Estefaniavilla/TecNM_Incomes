@@ -139,7 +139,6 @@ graph TD
 
 ```text
 TecNM_Incomes/
-├── .obsidian/                     # Notas de diseño y canvases de arquitectura
 ├── backend/                       # API RESTful en C# / .NET 10
 │   ├── Core/Entities/             # Entidades del dominio relacional (POCOs)
 │   ├── Data/                      # TecNMDbContext y configuración Fluent API
@@ -165,7 +164,7 @@ TecNM_Incomes/
 │   │   │   ├── auth/              # Vistas y lógica de inicio de sesión
 │   │   │   ├── caja/              # Módulo neurálgico de cobranza
 │   │   │   │   ├── api/           # Cliente HTTP con endpoints de caja
-│   │   │   │   ├── components/    # 16 Modales especializados de operación
+│   │   │   │   ├── components/    # 14 Modales especializados de operación
 │   │   │   │   ├── types/         # Interfaces TypeScript del dominio
 │   │   │   │   └── views/         # CajaPrincipalView.vue (Ventanilla de Cobro)
 │   │   │   ├── catalogos/         # Administración de Cuentas y Empleados
@@ -183,6 +182,7 @@ TecNM_Incomes/
 │   └── seed_poliza_29_octubre.sql # Datos de prueba para corte contable
 │
 ├── docker-compose.yml             # Orquestación integral (DB, Backend, Frontend)
+├── setup_cajadb_maestra.sql       # Script SQL maestro para inicialización de cajadb
 ├── AUTH.md                        # Estándar de autenticación y sesiones
 ├── BACKEND_ARCHITECTURE.md        # Lineamientos técnicos del backend .NET 10
 ├── FRONTEND_ARCHITECTURE.md       # Lineamientos técnicos del frontend Vue 3
@@ -263,23 +263,22 @@ flowchart TD
     M_Caja --> HTTPClient
 ```
 
-#### Catálogo de los 16 Modales de Caja (`src/modules/caja/components/`)
+#### Catálogo de los Modales de Caja (`src/modules/caja/components/`)
 1. **`ModalPolizaIngresos.vue`:** Póliza oficial del corte con resumen de cuentas 5200/5400 e impresión aislada en hoja única.
 2. **`ModalPolizaIngresoPeriodo.vue`:** Consulta de pólizas por rangos de fechas extendidos.
 3. **`ModalDepositoBancario.vue`:** Captura y desglose de referencias 5+5 con exportador Excel.
-4. **`ModalDepositoBancarioPropedeutico.vue`:** Registro especializado de depósitos para aspirantes a propedéutico.
-5. **`ModalConsultaCancelacionRecibos.vue`:** Búsqueda histórica y cancelación formal de recibos.
-6. **`ModalReciboProvisional.vue`:** Emisión de recibos provisorios sujetos a formalización.
-7. **`ModalReciboProvisionalCancelar.vue`:** Anulación de recibos provisionales caducados.
-8. **`ModalReporteDeudores.vue`:** Reporte maestro de adeudos con filtrado por alumno y carrera.
-9. **`ModalReporteDeudoresFechaCorte.vue`:** Arqueo de deudores a una fecha de corte específica.
-10. **`ModalReporteDeudoresFechaCuenta.vue`:** Deudores segmentados por cuenta contable arancelaria.
-11. **`ModalReporteDeudoresInscritos.vue`:** Adeudos focalizados exclusivamente en alumnos inscritos.
-12. **`ModalReporteIngresos.vue`:** Reporte general de captación financiera por fecha.
-13. **`ModalReporteIngresosPeriodo.vue`:** Reporte financiero acumulado por periodo semestral.
-14. **`ModalReporteVarios.vue`:** Reporte misceláneo de aranceles administrativos.
-15. **`ModalImprimeVerano.vue`:** Emisión y cálculo de aranceles de cursos intersemestrales de verano.
-16. **`ModalCuentas.vue` / `ModalEmpleados.vue`:** Edición de cuentas contables y personal operativo.
+4. **`ModalConsultaCancelacionRecibos.vue`:** Búsqueda histórica y cancelación formal de recibos.
+5. **`ModalReciboProvisional.vue`:** Emisión de recibos provisorios sujetos a formalización.
+6. **`ModalReciboProvisionalCancelar.vue`:** Anulación de recibos provisionales caducados.
+7. **`ModalReporteDeudores.vue`:** Reporte maestro de adeudos con filtrado por alumno y carrera.
+8. **`ModalReporteDeudoresFechaCorte.vue`:** Arqueo de deudores a una fecha de corte específica.
+9. **`ModalReporteDeudoresFechaCuenta.vue`:** Deudores segmentados por cuenta contable arancelaria.
+10. **`ModalReporteDeudoresInscritos.vue`:** Adeudos focalizados exclusivamente en alumnos inscritos.
+11. **`ModalReporteIngresos.vue`:** Reporte general de captación financiera por fecha.
+12. **`ModalReporteIngresosPeriodo.vue`:** Reporte financiero acumulado por periodo semestral.
+13. **`ModalReporteVarios.vue`:** Reporte misceláneo de aranceles administrativos.
+14. **`ModalImprimeVerano.vue`:** Emisión y cálculo de aranceles de cursos intersemestrales de verano.
+15. **`ModalCuentas.vue` / `ModalEmpleados.vue`:** Edición de cuentas contables y personal operativo (en `modules/catalogos`).
 
 ---
 
@@ -361,8 +360,7 @@ Este proyecto fue concebido, estructurado y desarrollado bajo la metodología **
 | **[BACKEND_ARCHITECTURE.md](./BACKEND_ARCHITECTURE.md)** | Arquitectura de la API en .NET 10, controllers delgados y servicios de negocio. |
 | **[FRONTEND_ARCHITECTURE.md](./FRONTEND_ARCHITECTURE.md)** | Arquitectura de la SPA en Vue 3, Vite, diseño institucional y ruteo modular. |
 | **[DICCIONARIO_DE_DATOS_CAJA.md](./DICCIONARIO_DE_DATOS_CAJA.md)** | Diccionario técnico con tipos de datos, llaves foráneas y catálogos de `cajadb`. |
-| **[DIAGRAMA_ER_COMPLETO.md](./DIAGRAMA_ER_COMPLETO.md)** | Diagrama relacional expandido con todas las entidades y cardinalidades. |
-| **[ESQUEMA_TABLAS.md](./ESQUEMA_TABLAS.md)** | Análisis integral de las tablas institucionales del TecNM. |
+| **[DIAGRAMA_ER_COMPLETO.md](./DIAGRAMA_ER_COMPLETO.md)** | Diagrama relacional expandido con todas las entidades y cardinalidades de `cajadb`. |
 | **[plans/01-auth-implementation.md](./plans/01-auth-implementation.md)** | Plan de construcción y verificación del módulo de autenticación. |
 
 ---
