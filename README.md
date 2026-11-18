@@ -139,56 +139,115 @@ graph TD
 
 ```text
 TecNM_Incomes/
-├── backend/                       # API RESTful en C# / .NET 10
-│   ├── Core/Entities/             # Entidades del dominio relacional (POCOs)
-│   ├── Data/                      # TecNMDbContext y configuración Fluent API
-│   ├── Modules/
-│   │   ├── Auth/                  # Slice Vertical de Autenticación y JWT
-│   │   │   ├── specs/             # Especificaciones SDD de Auth
-│   │   │   ├── AuthController.cs  # Enrutamiento de login, logout y sesión
-│   │   │   ├── AuthService.cs     # Validación y emisión de tokens
-│   │   │   └── AuthDTOs.cs        # Contratos de petición y respuesta
-│   │   └── Caja/                  # Slice Vertical de Caja e Ingresos Propios
-│   │       ├── specs/             # Especificaciones SDD de Cobro y Reportes
-│   │       ├── CajaController.cs  # 26 Endpoints de caja, catálogo y pólizas
-│   │       ├── CajaService.cs     # Reglas de negocio, arqueos y adeudos
-│   │       └── CajaDTOs.cs        # Contratos de transferencia de datos
-│   ├── Program.cs                 # Bootstrap del servidor, CORS, DI y middlewares
-│   ├── TecNM.Api.csproj           # Manifiesto del proyecto .NET 10
-│   └── Dockerfile                 # Imagen de compilación y runtime de backend
+├── backend/                             # API RESTful en C# / .NET 10
+│   ├── Core/
+│   │   └── Entities/                    # 13 Entidades relacionales (POCOs / EF Core)
+│   │       ├── Adeudo.cs                # Obligaciones de pago y saldos
+│   │       ├── Alumno.cs                # Expediente escolar y matrícula
+│   │       ├── AlumnoMatriculaHistorial.cs # Trazabilidad de matrículas históricas
+│   │       ├── BecaDescuento.cs         # Descuentos arancelarios y porcentajes
+│   │       ├── Carrera.cs               # Catálogo de 8 carreras oficiales
+│   │       ├── ConceptoCobro.cs         # Cuotas, cuentas contables y aranceles
+│   │       ├── DetalleRecibo.cs         # Partidas individuales de cobro
+│   │       ├── Folio.cs                 # Control administrativo de folios
+│   │       ├── MovimientoPago.cs        # Registro de pagos (Efectivo / Banco)
+│   │       ├── PeriodoAcademico.cs      # Ciclos escolares (Primavera/Verano/Otoño)
+│   │       ├── PolizaIngreso.cs         # Cierres contables y arqueos consolidados
+│   │       ├── Recibo.cs                # Cabecera de recibos emitidos
+│   │       └── User.cs                  # Cuentas de usuarios y roles
+│   ├── Data/
+│   │   └── TecNMDbContext.cs            # Configuración Fluent API y mapeo PostgreSQL
+│   ├── Modules/                         # Screaming Architecture / Vertical Slices
+│   │   ├── Auth/                        # Módulo de Autenticación y Sesiones
+│   │   │   ├── specs/auth.spec.md       # Especificación técnica SDD de Auth
+│   │   │   ├── AuthController.cs        # Endpoints (login, logout, me)
+│   │   │   ├── AuthService.cs           # Emisión y validación de JWT en cookies
+│   │   │   └── AuthDTOs.cs              # Contratos de petición y respuesta
+│   │   └── Caja/                        # Módulo de Cobranza e Ingresos Propios
+│   │       ├── specs/caja.spec.md       # Especificación técnica SDD de Caja
+│   │       ├── CajaController.cs        # 26 Endpoints (cobro, pólizas, alumnos, cortes)
+│   │       ├── CajaService.cs           # Lógica de cobro, arqueo y amortización
+│   │       └── CajaDTOs.cs              # Contratos DTO desacoplados de persistencia
+│   ├── Properties/
+│   │   └── launchSettings.json          # Perfiles de ejecución Kestrel
+│   ├── appsettings.json                 # Configuración de producción y base de datos
+│   ├── appsettings.Development.json     # Configuración para entorno de desarrollo
+│   ├── AGENTS.md                        # Contexto maestro del backend para desarrollo asistido
+│   ├── Dockerfile                       # Contenedor de compilación y runtime .NET 10
+│   ├── Program.cs                       # Bootstrap del servidor, DI, CORS y middlewares
+│   └── TecNM.Api.csproj                 # Dependencias y manifiesto de .NET 10
 │
-├── frontend/                      # Aplicación SPA en Vue 3 + TypeScript
+├── frontend/                            # Aplicación SPA en Vue 3 + TypeScript + Vite
+│   ├── scripts/
+│   │   └── check-layout.mjs             # Script de validación de renderizado de layouts
 │   ├── src/
-│   │   ├── app/                   # Bootstrap raíz de la aplicación (App.vue, router)
-│   │   ├── modules/
-│   │   │   ├── auth/              # Vistas y lógica de inicio de sesión
-│   │   │   ├── caja/              # Módulo neurálgico de cobranza
-│   │   │   │   ├── api/           # Cliente HTTP con endpoints de caja
-│   │   │   │   ├── components/    # 14 Modales especializados de operación
-│   │   │   │   ├── types/         # Interfaces TypeScript del dominio
-│   │   │   │   └── views/         # CajaPrincipalView.vue (Ventanilla de Cobro)
-│   │   │   ├── catalogos/         # Administración de Cuentas y Empleados
-│   │   │   └── home/              # Dashboard de bienvenida y accesos rápidos
-│   │   └── shared/                # Design System institucional (tokens, botones, modales)
-│   ├── index.html                 # Punto de montaje del DOM
-│   ├── vite.config.ts             # Configuración del empaquetador Vite
-│   └── Dockerfile                 # Imagen para servir el frontend
+│   │   ├── app/                         # Bootstrap y configuración central
+│   │   │   ├── layouts/                 # Layout maestro institucional (MainLayout.vue)
+│   │   │   ├── router/index.ts          # Vue Router 4 con guardias de autenticación
+│   │   │   ├── App.vue                  # Componente raíz de la aplicación
+│   │   │   └── main.ts                  # Punto de entrada de la aplicación Vue
+│   │   ├── modules/                     # Slices Verticales de Dominio
+│   │   │   ├── auth/                    # Módulo de Autenticación
+│   │   │   │   ├── api/authApi.ts       # Cliente HTTP de login y logout
+│   │   │   │   ├── components/          # LoginForm.vue, LogoutButton.vue
+│   │   │   │   ├── views/               # LoginView.vue, SessionView.vue
+│   │   │   │   ├── routes.ts / index.ts # Enrutamiento y barril público
+│   │   │   │   └── specs/               # Especificaciones SDD de auth
+│   │   │   ├── caja/                    # Módulo de Caja Universitaria
+│   │   │   │   ├── api/cajaApi.ts       # Cliente HTTP con endpoints de cobranza
+│   │   │   │   ├── components/          # 14 Modales especializados de operación
+│   │   │   │   ├── types/caja.ts        # Interfaces y contratos del dominio
+│   │   │   │   ├── views/               # CajaPrincipalView.vue (Ventanilla de Cobro)
+│   │   │   │   ├── routes.ts / index.ts # Enrutamiento y barril público
+│   │   │   │   └── specs/caja-ui.spec.md # Especificación SDD de la interfaz de caja
+│   │   │   ├── catalogos/               # Módulo de Catálogos Administrativos
+│   │   │   │   ├── components/          # ModalCuentas.vue, ModalEmpleados.vue
+│   │   │   │   ├── views/               # CuentasView.vue, EmpleadosView.vue
+│   │   │   │   └── routes.ts / index.ts # Enrutamiento modular
+│   │   │   └── home/                    # Módulo de Inicio
+│   │   │       └── views/HomeView.vue   # Tablero de bienvenida y accesos rápidos
+│   │   └── shared/                      # Capa Transversal Compartida (Design System TecNM)
+│   │       ├── api/http.ts              # Instancia de Axios con cookies e interceptores
+│   │       ├── assets/                  # Recursos gráficos (tecnm-isologo.svg)
+│   │       ├── components/              # 26 Componentes atómicos (UiField, UiButton, UiTable...)
+│   │       ├── composables/             # useTheme.ts (Soporte Modo Claro / Modo Oscuro)
+│   │       ├── styles/                  # colorTokens.ts, global.css (Tokens oficiales TecNM)
+│   │       └── utils/sessionCookie.ts   # Manejo seguro de marcadores de sesión
+│   ├── index.html                       # Documento HTML montado por Vite
+│   ├── package.json                     # Dependencias (Vue 3, TypeScript, Axios, Lucide)
+│   ├── tsconfig.json                    # Reglas estrictas de compilación TypeScript
+│   ├── vite.config.ts                   # Configuración del bundler y alias de ruta
+│   ├── AGENTS.md                        # Contexto maestro del frontend para desarrollo
+│   ├── DESIGN.md                        # Guía de diseño e identidad visual TecNM
+│   └── Dockerfile                       # Contenedor para servir el frontend
+│
+├── plans/                               # Hojas de ruta y planes de trabajo
+│   └── 01-auth-implementation.md        # Plan de arquitectura y pruebas de autenticación
 │
 ├── scripts/
-│   ├── migrations/                # Scripts SQL de migración en 3 etapas del profesor:
-│   │   ├── 01_stage1_structure_en.sql   # Etapa 1: Estructura de tablas
-│   │   ├── 02_stage2_data_en.sql        # Etapa 2: Población de datos semilla
-│   │   └── 03_stage3_audit_and_views_en.sql # Etapa 3: Vistas y auditoría
-│   └── seed_poliza_29_octubre.sql # Datos de prueba para corte contable
+│   ├── migrations/                      # Scripts oficiales de migración en 3 etapas:
+│   │   ├── 01_stage1_structure_en.sql   # Etapa 1: Estructura de tablas (Canónica)
+│   │   ├── 01_etapa1_estructura.sql     # Etapa 1: Estructura de tablas (Español)
+│   │   ├── 02_stage2_data_en.sql        # Etapa 2: Datos semilla UTF-8 (Canónica)
+│   │   ├── 02_etapa2_datos.sql          # Etapa 2: Datos semilla UTF-8 (Español)
+│   │   ├── 03_stage3_audit_and_views_en.sql # Etapa 3: Auditoría y vistas (Canónica)
+│   │   ├── 03_etapa3_auditoria_y_vistas.sql # Etapa 3: Auditoría y vistas (Español)
+│   │   └── ejecutar_migracion_completa.sql  # Orquestador integral de migración
+│   └── seed_poliza_29_octubre.sql       # Datos oficiales para pruebas de corte contable
 │
-├── docker-compose.yml             # Orquestación integral (DB, Backend, Frontend)
-├── setup_cajadb_maestra.sql       # Script SQL maestro para inicialización de cajadb
-├── AUTH.md                        # Estándar de autenticación y sesiones
-├── BACKEND_ARCHITECTURE.md        # Lineamientos técnicos del backend .NET 10
-├── FRONTEND_ARCHITECTURE.md       # Lineamientos técnicos del frontend Vue 3
-├── DICCIONARIO_DE_DATOS_CAJA.md   # Diccionario oficial de campos y relaciones
-├── DIAGRAMA_ER_COMPLETO.md        # Diagrama de Entidad-Relación extendido
-└── README.md                      # Documento maestro del proyecto
+├── specs/                               # Especificaciones maestras de la solución
+│   ├── auth.spec.md                     # Contrato canónico de autenticación y sesiones
+│   └── health.spec.md                   # Contrato de monitoreo y disponibilidad de la API
+│
+├── .gitignore                           # Exclusión de binarios, dependencias y caches
+├── docker-compose.yml                   # Orquestación de servicios (DB 5432, API 6040, Web 6030)
+├── setup_cajadb_maestra.sql             # Script SQL maestro para inicialización de cajadb
+├── AUTH.md                              # Estándar de autenticación y seguridad
+├── BACKEND_ARCHITECTURE.md              # Lineamientos arquitectónicos de .NET 10
+├── FRONTEND_ARCHITECTURE.md             # Lineamientos arquitectónicos de Vue 3
+├── DICCIONARIO_DE_DATOS_CAJA.md         # Diccionario de datos y relaciones de cajadb
+├── DIAGRAMA_ER_COMPLETO.md              # Diagrama de Entidad-Relación extendido
+└── README.md                            # Documento maestro institucional del proyecto
 ```
 
 ---
@@ -241,7 +300,7 @@ flowchart TD
 
     subgraph Modules ["Módulos de Negocio"]
         M_Auth["modules/auth\n(LoginView, SessionView)"]
-        M_Caja["modules/caja\n(CajaPrincipalView + 16 Modales)"]
+        M_Caja["modules/caja\n(CajaPrincipalView + 14 Modales de Cobro)"]
         M_Cat["modules/catalogos\n(CuentasView, EmpleadosView)"]
         M_Home["modules/home\n(HomeView / Dashboard)"]
     end
@@ -263,22 +322,25 @@ flowchart TD
     M_Caja --> HTTPClient
 ```
 
-#### Catálogo de los Modales de Caja (`src/modules/caja/components/`)
-1. **`ModalPolizaIngresos.vue`:** Póliza oficial del corte con resumen de cuentas 5200/5400 e impresión aislada en hoja única.
-2. **`ModalPolizaIngresoPeriodo.vue`:** Consulta de pólizas por rangos de fechas extendidos.
-3. **`ModalDepositoBancario.vue`:** Captura y desglose de referencias 5+5 con exportador Excel.
-4. **`ModalConsultaCancelacionRecibos.vue`:** Búsqueda histórica y cancelación formal de recibos.
-5. **`ModalReciboProvisional.vue`:** Emisión de recibos provisorios sujetos a formalización.
-6. **`ModalReciboProvisionalCancelar.vue`:** Anulación de recibos provisionales caducados.
+#### Catálogo Oficial de Modales de Caja (`src/modules/caja/components/`)
+1. **`ModalPolizaIngresos.vue`:** Póliza oficial del corte con resumen de cuentas 5200/5400 e impresión aislada en hoja única carta.
+2. **`ModalPolizaIngresoPeriodo.vue`:** Consulta y reimpresión de pólizas por rangos de fechas extendidos.
+3. **`ModalDepositoBancario.vue`:** Captura y desglose de referencias 5+5 con exportador a Microsoft Excel.
+4. **`ModalConsultaCancelacionRecibos.vue`:** Búsqueda histórica de recibos y flujo de cancelación justificada.
+5. **`ModalReciboProvisional.vue`:** Emisión de recibos provisorios sujetos a formalización bancaria.
+6. **`ModalReciboProvisionalCancelar.vue`:** Anulación formal de recibos provisionales caducados.
 7. **`ModalReporteDeudores.vue`:** Reporte maestro de adeudos con filtrado por alumno y carrera.
 8. **`ModalReporteDeudoresFechaCorte.vue`:** Arqueo de deudores a una fecha de corte específica.
 9. **`ModalReporteDeudoresFechaCuenta.vue`:** Deudores segmentados por cuenta contable arancelaria.
 10. **`ModalReporteDeudoresInscritos.vue`:** Adeudos focalizados exclusivamente en alumnos inscritos.
-11. **`ModalReporteIngresos.vue`:** Reporte general de captación financiera por fecha.
+11. **`ModalReporteIngresos.vue`:** Reporte general de captación financiera diaria por fecha.
 12. **`ModalReporteIngresosPeriodo.vue`:** Reporte financiero acumulado por periodo semestral.
 13. **`ModalReporteVarios.vue`:** Reporte misceláneo de aranceles administrativos.
 14. **`ModalImprimeVerano.vue`:** Emisión y cálculo de aranceles de cursos intersemestrales de verano.
-15. **`ModalCuentas.vue` / `ModalEmpleados.vue`:** Edición de cuentas contables y personal operativo (en `modules/catalogos`).
+
+#### Modales de Administración de Catálogos (`src/modules/catalogos/components/`)
+1. **`ModalCuentas.vue`:** Alta, edición y activación de cuentas contables institucionales (5200 / 5400).
+2. **`ModalEmpleados.vue`:** Registro, asignación de turnos y activación de personal cajero.
 
 ---
 
