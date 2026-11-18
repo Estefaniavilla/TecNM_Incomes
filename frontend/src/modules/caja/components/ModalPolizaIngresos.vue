@@ -970,7 +970,14 @@ onUnmounted(() => {
             :class="{ active: pestanaActiva === 'resumen' }"
             @click="pestanaActiva = 'resumen'"
           >
-            📋 Resumen por Cuentas Contables ({{ filasPolizaAgrupadas.length }})
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tab-icon">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+            Resumen por Cuentas Contables
+            <span class="tab-count">{{ filasPolizaAgrupadas.length }}</span>
           </button>
           <button
             type="button"
@@ -978,7 +985,16 @@ onUnmounted(() => {
             :class="{ active: pestanaActiva === 'movimientos' }"
             @click="pestanaActiva = 'movimientos'"
           >
-            📑 Detalle de Movimientos y Referencias ({{ movimientosFiltrados.length }})
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tab-icon">
+              <line x1="8" y1="6" x2="21" y2="6"/>
+              <line x1="8" y1="12" x2="21" y2="12"/>
+              <line x1="8" y1="18" x2="21" y2="18"/>
+              <line x1="3" y1="6" x2="3.01" y2="6"/>
+              <line x1="3" y1="12" x2="3.01" y2="12"/>
+              <line x1="3" y1="18" x2="3.01" y2="18"/>
+            </svg>
+            Detalle de Movimientos y Referencias
+            <span class="tab-count">{{ movimientosFiltrados.length }}</span>
           </button>
         </div>
 
@@ -1082,15 +1098,24 @@ onUnmounted(() => {
         <div class="bottom-summary-panel">
           <div class="summary-cards-row">
             <div class="card-total card-caja">
-              <span class="card-label">Total Cobro en Caja:</span>
+              <span class="card-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="card-icon"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/></svg>
+                Total Cobro en Caja:
+              </span>
               <span class="card-value">{{ formatearMoneda(totalCobroCaja) }}</span>
             </div>
             <div class="card-total card-banco">
-              <span class="card-label">Total Depósito Bancario:</span>
+              <span class="card-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="card-icon"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                Total Depósito Bancario:
+              </span>
               <span class="card-value">{{ formatearMoneda(totalDepositoBancario) }}</span>
             </div>
             <div class="card-total card-general">
-              <span class="card-label">Total Póliza:</span>
+              <span class="card-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="card-icon"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                Total Póliza:
+              </span>
               <span class="card-value text-accent">{{ formatearMoneda(totalGeneral) }}</span>
             </div>
           </div>
@@ -1110,6 +1135,12 @@ onUnmounted(() => {
       <!-- MODO 2: VISTA PREVIA OFICIAL (HOJA FÍSICA FOTOGRAFIADA)  -->
       <!-- ======================================================== -->
       <section v-else class="print-preview-container">
+        <!-- Barra de ruta institucional (breadcrumb) -->
+        <div class="preview-breadcrumb no-print">
+          <span class="breadcrumb-item breadcrumb-active">{{ tipoReporteVista === 'cuentas' ? 'PÓLIZA DE INGRESOS PROPIOS (RESUMEN CONTABLE)' : 'REPORTE DETALLADO DE INGRESOS' }}</span>
+          <span class="breadcrumb-sep">·</span>
+          <span class="breadcrumb-item">PÓLIZA DE INGRESOS GENERAL</span>
+        </div>
         <!-- Barra de herramientas superior de la vista previa -->
         <div class="preview-toolbar no-print">
           <div class="toolbar-info">
@@ -1126,7 +1157,11 @@ onUnmounted(() => {
                 title="Ver e imprimir Resumen de Cuentas Contables"
                 @click="tipoReporteVista = 'cuentas'"
               >
-                📑 Resumen Cuentas Contables
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                Resumen Cuentas Contables
               </button>
               <button
                 type="button"
@@ -1135,7 +1170,15 @@ onUnmounted(() => {
                 title="Ver e imprimir Detalle de Folios y Movimientos"
                 @click="tipoReporteVista = 'detalle'"
               >
-                📄 Detalle de Folios
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+                  <line x1="8" y1="6" x2="21" y2="6"/>
+                  <line x1="8" y1="12" x2="21" y2="12"/>
+                  <line x1="8" y1="18" x2="21" y2="18"/>
+                  <line x1="3" y1="6" x2="3.01" y2="6"/>
+                  <line x1="3" y1="12" x2="3.01" y2="12"/>
+                  <line x1="3" y1="18" x2="3.01" y2="18"/>
+                </svg>
+                Detalle de Folios
               </button>
             </div>
 
@@ -1631,48 +1674,109 @@ onUnmounted(() => {
 /* Barra de Sub-pestañas */
 .sub-tabs-bar {
   display: flex;
-  gap: 0.5rem;
-  border-bottom: 2px solid #E2E8F0;
-  padding-bottom: 0.25rem;
+  gap: 0;
+  border-bottom: 2px solid #CBD5E1;
+  padding-bottom: 0;
+  background: #F8FAFC;
+  border-radius: 8px 8px 0 0;
+  overflow: hidden;
+  border: 1px solid #CBD5E1;
+  border-bottom: none;
 }
 
 .modal-backdrop.dark-theme .sub-tabs-bar {
-  border-bottom-color: #334155;
+  border-color: #334155;
+  background: #1E293B;
 }
 
 .sub-tab-btn {
   background: transparent;
   border: none;
   border-bottom: 3px solid transparent;
-  padding: 0.45rem 1rem;
-  font-weight: 700;
-  font-size: 0.85rem;
+  padding: 0.65rem 1.25rem;
+  font-weight: 600;
+  font-size: 0.84rem;
   color: #64748B;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.18s;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  letter-spacing: 0.01em;
+  position: relative;
 }
 
 .modal-backdrop.dark-theme .sub-tab-btn {
   color: #94A3B8;
 }
 
+.sub-tab-btn:hover {
+  background: rgba(27, 57, 106, 0.06);
+  color: #1B396A;
+}
+
+.modal-backdrop.dark-theme .sub-tab-btn:hover {
+  background: rgba(197, 160, 89, 0.08);
+  color: #D4B06A;
+}
+
 .sub-tab-btn.active {
   color: #1B396A;
   border-bottom-color: #1B396A;
+  background: #ffffff;
+  font-weight: 700;
 }
 
 .modal-backdrop.dark-theme .sub-tab-btn.active {
   color: #C5A059;
   border-bottom-color: #C5A059;
+  background: #111827;
+}
+
+.tab-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  background: #E2E8F0;
+  color: #475569;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-left: 2px;
+}
+
+.sub-tab-btn.active .tab-count {
+  background: #1B396A;
+  color: #ffffff;
+}
+
+.modal-backdrop.dark-theme .tab-count {
+  background: #334155;
+  color: #94A3B8;
+}
+
+.modal-backdrop.dark-theme .sub-tab-btn.active .tab-count {
+  background: #C5A059;
+  color: #1B1A17;
 }
 
 /* Tablas */
 .table-container {
   border: 1px solid #CBD5E1;
-  border-radius: 6px;
+  border-radius: 0 0 8px 8px;
   overflow: hidden;
   max-height: 320px;
   overflow-y: auto;
+  border-top: none;
 }
 
 .modal-backdrop.dark-theme .table-container {
@@ -1686,7 +1790,7 @@ onUnmounted(() => {
 }
 
 .reporte-table thead {
-  background: #1B396A;
+  background: linear-gradient(135deg, #1B396A 0%, #244B88 100%);
   color: #ffffff;
   position: sticky;
   top: 0;
@@ -1695,15 +1799,15 @@ onUnmounted(() => {
 }
 
 .reporte-table th {
-  padding: 0.6rem 0.75rem;
+  padding: 0.65rem 0.85rem;
   font-weight: 700;
   font-size: 0.75rem;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
 }
 
 .reporte-table td {
-  padding: 0.55rem 0.75rem;
+  padding: 0.6rem 0.85rem;
   border-bottom: 1px solid #F1F5F9;
   color: #1E293B;
   vertical-align: middle;
@@ -1714,8 +1818,20 @@ onUnmounted(() => {
   color: #F1F5F9;
 }
 
+.reporte-table tbody tr:nth-child(even) {
+  background: rgba(241, 245, 249, 0.6);
+}
+
+.modal-backdrop.dark-theme .reporte-table tbody tr:nth-child(even) {
+  background: rgba(30, 41, 59, 0.5);
+}
+
 .reporte-table tbody tr:hover {
-  background: rgba(27, 57, 106, 0.04);
+  background: rgba(27, 57, 106, 0.08);
+}
+
+.modal-backdrop.dark-theme .reporte-table tbody tr:hover {
+  background: rgba(197, 160, 89, 0.1);
 }
 
 .col-cuenta { width: 170px; }
@@ -1725,11 +1841,13 @@ onUnmounted(() => {
 .col-importe { width: 140px; }
 
 .badge-pago {
-  display: inline-block;
-  padding: 0.15rem 0.5rem;
-  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18rem 0.6rem;
+  border-radius: 20px;
   font-size: 0.68rem;
   font-weight: 700;
+  letter-spacing: 0.5px;
 }
 
 .badge-efectivo {
@@ -1738,10 +1856,22 @@ onUnmounted(() => {
   border: 1px solid #86EFAC;
 }
 
+.modal-backdrop.dark-theme .badge-efectivo {
+  background: rgba(22, 101, 52, 0.25);
+  color: #4ADE80;
+  border-color: rgba(74, 222, 128, 0.4);
+}
+
 .badge-banco {
   background: #E0E7FF;
   color: #3730A3;
   border: 1px solid #A5B4FC;
+}
+
+.modal-backdrop.dark-theme .badge-banco {
+  background: rgba(55, 48, 163, 0.25);
+  color: #818CF8;
+  border-color: rgba(129, 140, 248, 0.4);
 }
 
 .empty-cell {
@@ -1797,21 +1927,34 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   gap: 1.5rem;
-  padding: 0.5rem 0;
+  padding: 0.75rem 0 0.25rem;
+  border-top: 1px solid #E2E8F0;
+  margin-top: 0.25rem;
+}
+
+.modal-backdrop.dark-theme .bottom-summary-panel {
+  border-top-color: #334155;
 }
 
 .summary-cards-row {
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .card-total {
   background: #F8FAFC;
   border: 1px solid #CBD5E1;
-  border-radius: 6px;
-  padding: 0.45rem 1rem;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
   display: flex;
   flex-direction: column;
+  gap: 0.15rem;
+  min-width: 170px;
+  transition: box-shadow 0.15s;
+}
+
+.card-total:hover {
+  box-shadow: 0 2px 8px rgba(27, 57, 106, 0.1);
 }
 
 .modal-backdrop.dark-theme .card-total {
@@ -1819,17 +1962,55 @@ onUnmounted(() => {
   border-color: #334155;
 }
 
+.modal-backdrop.dark-theme .card-total:hover {
+  box-shadow: 0 2px 8px rgba(197, 160, 89, 0.12);
+}
+
+.card-caja {
+  border-left: 3px solid #22C55E;
+}
+
+.modal-backdrop.dark-theme .card-caja {
+  border-left-color: #4ADE80;
+}
+
+.card-banco {
+  border-left: 3px solid #818CF8;
+}
+
+.modal-backdrop.dark-theme .card-banco {
+  border-left-color: #818CF8;
+}
+
+.card-general {
+  border-left: 3px solid #C5A059;
+}
+
 .card-label {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 700;
   color: #64748B;
   text-transform: uppercase;
+  letter-spacing: 0.4px;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.modal-backdrop.dark-theme .card-label {
+  color: #94A3B8;
+}
+
+.card-icon {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
 }
 
 .card-value {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 1.15rem;
-  font-weight: 700;
+  font-size: 1.2rem;
+  font-weight: 800;
   color: #1B396A;
 }
 
@@ -1850,7 +2031,7 @@ onUnmounted(() => {
    Simulación idéntica a la Póliza de Ingresos Propios fotografiada
    ===================================================== */
 .print-preview-container {
-  padding: 1rem 1.5rem 1.5rem;
+  padding: 0 0 1.5rem;
   overflow-y: auto;
   max-height: 85vh;
   display: flex;
@@ -1859,17 +2040,49 @@ onUnmounted(() => {
   background: #64748B;
 }
 
+/* Breadcrumb de Vista Previa */
+.preview-breadcrumb {
+  width: 100%;
+  background: #C5A059;
+  padding: 0.4rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.breadcrumb-item {
+  color: rgba(255, 255, 255, 0.75);
+  text-transform: uppercase;
+  font-size: 0.72rem;
+}
+
+.breadcrumb-active {
+  color: #1B1A17;
+  font-weight: 800;
+}
+
+.breadcrumb-sep {
+  color: rgba(27, 26, 23, 0.5);
+  font-weight: 400;
+}
+
 .preview-toolbar {
   width: 100%;
-  max-width: 900px;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   background: #1E293B;
-  padding: 0.65rem 1rem;
-  border-radius: 6px;
+  padding: 0.65rem 1.25rem;
+  gap: 0.65rem;
   margin-bottom: 1rem;
   color: #ffffff;
+}
+
+.toolbar-info {
+  display: none;
 }
 
 .doc-badge {
@@ -1887,6 +2100,7 @@ onUnmounted(() => {
 .toolbar-actions {
   display: flex;
   gap: 0.65rem;
+  align-items: center;
 }
 
 /* Hoja en blanco simulación papel */
@@ -1899,10 +2113,12 @@ onUnmounted(() => {
   background: #ffffff;
   color: #000000;
   padding: 1.8rem 2.2rem;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
   border-radius: 2px;
   font-family: Arial, Helvetica, sans-serif;
   margin-bottom: 1.5rem;
+  border-top: 4px solid #1B396A;
+  margin-top: 1rem;
 }
 
 .paper-top-meta {
@@ -1977,15 +2193,19 @@ onUnmounted(() => {
   color: #94A3B8;
   border: none;
   border-radius: 4px;
-  padding: 5px 12px;
+  padding: 5px 14px;
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .btn-view-toggle:hover {
   color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.07);
 }
 
 .btn-view-toggle.active {
