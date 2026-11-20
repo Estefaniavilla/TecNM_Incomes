@@ -317,7 +317,42 @@ const opcionesCarreras = ref([
 ])
 
 const sugerenciasEstudiantes = ref<AlumnoCaja[]>([])
+const mostrarSugerencias = ref(true)
 let searchDebounceTimeout: any = null
+
+function getIniciales(nombre: string): string {
+  if (!nombre) return '??'
+  const partes = nombre.trim().split(/\s+/)
+  if (partes.length >= 2) {
+    return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase()
+  }
+  return nombre.substring(0, 2).toUpperCase()
+}
+
+function getColorAvatar(nombre: string): string {
+  const colores = [
+    '#1B396A', '#0F6B5E', '#8B5CF6', '#D97706',
+    '#DC2626', '#0891B2', '#7C3AED', '#059669',
+    '#E11D48', '#2563EB', '#CA8A04', '#9333EA',
+  ]
+  let hash = 0
+  for (let i = 0; i < nombre.length; i++) {
+    hash = nombre.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  return colores[Math.abs(hash) % colores.length]
+}
+
+function getEstatusLabel(estatus: string): { texto: string; clase: string } {
+  const s = (estatus || '').toLowerCase()
+  if (s.includes('inscrito') && !s.includes('no')) return { texto: 'Al corriente', clase: 'badge-al-corriente' }
+  if (s.includes('no inscrito') || s.includes('baja')) return { texto: 'Adeudo pendiente', clase: 'badge-adeudo' }
+  if (s.includes('egresado')) return { texto: 'Egresado', clase: 'badge-egresado' }
+  return { texto: estatus, clase: 'badge-default' }
+}
+
+function getNombreCarreraCorto(carrera: string): string {
+  return (carrera || '').replace(/\s*\([^)]*\)/g, '').trim()
+}
 
 function limpiarExpedienteEstudiante(): void {
   alumno.value = {
@@ -357,10 +392,13 @@ function onBusquedaInput(val: string): void {
     return
   }
 
+  mostrarSugerencias.value = true
+
   searchDebounceTimeout = setTimeout(async () => {
     try {
       const res = await cajaApi.buscarAlumnos(val.trim())
-      sugerenciasEstudiantes.value = res || []
+      // Limitar a máximo 8 sugerencias para no hacer una lista excesivamente larga
+      sugerenciasEstudiantes.value = (res || []).slice(0, 8)
 
       // Si coincide exactamente con una matrícula, cargar automáticamente el nuevo alumno y sus adeudos
       const coincidencia = (res || []).find(
@@ -446,6 +484,7 @@ async function seleccionarEstudiante(est: AlumnoCaja, showNotification = true): 
   alumno.value.porcentajeBeca = est.porcentajeBeca || 0
   busquedaMatricula.value = est.matricula
   sugerenciasEstudiantes.value = []
+  mostrarSugerencias.value = false
 
   // Consultar adeudos y becas activas del estudiante en la base de datos
   try {
@@ -1138,17 +1177,61 @@ onMounted(async () => {
                 @update:model-value="onBusquedaInput"
                 @keyup.enter="buscarEstudiante"
               />
-              <!-- Sugerencias de autocompletado en texto tenue / bajito -->
-              <div v-if="sugerenciasEstudiantes.length > 0" class="suggestions-dropdown">
-                <div
-                  v-for="sug in sugerenciasEstudiantes"
-                  :key="sug.matricula"
-                  class="suggestion-item"
-                  @click="seleccionarEstudiante(sug)"
-                >
-                  <span class="sug-matricula">{{ sug.matricula }}</span>
-                  <span class="sug-nombre">{{ sug.nombreCompleto }}</span>
-                  <span class="sug-detalle">{{ sug.carrera }} · Semestre {{ sug.semestre }}°</span>
+              <!-- Sugerencias de búsqueda con diseño de tarjeta enriquecida -->
+              <div v-if="sugerenciasEstudiantes.length > 0 && mostrarSugerencias" class="suggestions-dropdown">
+                <!-- Encabezado de sugerencias -->
+                <div class="suggestions-header">
+                  <span class="suggestions-count">
+                    <span class="dot-indicator"></span>
+                    Sugerencias encontradas ( {{ sugerenciasEstudiantes.length }} )
+                  </span>
+                  <span class="suggestions-hint">Presiona Enter o haz click para seleccionar</span>
+                </div>
+
+                <!-- Lista de sugerencias enriquecidas -->
+                <div class="suggestions-list">
+                  <div
+                    v-for="sug in sugerenciasEstudiantes"
+                    :key="sug.matricula"
+                    class="suggestion-card"
+                    @click="seleccionarEstudiante(sug)"
+                  >
+                    <!-- Avatar con iniciales -->
+                    <div
+                      class="sug-avatar"
+                      :style="{ backgroundColor: getColorAvatar(sug.nombreCompleto) }"
+                    >
+                      {{ getIniciales(sug.nombreCompleto) }}
+                    </div>
+
+                    <!-- Información principal -->
+                    <div class="sug-info">
+                      <div class="sug-top-row">
+                        <span class="sug-matricula">{{ sug.matricula }}</span>
+                        <span class="sug-nombre-completo">{{ sug.nombreCompleto }}</span>
+                      </div>
+                      <div class="sug-bottom-row">
+                        <span class="sug-carrera">{{ getNombreCarreraCorto(sug.carrera) }}</span>
+                        <span class="sug-separador">•</span>
+                        <span class="sug-semestre">{{ sug.semestre }}{{ sug.semestre === 1 ? 'er' : sug.semestre < 10 ? 'to' : 'vo' }} Semestre</span>
+                      </div>
+                    </div>
+
+                    <!-- Badge de estatus -->
+                    <div class="sug-estatus-wrap">
+                      <span
+                        class="sug-estatus-badge"
+                        :class="getEstatusLabel(sug.estatus).clase"
+                      >
+                        {{ getEstatusLabel(sug.estatus).texto }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Pie de panel -->
+                <div class="suggestions-footer">
+                  ¿No encuentras al estudiante? Verifica en Servicios Escolares
                 </div>
               </div>
             </div>
@@ -2311,48 +2394,243 @@ button.menubar-title-tag:active {
   z-index: 25;
   background: var(--color-surface-white, #FFFFFF);
   border: 1px solid var(--color-border-medium, #CBD5E1);
-  border-radius: 8px;
-  box-shadow: 0 10px 15px -3px rgba(15, 37, 72, 0.12);
-  margin-top: 4px;
-  max-height: 220px;
+  border-radius: 12px;
+  box-shadow: 0 12px 28px -4px rgba(15, 37, 72, 0.18), 0 4px 10px -2px rgba(15, 37, 72, 0.08);
+  margin-top: 6px;
+  overflow: hidden;
+}
+
+.suggestions-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--color-border-light, #F1F5F9);
+  background: var(--color-bg-main, #F8FAFC);
+}
+
+.suggestions-count {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #1E293B);
+}
+
+.dot-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10B981;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.suggestions-hint {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #94A3B8);
+  font-style: italic;
+}
+
+.suggestions-list {
+  max-height: 320px;
   overflow-y: auto;
 }
 
-.suggestion-item {
+.suggestion-card {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
+  gap: 14px;
+  padding: 12px 16px;
   cursor: pointer;
   border-bottom: 1px solid var(--color-border-light, #F1F5F9);
   transition: background 0.15s ease;
 }
 
-.suggestion-item:last-child {
+.suggestion-card:last-child {
   border-bottom: none;
 }
 
-.suggestion-item:hover {
+.suggestion-card:hover {
   background: var(--color-primary-subtle, #EBF3FF);
+}
+
+.sug-avatar {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: 0.03em;
+}
+
+.sug-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sug-top-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
 }
 
 .sug-matricula {
   font-weight: 700;
   font-size: 0.88rem;
   color: var(--color-primary, #1B396A);
+  flex-shrink: 0;
 }
 
-.sug-nombre {
-  font-weight: 500;
-  font-size: 0.85rem;
-  color: var(--color-text-secondary, #64748B);
+.sug-nombre-completo {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--color-text-primary, #1E293B);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.sug-detalle {
-  margin-left: auto;
+.sug-bottom-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 0.78rem;
   color: var(--color-text-muted, #94A3B8);
-  font-style: italic;
+}
+
+.sug-carrera {
+  font-weight: 500;
+}
+
+.sug-separador {
+  color: var(--color-border-medium, #CBD5E1);
+}
+
+.sug-semestre {
+  font-weight: 500;
+}
+
+.sug-estatus-wrap {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.sug-estatus-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.badge-al-corriente {
+  background: #ECFDF5;
+  color: #065F46;
+  border: 1px solid #A7F3D0;
+}
+
+.badge-adeudo {
+  background: #FEF3C7;
+  color: #92400E;
+  border: 1px solid #FCD34D;
+}
+
+.badge-egresado {
+  background: #EDE9FE;
+  color: #5B21B6;
+  border: 1px solid #C4B5FD;
+}
+
+.badge-default {
+  background: #F1F5F9;
+  color: #475569;
+  border: 1px solid #CBD5E1;
+}
+
+.suggestions-footer {
+  padding: 8px 16px;
+  font-size: 0.74rem;
+  color: var(--color-text-muted, #94A3B8);
+  text-align: center;
+  border-top: 1px solid var(--color-border-light, #F1F5F9);
+  background: var(--color-bg-main, #F8FAFC);
+}
+
+/* Dark mode overrides para sugerencias */
+.dark-theme .suggestions-dropdown {
+  background: var(--color-surface-dark, #1E293B);
+  border-color: var(--color-border-dark, #334155);
+  box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.4);
+}
+
+.dark-theme .suggestions-header,
+.dark-theme .suggestions-footer {
+  background: var(--color-bg-dark, #0F172A);
+  border-color: var(--color-border-dark, #334155);
+}
+
+.dark-theme .suggestions-count {
+  color: #E2E8F0;
+}
+
+.dark-theme .suggestion-card {
+  border-color: var(--color-border-dark, #334155);
+}
+
+.dark-theme .suggestion-card:hover {
+  background: rgba(27, 57, 106, 0.25);
+}
+
+.dark-theme .sug-matricula {
+  color: #93C5FD;
+}
+
+.dark-theme .sug-nombre-completo {
+  color: #E2E8F0;
+}
+
+.dark-theme .sug-bottom-row {
+  color: #94A3B8;
+}
+
+.dark-theme .badge-al-corriente {
+  background: rgba(16, 185, 129, 0.15);
+  color: #6EE7B7;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.dark-theme .badge-adeudo {
+  background: rgba(245, 158, 11, 0.15);
+  color: #FCD34D;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.dark-theme .badge-egresado {
+  background: rgba(139, 92, 246, 0.15);
+  color: #C4B5FD;
+  border-color: rgba(139, 92, 246, 0.3);
+}
+
+.dark-theme .badge-default {
+  background: rgba(100, 116, 139, 0.2);
+  color: #CBD5E1;
+  border-color: rgba(100, 116, 139, 0.3);
+}
+
+.dark-theme .suggestions-footer {
+  color: #64748B;
 }
 
 .btn-search {
