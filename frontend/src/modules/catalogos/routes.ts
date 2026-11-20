@@ -13,5 +13,11 @@ export const catalogosRoutes: RouteRecordRaw[] = [
     component: () => import('./views/CuentasView.vue'),
     meta: { requiresAuth: true },
   },
+  {
+    path: 'catalogos/conceptos',
+    name: 'catalogos-conceptos',
+    component: () => import('./views/ConceptosView.vue'),
+    meta: { requiresAuth: true },
+  },
 ]
 

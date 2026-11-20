@@ -19,6 +19,7 @@ import { logout, me } from '../../auth/api/authApi'
 import { clearSessionMarker } from '../../../shared/utils/sessionCookie'
 import ModalCuentas from '../../catalogos/components/ModalCuentas.vue'
 import ModalEmpleados from '../../catalogos/components/ModalEmpleados.vue'
+import ModalConceptos from '../../catalogos/components/ModalConceptos.vue'
 import ModalImprimeVerano from '../components/ModalImprimeVerano.vue'
 import ModalPolizaIngresos from '../components/ModalPolizaIngresos.vue'
 import ModalReporteIngresos from '../components/ModalReporteIngresos.vue'
@@ -86,6 +87,7 @@ onMounted(async () => {
 // Control de Menú y Ventanas Modales de Catálogos
 // ==========================================
 const mostrarModalCuentas = ref(false)
+const mostrarModalConceptos = ref(false)
 const mostrarModalEmpleados = ref(false)
 const mostrarModalImprimeVerano = ref(false)
 const mostrarModalPolizaIngresos = ref(false)
@@ -114,6 +116,11 @@ function cerrarMenus(): void {
 
 function abrirModalCuentas(): void {
   mostrarModalCuentas.value = true
+  cerrarMenus()
+}
+
+function abrirModalConceptos(): void {
+  mostrarModalConceptos.value = true
   cerrarMenus()
 }
 
@@ -1018,6 +1025,18 @@ onMounted(async () => {
                 </svg>
                 <span>Cuentas</span>
               </button>
+
+              <button
+                type="button"
+                class="dropdown-entry"
+                role="menuitem"
+                @click="abrirModalConceptos"
+              >
+                <svg class="entry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                </svg>
+                <span>Conceptos de Cobro</span>
+              </button>
             </div>
           </div>
 
@@ -1862,6 +1881,11 @@ onMounted(async () => {
     </UiDialog>
 
     <!-- VENTANAS FLOTANTES DE CATÁLOGOS CONFORME A MANUAL TECNM -->
+    <ModalConceptos
+      v-if="mostrarModalConceptos"
+      @close="mostrarModalConceptos = false"
+    />
+
     <ModalCuentas
       v-if="mostrarModalCuentas"
       @close="mostrarModalCuentas = false"

@@ -14,6 +14,7 @@ export const headerNavigation: NavigationItem[] = [
     children: [
       { label: 'Empleados', to: '/catalogos/empleados' },
       { label: 'Cuentas', to: '/catalogos/cuentas' },
+      { label: 'Conceptos de Cobro', to: '/catalogos/conceptos' },
     ],
   },
   { label: 'Póliza de Ingresos', to: '/#poliza' },
@@ -34,6 +35,7 @@ export const sidebarNavigation: NavigationItem[] = [
     children: [
       { label: 'Empleados', to: '/catalogos/empleados' },
       { label: 'Cuentas', to: '/catalogos/cuentas' },
+      { label: 'Conceptos de Cobro', to: '/catalogos/conceptos' },
     ],
   },
   {
