@@ -10,6 +10,7 @@
 
 \ir 01_etapa1_estructura.sql
 \ir 02_etapa2_datos.sql
+\ir ../seed_previos_completo.sql
 \ir 03_etapa3_auditoria_y_vistas.sql
 
 -- REPORTE FINAL DE VALIDACIÓN POST-MIGRACIÓN
