@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useTheme } from '../../../shared/composables/useTheme'
 import * as cajaApi from '../api/cajaApi'
 import type { ReciboCaja } from '../types/caja'
+import ReceiptSearchDropdown from './ReceiptSearchDropdown.vue'
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -50,6 +51,45 @@ const isBuscandoRecibo = ref(false)
 const reciboCargado = ref<ReciboCaja | null>(null)
 const errorBusqueda = ref('')
 const mensajeExito = ref('')
+
+const sugerenciasRecibos = ref<ReciboCaja[]>([])
+const mostrarSugerenciasRecibos = ref(false)
+const recibosCache = ref<ReciboCaja[]>([])
+let debounceReciboTimeout: any = null
+
+async function onInputNumeroRecibo(val: string): Promise<void> {
+  numeroReciboBusqueda.value = val
+  if (debounceReciboTimeout) clearTimeout(debounceReciboTimeout)
+  if (!val || val.trim().length === 0) {
+    sugerenciasRecibos.value = []
+    mostrarSugerenciasRecibos.value = false
+    return
+  }
+  mostrarSugerenciasRecibos.value = true
+  debounceReciboTimeout = setTimeout(async () => {
+    try {
+      if (recibosCache.value.length === 0) {
+        recibosCache.value = await cajaApi.getRecibosRecientes(50)
+      }
+      const q = val.trim().toLowerCase()
+      sugerenciasRecibos.value = recibosCache.value.filter(r => 
+        r.numeroRecibo.toString().includes(q) ||
+        (r.folioAdministrativo && r.folioAdministrativo.toLowerCase().includes(q)) ||
+        (r.alumno?.nombreCompleto && r.alumno.nombreCompleto.toLowerCase().includes(q)) ||
+        (r.alumno?.matricula && r.alumno.matricula.toLowerCase().includes(q))
+      ).slice(0, 8)
+    } catch {
+      sugerenciasRecibos.value = []
+    }
+  }, 150)
+}
+
+function seleccionarReciboSugerido(rec: ReciboCaja): void {
+  numeroReciboBusqueda.value = rec.numeroRecibo.toString()
+  cargarReciboEnFormulario(rec)
+  sugerenciasRecibos.value = []
+  mostrarSugerenciasRecibos.value = false
+}
 
 // Fecha inicializada con el día actual correspondiente al abrir
 const fecha = ref(obtenerFechaHoy())
@@ -350,15 +390,17 @@ onUnmounted(() => {
         <!-- FILA SUPERIOR DERECHA: Recibo No + Fecha (idéntica distribución al legacy) -->
         <div class="top-search-row">
           <div class="recibo-search-group">
-            <div class="field-item item-recibo-no">
+            <div class="field-item item-recibo-no" style="position: relative;">
               <label for="input-canc-recibo-no" class="field-label">Recibo No:</label>
               <div class="recibo-input-combo">
                 <input
                   id="input-canc-recibo-no"
-                  v-model="numeroReciboBusqueda"
+                  :value="numeroReciboBusqueda"
                   type="text"
                   class="tecnm-input font-mono font-bold text-center"
-                  placeholder="Ej. 5123"
+                  placeholder="Ej. 128450..."
+                  @input="onInputNumeroRecibo(($event.target as HTMLInputElement).value)"
+                  @focus="mostrarSugerenciasRecibos = sugerenciasRecibos.length > 0"
                   @keyup.enter="buscarRecibo"
                 />
                 <button
@@ -377,6 +419,13 @@ onUnmounted(() => {
                   </svg>
                 </button>
               </div>
+
+              <!-- Sugerencias enriquecidas de recibos -->
+              <ReceiptSearchDropdown
+                :sugerencias="sugerenciasRecibos"
+                :visible="mostrarSugerenciasRecibos"
+                @select="seleccionarReciboSugerido"
+              />
             </div>
 
             <div class="field-item item-fecha">

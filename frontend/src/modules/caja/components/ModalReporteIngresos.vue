@@ -2,7 +2,9 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useTheme } from '../../../shared/composables/useTheme'
 import * as cajaApi from '../api/cajaApi'
-import type { ReporteDetalladoItem } from '../types/caja'
+import type { AlumnoCaja, ReciboCaja, ReporteDetalladoItem } from '../types/caja'
+import StudentSearchDropdown from './StudentSearchDropdown.vue'
+import ReceiptSearchDropdown from './ReceiptSearchDropdown.vue'
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -40,9 +42,88 @@ function onFechaSeleccionada(campo: 'inicio' | 'fin', event: Event): void {
 const numeroReciboFiltro = ref('')
 const referenciaBancariaFiltro = ref('')
 
+const sugerenciasRecibos = ref<ReciboCaja[]>([])
+const mostrarSugerenciasRecibos = ref(false)
+const recibosCache = ref<ReciboCaja[]>([])
+let debounceReciboTimeout: any = null
+
+async function onInputNumeroRecibo(val: string): Promise<void> {
+  numeroReciboFiltro.value = val
+  if (debounceReciboTimeout) clearTimeout(debounceReciboTimeout)
+  if (!val || val.trim().length === 0) {
+    sugerenciasRecibos.value = []
+    mostrarSugerenciasRecibos.value = false
+    return
+  }
+  mostrarSugerenciasRecibos.value = true
+  debounceReciboTimeout = setTimeout(async () => {
+    try {
+      if (recibosCache.value.length === 0) {
+        recibosCache.value = await cajaApi.getRecibosRecientes(50)
+      }
+      const q = val.trim().toLowerCase()
+      sugerenciasRecibos.value = recibosCache.value.filter(r => 
+        r.numeroRecibo.toString().includes(q) ||
+        (r.folioAdministrativo && r.folioAdministrativo.toLowerCase().includes(q)) ||
+        (r.alumno?.nombreCompleto && r.alumno.nombreCompleto.toLowerCase().includes(q)) ||
+        (r.alumno?.matricula && r.alumno.matricula.toLowerCase().includes(q))
+      ).slice(0, 8)
+    } catch {
+      sugerenciasRecibos.value = []
+    }
+  }, 150)
+}
+
+function seleccionarReciboSugerido(rec: ReciboCaja): void {
+  numeroReciboFiltro.value = rec.numeroRecibo.toString()
+  sugerenciasRecibos.value = []
+  mostrarSugerenciasRecibos.value = false
+  buscar()
+}
+
 // 3. Búsqueda por Alumno
 const matriculaFiltro = ref('')
 const nombreAlumnoFiltro = ref('')
+
+const sugerenciasAlumnos = ref<AlumnoCaja[]>([])
+const mostrarSugerenciasAlumnos = ref(false)
+let debounceAlumnoTimeout: any = null
+
+function onInputMatricula(val: string): void {
+  matriculaFiltro.value = val
+  buscarSugerenciasAlumno(val)
+}
+
+function onInputNombreAlumno(val: string): void {
+  nombreAlumnoFiltro.value = val
+  buscarSugerenciasAlumno(val)
+}
+
+function buscarSugerenciasAlumno(query: string): void {
+  if (debounceAlumnoTimeout) clearTimeout(debounceAlumnoTimeout)
+  if (!query || query.trim().length < 2) {
+    sugerenciasAlumnos.value = []
+    mostrarSugerenciasAlumnos.value = false
+    return
+  }
+  mostrarSugerenciasAlumnos.value = true
+  debounceAlumnoTimeout = setTimeout(async () => {
+    try {
+      const res = await cajaApi.buscarAlumnos(query.trim())
+      sugerenciasAlumnos.value = (res || []).slice(0, 8)
+    } catch {
+      sugerenciasAlumnos.value = []
+    }
+  }, 200)
+}
+
+function seleccionarAlumnoSugerido(a: AlumnoCaja): void {
+  matriculaFiltro.value = a.matricula
+  nombreAlumnoFiltro.value = a.nombreCompleto
+  sugerenciasAlumnos.value = []
+  mostrarSugerenciasAlumnos.value = false
+  buscar()
+}
 
 // 4. Filtros por Concepto, Forma de Pago y Estado
 const conceptoFiltro = ref('')
@@ -608,15 +689,24 @@ onUnmounted(() => {
             </div>
 
             <!-- Recibo Individual / Folio -->
-            <div class="field-item item-recibo">
+            <div class="field-item item-recibo" style="position: relative;">
               <label for="input-ing-recibo" class="field-label">No. Recibo / Folio:</label>
               <input
                 id="input-ing-recibo"
-                v-model="numeroReciboFiltro"
+                :value="numeroReciboFiltro"
                 type="text"
                 class="tecnm-input font-mono font-bold"
-                placeholder="Ej. 128628 o 101"
+                placeholder="Ej. 128450 o 101"
+                @input="onInputNumeroRecibo(($event.target as HTMLInputElement).value)"
+                @focus="mostrarSugerenciasRecibos = sugerenciasRecibos.length > 0"
                 @keyup.enter="buscar"
+              />
+
+              <!-- Sugerencias de recibos -->
+              <ReceiptSearchDropdown
+                :sugerencias="sugerenciasRecibos"
+                :visible="mostrarSugerenciasRecibos"
+                @select="seleccionarReciboSugerido"
               />
             </div>
 
@@ -635,15 +725,17 @@ onUnmounted(() => {
           </div>
 
           <!-- Renglón 2: Alumno (Matrícula + Nombre) + Concepto + Forma Pago + Estado -->
-          <div class="filters-row row-alumno-conceptos">
+          <div class="filters-row row-alumno-conceptos" style="position: relative;">
             <div class="field-item item-matricula">
               <label for="input-ing-mat" class="field-label">Matrícula:</label>
               <input
                 id="input-ing-mat"
-                v-model="matriculaFiltro"
+                :value="matriculaFiltro"
                 type="text"
                 class="tecnm-input font-mono"
                 placeholder="Ej. 23050..."
+                @input="onInputMatricula(($event.target as HTMLInputElement).value)"
+                @focus="mostrarSugerenciasAlumnos = sugerenciasAlumnos.length > 0"
                 @keyup.enter="buscar"
               />
             </div>
@@ -652,13 +744,22 @@ onUnmounted(() => {
               <label for="input-ing-nombre" class="field-label">Nombre del Alumno:</label>
               <input
                 id="input-ing-nombre"
-                v-model="nombreAlumnoFiltro"
+                :value="nombreAlumnoFiltro"
                 type="text"
                 class="tecnm-input"
                 placeholder="Buscar por nombre..."
+                @input="onInputNombreAlumno(($event.target as HTMLInputElement).value)"
+                @focus="mostrarSugerenciasAlumnos = sugerenciasAlumnos.length > 0"
                 @keyup.enter="buscar"
               />
             </div>
+
+            <!-- Sugerencias enriquecidas de alumnos -->
+            <StudentSearchDropdown
+              :sugerencias="sugerenciasAlumnos"
+              :visible="mostrarSugerenciasAlumnos"
+              @select="seleccionarAlumnoSugerido"
+            />
 
             <div class="field-item item-concepto">
               <label for="select-ing-concepto" class="field-label">Concepto:</label>
