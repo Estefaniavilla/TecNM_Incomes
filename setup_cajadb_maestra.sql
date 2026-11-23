@@ -11,9 +11,12 @@
 ROLLBACK;
 
 -- 1. LIMPIEZA EN CASCADA
+DROP VIEW IF EXISTS vw_polizas_ingreso_resumen CASCADE;
+DROP VIEW IF EXISTS vw_depositos_bancarios_conciliacion CASCADE;
 DROP VIEW IF EXISTS vw_corte_diario_caja CASCADE;
 DROP VIEW IF EXISTS vw_reporte_recibos_detallado CASCADE;
 DROP VIEW IF EXISTS vw_adeudos_estudiantes CASCADE;
+DROP FUNCTION IF EXISTS fn_revertir_adeudo_por_cancelacion CASCADE;
 DROP TABLE IF EXISTS movimientos_pago CASCADE;
 DROP TABLE IF EXISTS detalles_recibo CASCADE;
 DROP TABLE IF EXISTS detalle_recibo CASCADE;
@@ -125,6 +128,7 @@ CREATE TABLE alumnos (
 CREATE INDEX idx_alumnos_nombre ON alumnos(nombre_completo);
 CREATE INDEX idx_alumnos_carrera ON alumnos(id_carrera);
 CREATE INDEX idx_alumnos_estatus ON alumnos(estatus);
+CREATE INDEX idx_alumnos_cuenta_a ON alumnos(cuenta_a);
 
 INSERT INTO alumnos (matricula, nombre_completo, nombres, apellidos, sexo, id_carrera, carrera, semestre, turno, numero_ficha, cuenta_a, estatus, tiene_beca, porcentaje_beca)
 VALUES
@@ -238,24 +242,70 @@ CREATE INDEX idx_conceptos_clave ON conceptos_cobro(clave);
 CREATE INDEX idx_conceptos_categoria ON conceptos_cobro(categoria);
 
 INSERT INTO conceptos_cobro (clave, descripcion, cuota_base, orden, cuenta_referencia, aplica_beca, categoria, is_active) VALUES
-('5200-001-002-004', 'INSCRIPCION SEM. AGO 2012-ENERO 2013',        1700.00, 1, NULL, true,  'Inscripción', true),
-('5200-001-002-021', 'REINSCRIPCION SEM. AGOSTO 2022-ENERO 2023',    500.00, 2, NULL, true,  'Inscripción', true),
-('5200-001-002-051', 'REINSCRIPCION SEM. AGOSTO 2025-ENERO 2026',    500.00, 3, NULL, true,  'Inscripción', true),
-('5200-001-002-082', 'REINSCRIPCION SEM FEB-JUL 2023',               500.00, 4, NULL, true,  'Inscripción', true),
-('5200-002-001-001', 'INSCRIPCIONES GENERALES',                      1350.00, 5, NULL, true,  'Inscripción', true),
-('INSC-VIG',         'Pago de Inscripción (Periodo Vigente 2026)',   2600.00, 6, NULL, true,  'Inscripción', true),
-('INSC-ANT',         'Adeudo Inscripción Periodos Anteriores',       2450.00, 7, NULL, false, 'Inscripción', true),
-('5400-001-003-0001', 'REINSCRIPCION SEMESTRAL TARIFA 1',             520.00, 10, NULL, false, 'Inscripción', true),
-('5400-001-003-0002', 'REINSCRIPCION SEMESTRAL TARIFA 2',             620.00, 11, NULL, false, 'Inscripción', true),
-('5400-001-003-0003', 'REINSCRIPCION SEMESTRAL TARIFA 3',             620.00, 12, NULL, false, 'Inscripción', true),
-('5400-001-003-0005', 'REINSCRIPCION SEMESTRAL TARIFA 5',             700.00, 13, NULL, false, 'Inscripción', true),
-('5400-001-003-0006', 'REINSCRIPCION SEMESTRAL TARIFA 6',             700.00, 14, NULL, false, 'Inscripción', true),
-('5400-001-002-0037', 'INSCRIPCION SEMESTRAL 2012',                  1700.00, 20, NULL, true,  'Inscripción', true),
-('5400-001-002-0038', 'DESCUENTO DE INSCRIPCION',                    -100.00, 21, NULL, false, 'Descuentos',  true),
-('KARD',              'KARDEX OFICIAL',                               150.00, 30, NULL, false, 'Constancias',  true),
-('CONST',             'Constancia de Estudios con Calificaciones',    100.00, 31, NULL, false, 'Constancias',  true),
-('VERA',              'Curso de Verano (Por Asignatura)',            1200.00, 32, NULL, false, 'Cursos',       true),
-('TITU',              'Trámite de Titulación Integral y Cédula',     3800.00, 33, NULL, false, 'Otros',        true);
+-- Cuentas oficiales del catálogo Excel TecNM
+('5200-001-002-004', 'INSCRIPCION SEM. AGO 2012-ENERO 2013', 1700.00, NULL, '5200', true, 'Inscripción', true),
+('5200-001-002-021', 'REINSCRIPCION SEM. AGOSTO 2022-ENERO 2023', 500.00, NULL, '5200', true, 'Inscripción', true),
+('5200-001-002-051', 'REINSCRIPCION SEM. AGOSTO 2025-ENERO 2026', 500.00, NULL, '5200', true, 'Inscripción', true),
+('5200-001-002-082', 'REINSCRIPCION SEM FEB-JUL 2023', 500.00, NULL, '5200', true, 'Inscripción', true),
+('5200-001-002-115', 'INSCRIPCION FEB 2006', 1450.00, NULL, '5200', true, 'Inscripción', true),
+('5200-002-001-001', 'INSCRIPCIONES', 1350.00, NULL, '5200', true, 'Inscripción', true),
+('5200-002-001-009', 'INSCRIPCION AGO-05', 1400.00, NULL, '5200', true, 'Inscripción', true),
+('5200-002-004-011', 'REINSCRIPCION SEM. FEBRERO-JULIO 2024', 500.00, NULL, '5200', true, 'Inscripción', true),
+('5200-004-009-023', 'INSCRIPCION AGO-2006', 1450.00, NULL, '5200', true, 'Inscripción', true),
+('5200-004-009-028', 'Inscripción Feb-Jul-2007', 1500.00, NULL, '5200', true, 'Inscripción', true),
+('5200-004-009-029', 'RECARGOS POR INSCRIPCION', 200.00, NULL, '5200', false, 'Recargos', true),
+('5200-004-009-058', 'INSCRIPCION AGO-ENERO 2007', 1525.00, NULL, '5200', true, 'Inscripción', true),
+('5200-005-001-001', 'INSCRIPCION AGO-DIC-04 NVO. ING.', 1650.00, NULL, '5200', true, 'Inscripción', true),
+('5200-005-001-003', 'INSCRIPCION NVO. INGRESO', 1700.00, NULL, '5200', true, 'Inscripción', true),
+('5200-005-001-004', 'INSCRIPCION FEBRERO-JULIO 2008', 1550.00, NULL, '5200', true, 'Inscripción', true),
+('5200-005-001-013', 'INSCRIPCION SEM-FEB-JULIO-2009', 1600.00, NULL, '5200', true, 'Inscripción', true),
+('5200-005-001-017', 'INSCRIPCION SEM-AGOSTO 08-ENERO 09', 1550.00, NULL, '5200', true, 'Inscripción', true),
+('5200-006-001-0040', 'INSCRIPCION SEM. FEB-JUL 2010', 1600.00, NULL, '5200', true, 'Inscripción', true),
+('5200-006-001-035', 'INSCRIPCION SEM. AGO 09-ENE 10', 1600.00, NULL, '5200', true, 'Inscripción', true),
+('5200-006-001-036', 'REINSCRIPCION SEM. FEBRERO-JULIO 2026', 800.00, NULL, '5200', true, 'Inscripción', true),
+('5400-001-002-0016', 'INSCRIPCION FEBRERO-JULIO 2011', 1600.00, NULL, '5400', true, 'Inscripción', true),
+('5400-001-002-0028', 'INSCRIPCION AGOSTO 2011-ENERO 2012', 1600.00, NULL, '5400', true, 'Inscripción', true),
+('5400-001-002-0037', 'INSCRIPCION SEM. FEB-JUL 2012', 1700.00, 20, '5400', true, 'Inscripción', true),
+('5400-001-002-0063', 'REINSCRIPCION SEM. AGOSTO 2023-ENERO 2024', 500.00, NULL, '5400', true, 'Inscripción', true),
+('5400-001-002-0071', 'INSCRIPCION SEM. FEB/JUL 2013', 1700.00, NULL, '5400', true, 'Inscripción', true),
+('5400-001-002-0079', 'INSCRIPCION SEM. AGO. 2013-ENE. 2014', 1700.00, NULL, '5400', true, 'Inscripción', true),
+('5400-001-002-0097', 'REINSCRIPCION SEM. FEBRERO-JULIO 2025', 500.00, NULL, '5400', true, 'Inscripción', true),
+('5400-001-002-0098', 'INSCRIPCION SEM FEB-JUL 2014', 1700.00, NULL, '5400', true, 'Inscripción', true),
+('5400-001-002-0123', 'INSCRIPCION SEM. AGOSTO 2014-ENERO 2015', 1700.00, NULL, '5400', true, 'Inscripción', true),
+('5400-001-002-0125', 'INSCRIPCION SEM. FEBRERO-JULIO 2015', 1700.00, NULL, '5400', true, 'Inscripción', true),
+('5400-001-002-0143', 'INSCRIPCION SEM. AGOSTO 2015-ENERO 2016', 1700.00, 1, '5400', true, 'Inscripción', true),
+('5400-001-002-0147', 'INSCRIPCION SEM. FEBRERO-JULIO 2016', 1700.00, 2, '5400', true, 'Inscripción', true),
+('5400-001-002-0156', 'INSCRIPCION POSGRADO', 1700.00, NULL, '5400', true, 'Inscripción', true),
+('5400-001-002-0160', 'INSCRIPCION SEM. AGOSTO 2017-ENERO 2018', 1700.00, 4, '5400', true, 'Inscripción', true),
+('5400-001-002-0163', 'INSCRIPCIÓN SEM. FEBRERO-JULIO 2018', 1700.00, 5, '5400', true, 'Inscripción', true),
+('5400-001-002-0224', 'INSCRIPCION NVO. INGRESO SEM. AGO 2019-ENERO 2020', 500.00, NULL, '5400', true, 'Inscripción', true),
+('5400-001-002-0225', 'REINSCRIPCION SEM. FEB-JUL 2020', 500.00, 10, '5400', true, 'Inscripción', true),
+('5400-001-002-0231', 'REINSCRIPCION AGOSTO 2020 - ENERO 2021', 500.00, 11, '5400', true, 'Inscripción', true),
+('5400-001-002-0232', 'INSCRIPCION NVO. INGRESO AGOSTO 2020 - ENERO 2021', 500.00, NULL, '5400', true, 'Inscripción', true),
+('5400-001-002-0236', 'REINSCRIPCION SEM. FEB-JUL 2021', 500.00, 13, '5400', true, 'Inscripción', true),
+('5400-001-002-0258', 'REINSCRIPCION SEM. AGOSTO 2021-ENERO 2022', 500.00, 15, '5400', true, 'Inscripción', true),
+('5400-001-002-0259', 'INSCRIPCION NVO. INGRESO SEM. AGO-2021-ENERO 2022', 500.00, NULL, '5400', true, 'Inscripción', true),
+('5400-001-002-0262', 'REINSCRIPCION SEM. FEB-JUL 2022', 500.00, NULL, '5400', true, 'Inscripción', true),
+('5400-001-003-0017', 'INSCRIPCION AGOSTO 2016 ENERO 2017', 1700.00, NULL, '5400', true, 'Inscripción', true),
+('5400-001-003-0022', 'REINSCRIPCION SEM. AGOSTO 2024-ENERO 2025', 500.00, NULL, '5400', true, 'Inscripción', true),
+('5400-001-003-0024', 'INSCRIPCION SEM. FEBRERO-JULIO 2017', 1700.00, 3, '5400', true, 'Inscripción', true),
+('5400-001-003-0084', 'INSCRIPCION SEM. AGOSTO 2018-ENERO 2019', 1700.00, 6, '5400', true, 'Inscripción', true),
+('5400-001-003-0090', 'INSCRIPCION SEM. FEBRERO-JULIO 2019', 1700.00, 7, '5400', true, 'Inscripción', true),
+('5400-001-003-0094', 'REINSCRIPCION SEM. AGOSTO 2026-ENERO 2027', 800.00, 8, '5400', true, 'Inscripción', true),
+('54001-002-009', 'INSCRIPCION AGOSTO 2010-ENERO 2011', 1600.00, NULL, '5400', true, 'Inscripción', true),
+-- Conceptos operativos institucionales y de servicios
+('INSC-VIG',         'Pago de Inscripción (Periodo Vigente 2026)',   2600.00, 50, '5200', true,  'Inscripción', true),
+('INSC-ANT',         'Adeudo Inscripción Periodos Anteriores',       2450.00, 51, '5200', false, 'Inscripción', true),
+('5400-001-003-0001', 'REINSCRIPCION SEMESTRAL TARIFA 1',             520.00, 60, '5400', false, 'Inscripción', true),
+('5400-001-003-0002', 'REINSCRIPCION SEMESTRAL TARIFA 2',             620.00, 61, '5400', false, 'Inscripción', true),
+('5400-001-003-0003', 'REINSCRIPCION SEMESTRAL TARIFA 3',             620.00, 62, '5400', false, 'Inscripción', true),
+('5400-001-003-0005', 'REINSCRIPCION SEMESTRAL TARIFA 5',             700.00, 63, '5400', false, 'Inscripción', true),
+('5400-001-003-0006', 'REINSCRIPCION SEMESTRAL TARIFA 6',             700.00, 64, '5400', false, 'Inscripción', true),
+('5400-001-002-0038', 'DESCUENTO DE INSCRIPCION',                    -100.00, 65, '5400', false, 'Descuentos',  true),
+('KARD',              'KARDEX OFICIAL',                               150.00, 70, '5200', false, 'Constancias',  true),
+('CONST',             'Constancia de Estudios con Calificaciones',    100.00, 71, '5200', false, 'Constancias',  true),
+('VERA',              'Curso de Verano (Por Asignatura)',            1200.00, 72, '5200', false, 'Cursos',       true),
+('TITU',              'Trámite de Titulación Integral y Cédula',     3800.00, 73, '5200', false, 'Otros',        true);
 
 -- ----------------------------------------------------------------------------
 -- 9. FOLIOS ADMINISTRATIVOS
@@ -330,6 +380,39 @@ CREATE INDEX idx_recibos_matricula ON recibos(alumno_matricula);
 CREATE INDEX idx_recibos_referencia ON recibos(referencia_bancaria);
 CREATE INDEX idx_recibos_fecha ON recibos(fecha_operacion);
 CREATE INDEX idx_recibos_estado ON recibos(estado);
+CREATE INDEX idx_recibos_fecha_estado ON recibos(fecha_operacion, estado);
+
+-- ----------------------------------------------------------------------------
+-- FUNCIÓN Y TRIGGER: REVERSIÓN AUTOMÁTICA DE ADEUDOS POR CANCELACIÓN
+-- Regla de negocio y auditoría: al cancelar un recibo, cualquier adeudo que
+-- hubiese sido amortizado o liquidado por este recibo regresa a 'PENDIENTE'
+-- y restaura su saldo original automáticamente.
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION fn_revertir_adeudo_por_cancelacion()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.estado = 'CANCELADO' AND (OLD.estado IS NULL OR OLD.estado != 'CANCELADO') THEN
+        UPDATE adeudos a
+        SET estado = 'PENDIENTE',
+            saldo_pendiente = a.monto_original
+        WHERE a.matricula = NEW.alumno_matricula
+          AND a.estado IN ('LIQUIDADO', 'PARCIAL')
+          AND EXISTS (
+              SELECT 1 
+              FROM detalles_recibo d
+              WHERE d.recibo_id = NEW.id
+                AND (d.descripcion ILIKE '%' || a.concepto_cobro || '%' OR a.concepto_cobro ILIKE '%' || d.descripcion || '%')
+          );
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_revertir_adeudo_cancelacion ON recibos;
+CREATE TRIGGER trg_revertir_adeudo_cancelacion
+AFTER UPDATE OF estado ON recibos
+FOR EACH ROW
+EXECUTE FUNCTION fn_revertir_adeudo_por_cancelacion();
 
 -- Poblado de Recibos PREVIOS
 INSERT INTO recibos (
@@ -465,6 +548,8 @@ SELECT
     r.referencia_bancaria,
     r.tipo_recibo,
     r.estado AS estado_recibo,
+    r.motivo_cancelacion,
+    r.fecha_cancelacion,
     r.cajero_usuario,
     r.cajero_nombre
 FROM recibos r
@@ -476,6 +561,9 @@ SELECT
     a.matricula,
     al.nombre_completo AS alumno_nombre,
     al.carrera,
+    al.semestre,
+    al.turno,
+    al.estatus AS estatus_alumno,
     a.concepto_cobro,
     p.codigo AS periodo_codigo,
     p.anio AS periodo_anio,
@@ -487,6 +575,44 @@ SELECT
 FROM adeudos a
 JOIN alumnos al ON a.matricula = al.matricula
 JOIN periodos_academicos p ON a.id_periodo = p.id_periodo;
+
+CREATE OR REPLACE VIEW vw_depositos_bancarios_conciliacion AS
+SELECT
+    r.id AS recibo_id,
+    r.numero_recibo,
+    r.folio_administrativo,
+    r.fecha_operacion,
+    r.fecha_efectiva_pago,
+    r.alumno_matricula,
+    r.alumno_nombre,
+    al.cuenta_a,
+    r.referencia_bancaria,
+    SUBSTRING(r.referencia_bancaria FROM 1 FOR 5) AS referencia_cuenta_alumno,
+    SUBSTRING(r.referencia_bancaria FROM 6 FOR 5) AS referencia_concepto_arancel,
+    r.cuenta_bancaria,
+    r.total,
+    r.estado,
+    r.cajero_usuario
+FROM recibos r
+LEFT JOIN alumnos al ON r.alumno_matricula = al.matricula
+WHERE r.metodo_pago IN ('DEPOSITO_BANCARIO', 'TRANSFERENCIA');
+
+CREATE OR REPLACE VIEW vw_polizas_ingreso_resumen AS
+SELECT
+    p.id_poliza,
+    p.numero_poliza,
+    p.fecha_poliza,
+    p.total_recaudado,
+    p.cajero_usuario,
+    p.estado,
+    COUNT(r.id) AS total_recibos_asociados,
+    p.created_at
+FROM polizas_ingreso p
+LEFT JOIN recibos r ON p.id_poliza = r.poliza_id
+GROUP BY p.id_poliza, p.numero_poliza, p.fecha_poliza, p.total_recaudado, p.cajero_usuario, p.estado, p.created_at;
+
+-- Sincronizar secuencia de números de recibo para evitar conflictos con registros manuales o seeds
+SELECT setval('recibos_numero_recibo_seq', COALESCE((SELECT MAX(numero_recibo) FROM recibos), 128450));
 
 COMMIT;
 

@@ -220,6 +220,21 @@ Desglose financiero del dinero ingresado a caja (soporta pagos mixtos y concilia
 1. **`vw_corte_diario_caja`**:
    Permite al cajero y auditor generar el corte diario y arqueo por fecha y modalidad de pago al instante.
 2. **`vw_reporte_recibos_detallado`**:
-   Vista desnormalizada con todos los campos clave (alumno, matrícula, carrera, concepto, cantidad, precio, descuento, total, fecha, cajero, estado) lista para filtrar en frontend y exportar a Excel sin joins costosos.
+   Vista desnormalizada con todos los campos clave (alumno, matrícula, carrera, concepto, cantidad, precio, descuento, total, fecha, cajero, estado, motivo y fecha de cancelación) lista para filtrar en frontend y exportar a Excel sin joins costosos.
 3. **`vw_adeudos_estudiantes`**:
-   Agrupa adeudos pendientes con periodo académico, alumno y montos pendientes para validar rápidamente en ventanilla antes de cobrar.
+   Agrupa adeudos pendientes con periodo académico, alumno, semestre, turno, estatus y montos pendientes para validar rápidamente en ventanilla antes de cobrar.
+4. **`vw_depositos_bancarios_conciliacion`**:
+   Desglosa la referencia bancaria bajo el algoritmo institucional 5+5 (5 dígitos para cuenta de alumno y 5 dígitos para concepto de arancel) para conciliar fichas de depósito con rapidez.
+5. **`vw_polizas_ingreso_resumen`**:
+   Concentrado oficial para arqueo diario y reportes periódicos agrupados por póliza con recuento de recibos asociados.
+
+---
+
+## 🛡️ Reglas Automáticas y Auditoría en Base de Datos
+
+* **Trigger de Reversión de Adeudos (`trg_revertir_adeudo_cancelacion`):**
+  Al actualizar el estado de un recibo a `CANCELADO`, la función `fn_revertir_adeudo_por_cancelacion()` localiza automáticamente los adeudos del alumno relacionados con las partidas del recibo y restaura su estado a `PENDIENTE` con su saldo original íntegro.
+* **Huella de Auditoría de Cancelación:**
+  Todo recibo cancelado preserva quién lo canceló (`cajero_usuario`), en qué fecha/hora exacta (`fecha_cancelacion`) y la justificación obligatoria (`motivo_cancelacion`), impidiendo el borrado físico de registros contables.
+* **Sincronización de Consecutivos:**
+  Secuencia `recibos_numero_recibo_seq` enlazada dinámicamente con `MAX(numero_recibo)` para garantizar que el foliado automático nunca colisione con cargas masivas o seeds.
