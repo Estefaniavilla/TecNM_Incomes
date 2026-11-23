@@ -2,7 +2,8 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useTheme } from '../../../shared/composables/useTheme'
 import * as cajaApi from '../api/cajaApi'
-import type { ReporteDetalladoItem } from '../types/caja'
+import type { ConceptoCatalogo, ReporteDetalladoItem } from '../types/caja'
+import ConceptSearchDropdown from './ConceptSearchDropdown.vue'
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -73,6 +74,40 @@ const formaPagoFiltro = ref('')
 const cuentaFiltro = ref('')
 const impresora = ref('')
 const isBuscando = ref(false)
+
+const catalogoConceptos = ref<ConceptoCatalogo[]>([])
+const sugerenciasConceptos = ref<ConceptoCatalogo[]>([])
+const mostrarSugerenciasConceptos = ref(false)
+
+async function onInputCuenta(val: string): Promise<void> {
+  cuentaFiltro.value = val
+  if (!val || val.trim().length === 0) {
+    sugerenciasConceptos.value = []
+    mostrarSugerenciasConceptos.value = false
+    return
+  }
+  if (catalogoConceptos.value.length === 0) {
+    try {
+      catalogoConceptos.value = await cajaApi.getConceptos()
+    } catch {
+      catalogoConceptos.value = []
+    }
+  }
+  const q = val.trim().toLowerCase()
+  sugerenciasConceptos.value = catalogoConceptos.value.filter(c =>
+    (c.clave && c.clave.toLowerCase().includes(q)) ||
+    (c.descripcion && c.descripcion.toLowerCase().includes(q)) ||
+    (c.categoria && c.categoria.toLowerCase().includes(q))
+  ).slice(0, 8)
+  mostrarSugerenciasConceptos.value = sugerenciasConceptos.value.length > 0
+}
+
+function seleccionarConceptoSugerido(c: ConceptoCatalogo): void {
+  cuentaFiltro.value = c.descripcion
+  sugerenciasConceptos.value = []
+  mostrarSugerenciasConceptos.value = false
+  buscar()
+}
 
 // Pestaña activa en la ventana: 'resumen' (Cuentas) o 'movimientos' (Detalle individual)
 const pestanaActiva = ref<'resumen' | 'movimientos'>('resumen')
@@ -928,15 +963,24 @@ onUnmounted(() => {
             </div>
 
             <!-- Filtrar por Cuenta / Concepto -->
-            <div class="field-item item-cuenta">
+            <div class="field-item item-cuenta" style="position: relative;">
               <label for="input-pol-cuenta" class="field-label">Buscar Cuenta / Concepto:</label>
               <input
                 id="input-pol-cuenta"
-                v-model="cuentaFiltro"
+                :value="cuentaFiltro"
                 type="text"
                 class="tecnm-input"
                 placeholder="Ej. 5200 o Constancia..."
+                @input="onInputCuenta(($event.target as HTMLInputElement).value)"
+                @focus="mostrarSugerenciasConceptos = sugerenciasConceptos.length > 0"
                 @keyup.enter="buscar"
+              />
+
+              <!-- Sugerencias enriquecidas de conceptos -->
+              <ConceptSearchDropdown
+                :sugerencias="sugerenciasConceptos"
+                :visible="mostrarSugerenciasConceptos"
+                @select="seleccionarConceptoSugerido"
               />
             </div>
 

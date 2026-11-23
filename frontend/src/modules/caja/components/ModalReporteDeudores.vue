@@ -2,7 +2,8 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useTheme } from '../../../shared/composables/useTheme'
 import * as cajaApi from '../api/cajaApi'
-import type { ConceptoCatalogo, PeriodoAcademicoItem } from '../types/caja'
+import type { AlumnoCaja, ConceptoCatalogo, PeriodoAcademicoItem } from '../types/caja'
+import StudentSearchDropdown from './StudentSearchDropdown.vue'
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -16,6 +17,45 @@ const { dark } = useTheme()
 const activarCliente = ref(false)
 const matricula = ref('')
 const nombreCliente = ref('')
+
+const sugerenciasAlumnos = ref<AlumnoCaja[]>([])
+const mostrarSugerenciasAlumnos = ref(false)
+let debounceAlumnoTimeout: any = null
+
+function onInputMatricula(val: string): void {
+  matricula.value = val
+  buscarSugerencias(val)
+}
+
+function onInputNombre(val: string): void {
+  nombreCliente.value = val
+  buscarSugerencias(val)
+}
+
+function buscarSugerencias(query: string): void {
+  if (debounceAlumnoTimeout) clearTimeout(debounceAlumnoTimeout)
+  if (!query || query.trim().length < 2) {
+    sugerenciasAlumnos.value = []
+    mostrarSugerenciasAlumnos.value = false
+    return
+  }
+  mostrarSugerenciasAlumnos.value = true
+  debounceAlumnoTimeout = setTimeout(async () => {
+    try {
+      const res = await cajaApi.buscarAlumnos(query.trim())
+      sugerenciasAlumnos.value = (res || []).slice(0, 8)
+    } catch {
+      sugerenciasAlumnos.value = []
+    }
+  }, 200)
+}
+
+function seleccionarAlumnoSugerido(a: AlumnoCaja): void {
+  matricula.value = a.matricula
+  nombreCliente.value = a.nombreCompleto
+  sugerenciasAlumnos.value = []
+  mostrarSugerenciasAlumnos.value = false
+}
 
 // ==========================================
 // 2. Filtro Cuenta / Concepto
@@ -441,16 +481,18 @@ function handleKeydown(e: KeyboardEvent): void {
                 :class="{ active: activarCliente }"
               >
                 <legend class="fieldset-legend">Cliente</legend>
-                <div class="fieldset-body client-body">
+                <div class="fieldset-body client-body" style="position: relative;">
                   <div class="field-item item-matricula">
                     <label for="input-deud-matricula" class="field-label">Matrícula</label>
                     <input
                       id="input-deud-matricula"
-                      v-model="matricula"
+                      :value="matricula"
                       type="text"
                       class="tecnm-input font-mono"
                       placeholder="Ej. 23050..."
                       autocomplete="off"
+                      @input="onInputMatricula(($event.target as HTMLInputElement).value)"
+                      @focus="mostrarSugerenciasAlumnos = sugerenciasAlumnos.length > 0"
                       @keyup.enter="buscar"
                     />
                   </div>
@@ -459,14 +501,23 @@ function handleKeydown(e: KeyboardEvent): void {
                     <label for="input-deud-nombre" class="field-label">Nombre:</label>
                     <input
                       id="input-deud-nombre"
-                      v-model="nombreCliente"
+                      :value="nombreCliente"
                       type="text"
                       class="tecnm-input"
                       placeholder="Nombre del estudiante..."
                       autocomplete="off"
+                      @input="onInputNombre(($event.target as HTMLInputElement).value)"
+                      @focus="mostrarSugerenciasAlumnos = sugerenciasAlumnos.length > 0"
                       @keyup.enter="buscar"
                     />
                   </div>
+
+                  <!-- Menú de sugerencias enriquecidas de alumnos -->
+                  <StudentSearchDropdown
+                    :sugerencias="sugerenciasAlumnos"
+                    :visible="mostrarSugerenciasAlumnos"
+                    @select="seleccionarAlumnoSugerido"
+                  />
                 </div>
               </fieldset>
             </div>

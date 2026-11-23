@@ -2,7 +2,9 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useTheme } from '../../../shared/composables/useTheme'
 import * as cajaApi from '../api/cajaApi'
+import type { AlumnoCaja } from '../types/caja'
 import ModalCuentas from '../../catalogos/components/ModalCuentas.vue'
+import StudentSearchDropdown from './StudentSearchDropdown.vue'
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -42,6 +44,39 @@ const turnosOpciones = ['Matutino', 'Vespertino', 'Nocturno', 'Sabatino']
 
 // Búsqueda automática de alumno por matrícula
 const isBuscandoAlumno = ref(false)
+const sugerenciasAlumnos = ref<AlumnoCaja[]>([])
+const mostrarSugerenciasAlumnos = ref(false)
+let debounceAlumnoTimeout: any = null
+
+function onInputMatricula(val: string): void {
+  matricula.value = val
+  if (debounceAlumnoTimeout) clearTimeout(debounceAlumnoTimeout)
+  if (!val || val.trim().length < 2) {
+    sugerenciasAlumnos.value = []
+    mostrarSugerenciasAlumnos.value = false
+    return
+  }
+  mostrarSugerenciasAlumnos.value = true
+  debounceAlumnoTimeout = setTimeout(async () => {
+    try {
+      const res = await cajaApi.buscarAlumnos(val.trim())
+      sugerenciasAlumnos.value = (res || []).slice(0, 8)
+    } catch {
+      sugerenciasAlumnos.value = []
+    }
+  }, 200)
+}
+
+function seleccionarAlumnoSugerido(a: AlumnoCaja): void {
+  matricula.value = a.matricula
+  nombre.value = a.nombreCompleto
+  carrera.value = a.carrera
+  semestre.value = a.semestre
+  turno.value = a.turno || 'Matutino'
+  sugerenciasAlumnos.value = []
+  mostrarSugerenciasAlumnos.value = false
+}
+
 async function buscarAlumnoPorMatricula(): Promise<void> {
   if (!matricula.value.trim()) return
 
@@ -401,15 +436,17 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
         <div class="student-info-card">
           <!-- Renglón 1: Matrícula, Nombre, Semestre -->
           <div class="student-row-1">
-            <div class="field-item item-matricula">
+            <div class="field-item item-matricula" style="position: relative;">
               <label for="input-prov-matricula" class="field-label">Matrícula:</label>
               <div class="matricula-input-group">
                 <input
                   id="input-prov-matricula"
-                  v-model="matricula"
+                  :value="matricula"
                   type="text"
                   class="tecnm-input font-mono"
-                  placeholder="Ej. 120050011"
+                  placeholder="Ej. 23050..."
+                  @input="onInputMatricula(($event.target as HTMLInputElement).value)"
+                  @focus="mostrarSugerenciasAlumnos = sugerenciasAlumnos.length > 0"
                   @keyup.enter="buscarAlumnoPorMatricula"
                 />
                 <button
@@ -428,6 +465,13 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
                   </svg>
                 </button>
               </div>
+
+              <!-- Menú de sugerencias enriquecidas de alumnos -->
+              <StudentSearchDropdown
+                :sugerencias="sugerenciasAlumnos"
+                :visible="mostrarSugerenciasAlumnos"
+                @select="seleccionarAlumnoSugerido"
+              />
             </div>
 
             <div class="field-item item-nombre">

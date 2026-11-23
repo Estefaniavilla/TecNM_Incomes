@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useTheme } from '../../../shared/composables/useTheme'
 import * as cajaApi from '../api/cajaApi'
 import type { AlumnoCaja } from '../types/caja'
+import StudentSearchDropdown from './StudentSearchDropdown.vue'
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -966,19 +967,12 @@ onUnmounted(() => {
                 />
                 <span v-if="isBuscandoAlumnos" class="search-spinner">...</span>
 
-                <!-- Menú de sugerencias -->
-                <div v-if="mostrarSugerencias && sugerenciasAlumnos.length > 0" class="suggestions-menu">
-                  <div
-                    v-for="a in sugerenciasAlumnos"
-                    :key="a.matricula"
-                    class="suggestion-item"
-                    @mousedown.prevent="seleccionarAlumno(a)"
-                  >
-                    <span class="sugg-mat">{{ a.matricula }}</span>
-                    <span class="sugg-nom">{{ a.nombreCompleto }}</span>
-                    <span class="sugg-car">{{ a.carrera }}</span>
-                  </div>
-                </div>
+                <!-- Menú de sugerencias enriquecidas de alumnos -->
+                <StudentSearchDropdown
+                  :sugerencias="sugerenciasAlumnos"
+                  :visible="mostrarSugerencias"
+                  @select="seleccionarAlumno"
+                />
               </div>
             </div>
 
