@@ -2,7 +2,8 @@
 
 $excelFiles = @(
     "C:/Users/Usuario/.gemini/antigravity/brain/0dbfb61d-6959-4e2c-b819-94fc2eb95fa2/.user_uploaded/media_1795490414614_a0bb5ec9.xlsx",
-    "C:/Users/Usuario/.gemini/antigravity/brain/0dbfb61d-6959-4e2c-b819-94fc2eb95fa2/.user_uploaded/media_1795493090581_6d7d7622.xlsx"
+    "C:/Users/Usuario/.gemini/antigravity/brain/0dbfb61d-6959-4e2c-b819-94fc2eb95fa2/.user_uploaded/media_1795493090581_6d7d7622.xlsx",
+    "C:/Users/Usuario/.gemini/antigravity/brain/0dbfb61d-6959-4e2c-b819-94fc2eb95fa2/.user_uploaded/media_1795493808177_8a984a3d.xlsx"
 )
 $outputSql = "scripts/seed_alumnos_padron.sql"
 
