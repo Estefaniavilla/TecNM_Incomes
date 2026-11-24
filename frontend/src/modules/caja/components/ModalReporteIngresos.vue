@@ -5,6 +5,7 @@ import * as cajaApi from '../api/cajaApi'
 import type { AlumnoCaja, ReciboCaja, ReporteDetalladoItem } from '../types/caja'
 import StudentSearchDropdown from './StudentSearchDropdown.vue'
 import ReceiptSearchDropdown from './ReceiptSearchDropdown.vue'
+import UiPagination from '../../../shared/components/UiPagination.vue'
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -173,6 +174,14 @@ const todosMovimientos = ref<MovimientoIngresoItem[]>([])
 const resultados = ref<MovimientoIngresoItem[]>([])
 const isBuscando = ref(false)
 const busquedaRealizada = ref(false)
+
+// Paginación de 5 en 5
+const paginaActual = ref(1)
+const itemsPorPagina = 5
+const resultadosPaginados = computed(() => {
+  const inicio = (paginaActual.value - 1) * itemsPorPagina
+  return resultados.value.slice(inicio, inicio + itemsPorPagina)
+})
 
 // Estado para alternar entre Consulta y Vista Previa de Impresión
 const modoVistaPrevia = ref(false)
@@ -410,6 +419,7 @@ async function cargarDatos(): Promise<void> {
 }
 
 function buscar(): void {
+  paginaActual.value = 1
   isBuscando.value = true
   busquedaRealizada.value = true
 
@@ -851,7 +861,7 @@ onUnmounted(() => {
                   </div>
                 </td>
               </tr>
-              <tr v-for="m in resultados" :key="m.id" class="data-row" :class="{ 'row-cancelado': m.estado === 'CANCELADO' }">
+              <tr v-for="m in resultadosPaginados" :key="m.id" class="data-row" :class="{ 'row-cancelado': m.estado === 'CANCELADO' }">
                 <td class="col-recibo font-mono font-bold text-center">{{ m.numeroRecibo }}</td>
                 <td class="col-folio font-mono text-center">{{ m.folio }}</td>
                 <td class="col-fecha font-mono text-center">{{ m.fechaFormatted }}</td>
@@ -881,6 +891,11 @@ onUnmounted(() => {
               </tr>
             </tbody>
           </table>
+          <UiPagination
+            v-model:currentPage="paginaActual"
+            :totalItems="resultados.length"
+            :pageSize="itemsPorPagina"
+          />
         </div>
 
         <!-- RESUMEN DE TOTALES Y BOTÓN DE VISTA PREVIA -->
@@ -1332,8 +1347,12 @@ onUnmounted(() => {
   border: 1px solid #CBD5E1;
   border-radius: 6px;
   overflow: hidden;
-  max-height: 300px;
+  min-height: 250px;
+  max-height: 360px;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .modal-backdrop.dark-theme .table-container {

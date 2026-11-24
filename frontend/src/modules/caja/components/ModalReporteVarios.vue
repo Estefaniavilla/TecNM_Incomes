@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useTheme } from '../../../shared/composables/useTheme'
 import * as cajaApi from '../api/cajaApi'
 import type { AlumnoCaja } from '../types/caja'
 import StudentSearchDropdown from './StudentSearchDropdown.vue'
+import UiPagination from '../../../shared/components/UiPagination.vue'
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -122,6 +123,14 @@ interface FilaReporteVarios {
 
 const resultados = ref<FilaReporteVarios[]>([])
 const totalGeneral = ref(0)
+
+// Paginación de 5 en 5
+const paginaActual = ref(1)
+const itemsPorPagina = 5
+const resultadosPaginados = computed(() => {
+  const inicio = (paginaActual.value - 1) * itemsPorPagina
+  return resultados.value.slice(inicio, inicio + itemsPorPagina)
+})
 
 async function buscar(): Promise<void> {
   isBuscando.value = true
@@ -408,7 +417,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
                   </div>
                 </td>
               </tr>
-              <tr v-for="(fila, idx) in resultados" :key="idx" class="data-row">
+              <tr v-for="(fila, idx) in resultadosPaginados" :key="idx" class="data-row">
                 <td class="col-fecha font-mono">{{ fila.fecha }}</td>
                 <td class="col-folio font-mono">{{ fila.folio }}</td>
                 <td class="col-concepto">{{ fila.concepto }}</td>
@@ -420,6 +429,11 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
               </tr>
             </tbody>
           </table>
+          <UiPagination
+            v-model:currentPage="paginaActual"
+            :totalItems="resultados.length"
+            :pageSize="itemsPorPagina"
+          />
         </div>
 
         <!-- Fila inferior: Impresora + Total -->

@@ -9,3 +9,18 @@ withDefaults(defineProps<{ title?: string; description?: string; elevation?: 'ca
     <slot />
   </section>
 </template>
+
+<style scoped>
+.section-head h2 {
+  color: var(--color-text-primary, #1E293B);
+  font-weight: 700;
+}
+:global([data-theme="dark"]) .section-head h2,
+:global(.dark-theme) .section-head h2 {
+  color: #F8FAFC !important;
+}
+:global([data-theme="dark"]) .section-head p,
+:global(.dark-theme) .section-head p {
+  color: #94A3B8 !important;
+}
+</style>

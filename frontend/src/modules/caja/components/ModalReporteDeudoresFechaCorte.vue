@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useTheme } from '../../../shared/composables/useTheme'
 import * as cajaApi from '../api/cajaApi'
+import UiPagination from '../../../shared/components/UiPagination.vue'
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -48,6 +49,14 @@ interface FilaDeudorFecha {
 
 const resultados = ref<FilaDeudorFecha[]>([])
 const totalAdeudo = ref(0)
+
+// Paginación de 5 en 5
+const paginaActual = ref(1)
+const itemsPorPagina = 5
+const resultadosPaginados = computed(() => {
+  const inicio = (paginaActual.value - 1) * itemsPorPagina
+  return resultados.value.slice(inicio, inicio + itemsPorPagina)
+})
 
 // ==========================================
 // Selector de fecha
@@ -264,7 +273,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
                   </div>
                 </td>
               </tr>
-              <tr v-for="(fila, idx) in resultados" :key="idx" class="data-row">
+              <tr v-for="(fila, idx) in resultadosPaginados" :key="idx" class="data-row">
                 <td class="col-estudiante">{{ fila.estudiante }}</td>
                 <td class="col-fecha font-mono">{{ fila.fecha }}</td>
                 <td class="col-monto font-mono text-right">{{ formatearMoneda(fila.abono) }}</td>
@@ -274,6 +283,11 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
               </tr>
             </tbody>
           </table>
+          <UiPagination
+            v-model:currentPage="paginaActual"
+            :totalItems="resultados.length"
+            :pageSize="itemsPorPagina"
+          />
         </div>
 
       </section>

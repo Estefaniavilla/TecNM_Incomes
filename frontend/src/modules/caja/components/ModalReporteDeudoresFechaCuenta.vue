@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useTheme } from '../../../shared/composables/useTheme'
 import * as cajaApi from '../api/cajaApi'
+import UiPagination from '../../../shared/components/UiPagination.vue'
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -85,6 +86,21 @@ interface FilaDeudorFechaCuenta {
 
 const resultados = ref<FilaDeudorFechaCuenta[]>([])
 const totalAdeudo = ref(0)
+
+// Paginación adaptativa: 3 para la mini-tabla compacta, 5 para la tabla principal
+const paginaConceptos = ref(1)
+const itemsPorPaginaConceptos = 3
+const conceptosSeleccionadosPaginados = computed(() => {
+  const inicio = (paginaConceptos.value - 1) * itemsPorPaginaConceptos
+  return conceptosSeleccionados.value.slice(inicio, inicio + itemsPorPaginaConceptos)
+})
+
+const paginaResultados = ref(1)
+const itemsPorPaginaResultados = 5
+const resultadosPaginados = computed(() => {
+  const inicio = (paginaResultados.value - 1) * itemsPorPaginaResultados
+  return resultados.value.slice(inicio, inicio + itemsPorPaginaResultados)
+})
 
 async function buscar(): Promise<void> {
   isBuscando.value = true
@@ -205,7 +221,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
                     <span>Selecciona un concepto en la lista y presiona "Aceptar" para agregarlo a la consulta</span>
                   </td>
                 </tr>
-                <tr v-for="c in conceptosSeleccionados" :key="c.id" class="mini-data-row">
+                <tr v-for="c in conceptosSeleccionadosPaginados" :key="c.id" class="mini-data-row">
                   <td class="mini-col-concepto font-bold">{{ c.descripcion }}</td>
                   <td class="mini-col-cuenta font-mono">{{ c.cuenta }}</td>
                   <td class="mini-col-action">
@@ -221,6 +237,12 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
                 </tr>
               </tbody>
             </table>
+            <UiPagination
+              v-model:currentPage="paginaConceptos"
+              :totalItems="conceptosSeleccionados.length"
+              :pageSize="itemsPorPaginaConceptos"
+              :compact="true"
+            />
           </div>
         </div>
 
@@ -314,7 +336,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
                   </div>
                 </td>
               </tr>
-              <tr v-for="(fila, idx) in resultados" :key="idx" class="data-row">
+              <tr v-for="(fila, idx) in resultadosPaginados" :key="idx" class="data-row">
                 <td class="col-estudiante">{{ fila.estudiante }}</td>
                 <td class="col-fecha font-mono">{{ fila.fecha }}</td>
                 <td class="col-monto font-mono text-right">{{ formatearMoneda(fila.abono) }}</td>
@@ -324,6 +346,11 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
               </tr>
             </tbody>
           </table>
+          <UiPagination
+            v-model:currentPage="paginaResultados"
+            :totalItems="resultados.length"
+            :pageSize="itemsPorPaginaResultados"
+          />
         </div>
 
       </section>

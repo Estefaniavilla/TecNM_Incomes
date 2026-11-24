@@ -4,6 +4,7 @@ import { useTheme } from '../../../shared/composables/useTheme'
 import * as cajaApi from '../api/cajaApi'
 import type { ReciboCaja } from '../types/caja'
 import ReceiptSearchDropdown from './ReceiptSearchDropdown.vue'
+import UiPagination from '../../../shared/components/UiPagination.vue'
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -78,6 +79,14 @@ interface PartidaItem {
 }
 
 const partidas = ref<PartidaItem[]>([])
+
+// Paginación de 5 en 5
+const paginaActual = ref(1)
+const itemsPorPagina = 5
+const partidasPaginadas = computed(() => {
+  const inicio = (paginaActual.value - 1) * itemsPorPagina
+  return partidas.value.slice(inicio, inicio + itemsPorPagina)
+})
 
 const pickerFechaRef = ref<HTMLInputElement | null>(null)
 
@@ -512,7 +521,7 @@ onUnmounted(() => {
                   </div>
                 </td>
               </tr>
-              <tr v-for="p in partidas" :key="p.id" class="data-row">
+              <tr v-for="p in partidasPaginadas" :key="p.id" class="data-row">
                 <td class="col-concepto font-bold">{{ p.concepto }}</td>
                 <td class="col-cantidad font-mono text-center">{{ p.cantidad }}</td>
                 <td class="col-monto font-mono text-right">{{ formatearMoneda(p.cuota) }}</td>
@@ -521,6 +530,11 @@ onUnmounted(() => {
               </tr>
             </tbody>
           </table>
+          <UiPagination
+            v-model:currentPage="paginaActual"
+            :totalItems="partidas.length"
+            :pageSize="itemsPorPagina"
+          />
         </div>
 
         <!-- FILA DE TOTAL Y MOTIVO DE CANCELACIÓN / OBSERVACIONES -->

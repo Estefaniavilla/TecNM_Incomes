@@ -1,10 +1,14 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useTheme } from '../../../shared/composables/useTheme'
 import { actualizarCuenta, crearCuenta, getCuentas } from '../../caja/api/cajaApi'
+import UiPagination from '../../../shared/components/UiPagination.vue'
 
 const emit = defineEmits<{
   (e: 'close'): void
 }>()
+
+const { dark } = useTheme()
 
 const formCuenta = ref({
   id: '',
@@ -22,6 +26,14 @@ interface CuentaItem {
 const listaCuentas = ref<CuentaItem[]>([])
 const isCargando = ref(false)
 const mensajeFeedback = ref('')
+
+// Paginación de 5 en 5
+const paginaActual = ref(1)
+const itemsPorPagina = 5
+const cuentasPaginadas = computed(() => {
+  const inicio = (paginaActual.value - 1) * itemsPorPagina
+  return listaCuentas.value.slice(inicio, inicio + itemsPorPagina)
+})
 
 async function cargarCuentas(): Promise<void> {
   isCargando.value = true
@@ -115,7 +127,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="modal-backdrop" @click.self="cerrar">
+  <div class="modal-backdrop" :class="{ 'dark-theme': dark }" @click.self="cerrar">
     <div class="tecnm-window" role="dialog" aria-modal="true" aria-labelledby="cuentas-title">
       <!-- 1. Barra de título institucional TecNM -->
       <header class="window-title-bar">
@@ -142,7 +154,7 @@ onUnmounted(() => {
               v-model="formCuenta.cuenta"
               type="text"
               class="tecnm-input"
-              placeholder="Ej. 5200-001-002-055"
+              placeholder="Clave o número de cuenta contable..."
               autocomplete="off"
             />
           </div>
@@ -156,7 +168,7 @@ onUnmounted(() => {
               v-model="formCuenta.descripcion"
               type="text"
               class="tecnm-input"
-              placeholder="Ej. CUOTA DE MTTO. AGOSTO 2025-ENERO 2026"
+              placeholder="Descripción del concepto o cuota..."
               autocomplete="off"
             />
           </div>
@@ -208,7 +220,7 @@ onUnmounted(() => {
               </tr>
 
               <tr
-                v-for="item in listaCuentas"
+                v-for="item in cuentasPaginadas"
                 :key="item.id"
                 class="data-row cursor-pointer"
                 :class="{ 'is-selected': formCuenta.id === item.id }"
@@ -220,6 +232,11 @@ onUnmounted(() => {
               </tr>
             </tbody>
           </table>
+          <UiPagination
+            v-model:currentPage="paginaActual"
+            :totalItems="listaCuentas.length"
+            :pageSize="itemsPorPagina"
+          />
         </div>
       </section>
 
@@ -396,6 +413,9 @@ onUnmounted(() => {
   border: 1px solid var(--color-border-medium, #CBD5E1);
   border-radius: 6px;
   background-color: var(--color-surface-white, #FFFFFF);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .tecnm-data-table {
@@ -449,57 +469,97 @@ onUnmounted(() => {
 }
 
 /* Modo Oscuro Robusto y Legible para ModalCuentas */
+.dark-theme .tecnm-window,
 :global([data-theme="dark"]) .tecnm-window {
-  background-color: #141E33 !important;
+  background-color: #10223D !important;
   border-color: #2B5EA7 !important;
 }
 
+.dark-theme .window-grid-panel,
 :global([data-theme="dark"]) .window-grid-panel {
-  background-color: #101A2C !important;
+  background-color: #0C1A30 !important;
 }
 
+.dark-theme .grid-table-scroll,
 :global([data-theme="dark"]) .grid-table-scroll {
-  background-color: #141E33 !important;
-  border-color: #2E3F5E !important;
+  background-color: #10223D !important;
+  border-color: #1F3E6E !important;
 }
 
+.dark-theme .tecnm-data-table thead,
 :global([data-theme="dark"]) .tecnm-data-table thead {
-  background-color: #101A2C !important;
-  border-bottom-color: #2E3F5E !important;
+  background-color: #0C1A30 !important;
+  border-bottom-color: #1F3E6E !important;
 }
 
+.dark-theme .tecnm-data-table th,
 :global([data-theme="dark"]) .tecnm-data-table th {
   color: #D4B06A !important;
 }
 
+.dark-theme .data-row,
 :global([data-theme="dark"]) .data-row {
-  background-color: #141E33 !important;
+  background-color: #10223D !important;
 }
 
+.dark-theme .data-row:hover,
 :global([data-theme="dark"]) .data-row:hover {
-  background-color: #1E2E4A !important;
+  background-color: #162E52 !important;
 }
 
+.dark-theme .tecnm-data-table td,
 :global([data-theme="dark"]) .tecnm-data-table td {
   color: #F8FAFC !important;
-  border-bottom-color: #1E2C44 !important;
+  border-bottom-color: #1B3762 !important;
 }
 
+.dark-theme .window-footer-bar,
 :global([data-theme="dark"]) .window-footer-bar {
-  background-color: #101A2C !important;
-  border-top-color: #2E3F5E !important;
+  background-color: #0C1A30 !important;
+  border-top-color: #1F3E6E !important;
 }
 
+.dark-theme .tecnm-input,
 :global([data-theme="dark"]) .tecnm-input {
-  background-color: #0B111E !important;
+  background-color: #091526 !important;
   color: #F8FAFC !important;
-  border-color: #2E3F5E !important;
+  border-color: #204374 !important;
 }
 
-:global([data-theme="dark"]) .btn-secondary {
-  background-color: #141E33 !important;
+.dark-theme .tecnm-input::placeholder,
+:global([data-theme="dark"]) .tecnm-input::placeholder {
+  color: #64748B !important;
+}
+
+.dark-theme .btn-secondary,
+:global([data-theme="dark"]) .btn-secondary,
+:global(.dark-theme) .btn-secondary {
+  background-color: #162E52 !important;
   color: #F8FAFC !important;
-  border-color: #2E3F5E !important;
+  border: 1px solid #2B528C !important;
+}
+
+.dark-theme .btn-secondary:hover,
+:global([data-theme="dark"]) .btn-secondary:hover,
+:global(.dark-theme) .btn-secondary:hover {
+  background-color: #224375 !important;
+  color: #FFFFFF !important;
+  border-color: #3867AB !important;
+}
+
+.dark-theme .btn-danger,
+:global([data-theme="dark"]) .btn-danger,
+:global(.dark-theme) .btn-danger {
+  background-color: #162E52 !important;
+  color: #EF4444 !important;
+  border: 1px solid #DC2626 !important;
+}
+
+.dark-theme .btn-danger:hover,
+:global([data-theme="dark"]) .btn-danger:hover,
+:global(.dark-theme) .btn-danger:hover {
+  background-color: rgba(220, 38, 38, 0.2) !important;
+  color: #FCA5A5 !important;
 }
 
 .td-costo { text-align: right; }
@@ -584,11 +644,12 @@ onUnmounted(() => {
 
 .btn-secondary {
   background-color: #FFFFFF;
-  color: var(--color-text-primary, #1E293B);
+  color: #1E293B;
   border: 1px solid var(--color-border-medium, #CBD5E1);
 }
 .btn-secondary:hover {
   background-color: var(--color-border-light, #F1F5F9);
+  color: #0F172A;
 }
 
 .btn-danger {

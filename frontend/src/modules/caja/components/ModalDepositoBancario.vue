@@ -4,6 +4,7 @@ import { useTheme } from '../../../shared/composables/useTheme'
 import * as cajaApi from '../api/cajaApi'
 import type { AlumnoCaja } from '../types/caja'
 import StudentSearchDropdown from './StudentSearchDropdown.vue'
+import UiPagination from '../../../shared/components/UiPagination.vue'
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -271,6 +272,23 @@ const pagosFiltrados = computed(() => {
     p.referenciaBancaria.toLowerCase().includes(q) ||
     String(p.numeroRecibo || '').includes(q)
   )
+})
+
+// =============================================================================
+// PAGINACIÓN DE 5 EN 5 (RESUMEN AGRUPADO Y DETALLE INDIVIDUAL)
+// =============================================================================
+const paginaResumen = ref(1)
+const paginaDetalle = ref(1)
+const itemsPorPagina = 5
+
+const resumenPaginado = computed(() => {
+  const inicio = (paginaResumen.value - 1) * itemsPorPagina
+  return resumenAgrupadoPorConcepto.value.slice(inicio, inicio + itemsPorPagina)
+})
+
+const pagosPaginados = computed(() => {
+  const inicio = (paginaDetalle.value - 1) * itemsPorPagina
+  return pagosFiltrados.value.slice(inicio, inicio + itemsPorPagina)
 })
 
 // =============================================================================
@@ -1146,7 +1164,7 @@ onUnmounted(() => {
                 </tr>
 
                 <tr
-                  v-for="(item, idx) in resumenAgrupadoPorConcepto"
+                  v-for="(item, idx) in resumenPaginado"
                   :key="item.concepto"
                   class="tr-data-row"
                 >
@@ -1170,6 +1188,11 @@ onUnmounted(() => {
                 </tr>
               </tbody>
             </table>
+            <UiPagination
+              v-model:currentPage="paginaResumen"
+              :totalItems="resumenAgrupadoPorConcepto.length"
+              :pageSize="itemsPorPagina"
+            />
           </div>
 
           <!-- BANNER INFORMATIVO -->
@@ -1226,7 +1249,7 @@ onUnmounted(() => {
                 </tr>
 
                 <tr
-                  v-for="(p, idx) in pagosFiltrados"
+                  v-for="(p, idx) in pagosPaginados"
                   :key="p.id"
                   class="tr-data-row"
                 >
@@ -1248,7 +1271,7 @@ onUnmounted(() => {
                       type="button"
                       class="btn-delete-row"
                       title="Eliminar del lote"
-                      @click="eliminarPago(idx)"
+                      @click="eliminarPago((paginaDetalle - 1) * itemsPorPagina + idx)"
                     >
                       &times;
                     </button>
@@ -1256,6 +1279,11 @@ onUnmounted(() => {
                 </tr>
               </tbody>
             </table>
+            <UiPagination
+              v-model:currentPage="paginaDetalle"
+              :totalItems="pagosFiltrados.length"
+              :pageSize="itemsPorPagina"
+            />
           </div>
         </div>
 

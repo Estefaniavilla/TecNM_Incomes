@@ -33,6 +33,7 @@ import ModalDepositoBancario from '../components/ModalDepositoBancario.vue'
 import ModalReciboProvisional from '../components/ModalReciboProvisional.vue'
 import ModalReciboProvisionalCancelar from '../components/ModalReciboProvisionalCancelar.vue'
 import ModalConsultaCancelacionRecibos from '../components/ModalConsultaCancelacionRecibos.vue'
+import UiPagination from '../../../shared/components/UiPagination.vue'
 import * as cajaApi from '../api/cajaApi'
 import type {
   AdeudoAlumno,
@@ -572,6 +573,14 @@ const catalogoConceptos = ref<ConceptoCatalogo[]>([
 const conceptoSeleccionadoId = ref('c1')
 const partidas = ref<DetalleConceptoRecibo[]>([])
 
+// Paginación de conceptos a cobrar (5 por página)
+const paginaPartidas = ref(1)
+const itemsPorPaginaPartidas = 5
+const partidasPaginadas = computed(() => {
+  const inicio = (paginaPartidas.value - 1) * itemsPorPaginaPartidas
+  return partidas.value.slice(inicio, inicio + itemsPorPaginaPartidas)
+})
+
 // Manejo del selector desplegable hacia abajo con búsqueda integrada
 const mostrarDropdownConceptos = ref(false)
 const busquedaConcepto = ref('')
@@ -672,6 +681,14 @@ const granTotal = computed(() =>
 // 6. Historial de Recibos Recientes del Turno
 // ==========================================
 const historialTurno = ref<ReciboCaja[]>([])
+
+// Paginación del panel lateral de Turno Actual (5 por página)
+const paginaTurno = ref(1)
+const itemsPorPaginaTurno = 5
+const historialTurnoPaginado = computed(() => {
+  const inicio = (paginaTurno.value - 1) * itemsPorPaginaTurno
+  return historialTurno.value.slice(inicio, inicio + itemsPorPaginaTurno)
+})
 
 function cargarReciboHistorial(rec: ReciboCaja): void {
   numeroRecibo.value = rec.numeroRecibo
@@ -1527,7 +1544,7 @@ onMounted(async () => {
                     />
                   </td>
                 </tr>
-                <tr v-for="item in partidas" :key="item.id" class="item-row">
+                <tr v-for="item in partidasPaginadas" :key="item.id" class="item-row">
                   <td class="td-concepto font-bold">
                     {{ item.descripcion }}
                   </td>
@@ -1562,6 +1579,12 @@ onMounted(async () => {
                 </tr>
               </tbody>
             </table>
+            <UiPagination
+              v-if="partidas.length > 5"
+              v-model:currentPage="paginaPartidas"
+              :totalItems="partidas.length"
+              :pageSize="itemsPorPaginaPartidas"
+            />
           </div>
 
           <!-- Total de Liquidación -->
@@ -1732,7 +1755,7 @@ onMounted(async () => {
             <!-- Lista de recibos emitidos -->
             <div
               v-else
-              v-for="rec in historialTurno"
+              v-for="rec in historialTurnoPaginado"
               :key="rec.id"
               class="recent-receipt-card"
               :class="{ active: rec.numeroRecibo === numeroRecibo }"
@@ -1752,6 +1775,13 @@ onMounted(async () => {
                 <span class="rec-total font-bold">${{ rec.total.toFixed(2) }}</span>
               </div>
             </div>
+            <UiPagination
+              v-if="historialTurno.length > 5"
+              v-model:currentPage="paginaTurno"
+              :totalItems="historialTurno.length"
+              :pageSize="itemsPorPaginaTurno"
+              :compact="true"
+            />
           </div>
         </UiCard>
       </aside>
@@ -1959,6 +1989,14 @@ onMounted(async () => {
   padding: 16px;
   background-color: var(--color-bg-main, #F4F6F9);
   min-height: 100vh;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.dark-theme.caja-dashboard {
+  background-color: #0A1628 !important;
+  color: #F8FAFC !important;
 }
 
 /* 0. Barra de Menú Clásica Institucional TecNM */
@@ -2131,14 +2169,14 @@ button.menubar-title-tag:active {
 
 /* Reglas específicas para Modo Oscuro en la Barra de Menú Clásica */
 .dark-theme .tecnm-classic-menubar {
-  background-color: #141E33;
-  border-color: #2E3F5E;
+  background-color: #0F2548;
+  border-color: #24457B;
   border-left-color: var(--color-accent, #D4B06A);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 .dark-theme .menubar-title-tag {
-  border-right-color: #2E3F5E;
+  border-right-color: #24457B;
   color: #D4B06A;
 }
 
@@ -2151,9 +2189,9 @@ button.menubar-title-tag:active {
 }
 
 .dark-theme .menubar-btn:hover {
-  background-color: #1E2F50;
+  background-color: #162E52;
   color: #D4B06A !important;
-  border-color: #334C79;
+  border-color: #2B528C;
 }
 
 .dark-theme .btn-dropdown {
@@ -2166,8 +2204,8 @@ button.menubar-title-tag:active {
 }
 
 .dark-theme .menubar-dropdown-panel {
-  background-color: #141E33;
-  border-color: #2E3F5E;
+  background-color: #10223D;
+  border-color: #24457B;
   border-top-color: #D4B06A;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
 }
@@ -2177,7 +2215,7 @@ button.menubar-title-tag:active {
 }
 
 .dark-theme .dropdown-entry:hover {
-  background-color: #1E2F50;
+  background-color: #162E52;
   color: #D4B06A !important;
 }
 
@@ -2199,11 +2237,12 @@ button.menubar-title-tag:active {
   align-items: center;
   flex-wrap: wrap;
   gap: 16px;
-  background: var(--color-primary, #1B396A);
+  background: linear-gradient(135deg, #1B396A 0%, #244B88 100%);
   color: #FFFFFF;
   padding: 14px 24px;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(27, 57, 106, 0.15);
+  box-shadow: 0 4px 12px rgba(27, 57, 106, 0.25);
+  border: 1px solid rgba(197, 160, 89, 0.3);
 }
 
 .brand-zone {
