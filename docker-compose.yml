@@ -16,7 +16,8 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./setup_cajadb_maestra.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
-      - ./scripts/seed_previos_completo.sql:/docker-entrypoint-initdb.d/02-previos.sql:ro
+      - ./scripts/seed_alumnos_padron.sql:/docker-entrypoint-initdb.d/02-alumnos.sql:ro
+      - ./scripts/seed_previos_completo.sql:/docker-entrypoint-initdb.d/03-previos.sql:ro
     networks:
       - app-network
 
