@@ -1346,10 +1346,10 @@ onUnmounted(() => {
 .table-container {
   border: 1px solid #CBD5E1;
   border-radius: 6px;
-  overflow: hidden;
+  overflow-x: auto !important;
+  overflow-y: auto !important;
   min-height: 250px;
   max-height: 360px;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -1361,6 +1361,7 @@ onUnmounted(() => {
 
 .reporte-table {
   width: 100%;
+  min-width: 1050px;
   border-collapse: collapse;
   font-size: 0.82rem;
 }

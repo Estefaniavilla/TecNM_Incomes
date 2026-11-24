@@ -539,8 +539,12 @@ setInterval(actualizarHora, 1000)
 }
 
 .home-wrapper.dark-theme {
-  background: #0f172a;
-  color: #e2e8f0;
+  background: #0A1628 !important;
+  color: #F8FAFC !important;
+}
+
+.dark-theme .home-main {
+  background: #0A1628 !important;
 }
 
 /* =====================================================

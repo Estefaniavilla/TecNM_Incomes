@@ -150,6 +150,13 @@
   box-sizing:border-box;
 }
 
+/* Forzar fondo correcto en todo el documento en modo oscuro */
+html[data-theme="dark"],
+html[data-theme="dark"] body {
+  background:#0A1628 !important;
+  color:#F8FAFC;
+}
+
 body {
   margin:0;
   background:var(--color-bg-main);

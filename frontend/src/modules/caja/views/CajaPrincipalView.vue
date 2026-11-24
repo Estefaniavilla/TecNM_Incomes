@@ -3362,6 +3362,24 @@ button.menubar-title-tag:active {
   color: var(--color-primary, #1B396A);
 }
 
+/* ---- DARK MODE: Forma de Liquidación ---- */
+.dark-theme .payment-pill-option {
+  background: #10223D !important;
+  border-color: #274B82 !important;
+  color: #F8FAFC !important;
+}
+
+.dark-theme .payment-pill-option.selected {
+  border-color: #D4B06A !important;
+  background: #1B335A !important;
+  color: #D4B06A !important;
+}
+
+/* ---- DARK MODE: Botón Modificar Fecha ---- */
+.dark-theme .btn-text-action {
+  color: #F8FAFC !important;
+}
+
 .payment-icon {
   width: 20px;
   height: 20px;

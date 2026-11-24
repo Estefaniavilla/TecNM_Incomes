@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useTheme } from '../composables/useTheme'
 
 interface Props {
   currentPage: number
@@ -17,6 +18,8 @@ const emit = defineEmits<{
   (e: 'update:currentPage', page: number): void
   (e: 'change', page: number): void
 }>()
+
+const { dark: isDark } = useTheme()
 
 const totalPages = computed(() => {
   if (props.totalItems <= 0) return 1
@@ -55,7 +58,7 @@ function irAPagina(p: number): void {
 </script>
 
 <template>
-  <div class="ui-pagination-container" :class="{ 'is-compact': compact }">
+  <div class="ui-pagination-container" :class="{ 'is-compact': compact, 'is-dark': isDark }">
     <div class="pagination-info">
       <span v-if="totalItems > 0">
         Mostrando <strong class="info-highlight">{{ startItem }}</strong> - <strong class="info-highlight">{{ endItem }}</strong> de <strong class="info-highlight">{{ totalItems }}</strong> registros
@@ -224,49 +227,56 @@ function irAPagina(p: number): void {
 
 /* Modo Oscuro Institucional */
 :global([data-theme="dark"]) .ui-pagination-container,
-:global(.dark-theme) .ui-pagination-container {
-  background: #0c1a30;
-  border-top-color: #1b3762;
-  color: #94a3b8;
+:global(.dark-theme) .ui-pagination-container,
+.ui-pagination-container.is-dark {
+  background: #0c1a30 !important;
+  border-top-color: #1b3762 !important;
+  color: #94a3b8 !important;
 }
 
 :global([data-theme="dark"]) .info-highlight,
-:global(.dark-theme) .info-highlight {
-  color: #f8fafc;
+:global(.dark-theme) .info-highlight,
+.is-dark .info-highlight {
+  color: #f8fafc !important;
 }
 
 :global([data-theme="dark"]) .page-btn,
-:global(.dark-theme) .page-btn {
-  background-color: #10223d;
-  border-color: #1f3e6e;
-  color: #cbd5e1;
+:global(.dark-theme) .page-btn,
+.is-dark .page-btn {
+  background-color: #10223d !important;
+  border-color: #1f3e6e !important;
+  color: #cbd5e1 !important;
 }
 
 :global([data-theme="dark"]) .page-btn:hover:not(:disabled),
-:global(.dark-theme) .page-btn:hover:not(:disabled) {
-  background-color: #244b88;
-  border-color: #3b82f6;
-  color: #ffffff;
+:global(.dark-theme) .page-btn:hover:not(:disabled),
+.is-dark .page-btn:hover:not(:disabled) {
+  background-color: #244b88 !important;
+  border-color: #3b82f6 !important;
+  color: #ffffff !important;
 }
 
 :global([data-theme="dark"]) .page-btn.active,
-:global(.dark-theme) .page-btn.active {
-  background-color: #1b396a;
-  border-color: #d4b06a;
-  color: #ffffff;
+:global(.dark-theme) .page-btn.active,
+.is-dark .page-btn.active {
+  background-color: #1b396a !important;
+  border-color: #d4b06a !important;
+  color: #ffffff !important;
 }
 
 :global([data-theme="dark"]) .page-btn:disabled,
-:global(.dark-theme) .page-btn:disabled {
-  background-color: #081220;
-  border-color: #132742;
-  color: #475569;
+:global(.dark-theme) .page-btn:disabled,
+.is-dark .page-btn:disabled {
+  background-color: #081220 !important;
+  border-color: #132742 !important;
+  color: #475569 !important;
 }
 
 :global([data-theme="dark"]) .single-page-badge,
-:global(.dark-theme) .single-page-badge {
-  background-color: #10223d;
-  border: 1px solid #1b3762;
-  color: #94a3b8;
+:global(.dark-theme) .single-page-badge,
+.is-dark .single-page-badge {
+  background-color: #10223d !important;
+  border: 1px solid #1b3762 !important;
+  color: #94a3b8 !important;
 }
 </style>
