@@ -74,25 +74,24 @@
 }
 
 [data-theme="dark"] {
-  color-scheme:dark;
-  --color-primary:#2B5EA7;
-  --color-primary-dark:#13233F;
-  --color-primary-hover:#3B74C4;
-  --color-primary-subtle:#172B4D;
-  --color-primary-tint:#1B2E4E;
+  --color-primary:#1B396A;
+  --color-primary-dark:#0F2548;
+  --color-primary-hover:#244B88;
+  --color-primary-subtle:#162E56;
+  --color-primary-tint:#1B335A;
   --color-accent:#D4B06A;
   --color-accent-light:#2A2418;
-  --color-bg-main:#0B111E;
-  --color-bg-light:#101A2C;
-  --color-surface-white:#141E33;
-  --color-border:#1E2C44;
-  --color-border-light:#162338;
-  --color-border-medium:#2E3F5E;
-  --color-border-focus:#60A5FA;
-  --color-gray-50:#0D1524;
-  --color-gray-100:#131E31;
-  --color-gray-200:#1C2B44;
-  --color-gray-300:#2A3B5A;
+  --color-bg-main:#0A1628;
+  --color-bg-light:#0E1E36;
+  --color-surface-white:#10223D;
+  --color-border:#1B3762;
+  --color-border-light:#152B4D;
+  --color-border-medium:#274B82;
+  --color-border-focus:#3B82F6;
+  --color-gray-50:#0B1930;
+  --color-gray-100:#0E203C;
+  --color-gray-200:#152E52;
+  --color-gray-300:#1F3E6E;
   --color-gray-400:#64748B;
   --color-gray-500:#94A3B8;
   --color-gray-600:#CBD5E1;
@@ -101,7 +100,7 @@
   --color-text-primary:#F8FAFC;
   --color-text-secondary:#94A3B8;
   --color-text-muted:#64748B;
-  --color-text-inverse:#0B111E;
+  --color-text-inverse:#0A1628;
   --color-success:#4ADE80;
   --color-success-strong:#16A34A;
   --color-success-hover:#22C55E;
@@ -132,19 +131,19 @@
   --color-purple-bg:#221340;
   --color-purple-text:#DDD6FE;
   --color-purple-border:#5B21B6;
-  --color-header-bg:#0F1829;
-  --color-footer-bg:#080D18;
-  --input-bg:#101A2C;
-  --input-border:#2A3B5A;
-  --secondary-hover:#1B2B48;
+  --color-header-bg:#0F2548;
+  --color-footer-bg:#0A1628;
+  --input-bg:#091526;
+  --input-border:#204374;
+  --secondary-hover:#162E52;
   --destructive-text:#F87171;
-  --card-shadow:none;
-  --floating-bg:#1A2844;
-  --floating-border:#2A3E63;
-  --floating-shadow:0 12px 24px rgba(0,0,0,.45);
-  --dialog-bg:#1E2F50;
-  --dialog-border:#334C79;
-  --dialog-shadow:none;
+  --card-shadow:0 4px 16px rgba(10, 22, 40, 0.4);
+  --floating-bg:#10223D;
+  --floating-border:#274B82;
+  --floating-shadow:0 12px 24px rgba(0,0,0,.5);
+  --dialog-bg:#10223D;
+  --dialog-border:#274B82;
+  --dialog-shadow:0 20px 30px rgba(0,0,0,.6);
 }
 
 * {
@@ -186,6 +185,10 @@ button {
 
 h1,h2,h3,p {
   margin:0;
+}
+
+h1,h2,h3 {
+  color:var(--color-text-primary);
 }
 
 h1 {

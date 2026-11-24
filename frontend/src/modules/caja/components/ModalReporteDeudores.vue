@@ -4,6 +4,7 @@ import { useTheme } from '../../../shared/composables/useTheme'
 import * as cajaApi from '../api/cajaApi'
 import type { AlumnoCaja, ConceptoCatalogo, PeriodoAcademicoItem } from '../types/caja'
 import StudentSearchDropdown from './StudentSearchDropdown.vue'
+import UiPagination from '../../../shared/components/UiPagination.vue'
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -131,6 +132,14 @@ export interface FilaDeudorReporte {
 
 const resultados = ref<FilaDeudorReporte[]>([])
 const busquedaRealizada = ref(false)
+
+// Paginación de 5 en 5
+const paginaActual = ref(1)
+const itemsPorPagina = 5
+const resultadosPaginados = computed(() => {
+  const inicio = (paginaActual.value - 1) * itemsPorPagina
+  return resultados.value.slice(inicio, inicio + itemsPorPagina)
+})
 
 // Fallback de datos simulados realistas para el TecNM
 // Cumple con la regla: quienes ya pagaron inscripción NO aparecen
@@ -751,7 +760,7 @@ function handleKeydown(e: KeyboardEvent): void {
                   </div>
                 </td>
               </tr>
-              <tr v-for="fila in resultados" :key="fila.id" class="data-row">
+              <tr v-for="fila in resultadosPaginados" :key="fila.id" class="data-row">
                 <td class="col-matricula font-mono font-bold">{{ fila.matricula }}</td>
                 <td class="col-nombre font-bold">
                   {{ fila.nombre }}
@@ -780,6 +789,11 @@ function handleKeydown(e: KeyboardEvent): void {
               </tr>
             </tbody>
           </table>
+          <UiPagination
+            v-model:currentPage="paginaActual"
+            :totalItems="resultados.length"
+            :pageSize="itemsPorPagina"
+          />
         </div>
 
         <!-- FILA DE TOTALES E IMPRESORA -->

@@ -5,6 +5,7 @@ import * as cajaApi from '../api/cajaApi'
 import type { AlumnoCaja } from '../types/caja'
 import ModalCuentas from '../../catalogos/components/ModalCuentas.vue'
 import StudentSearchDropdown from './StudentSearchDropdown.vue'
+import UiPagination from '../../../shared/components/UiPagination.vue'
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -141,6 +142,14 @@ interface PartidaProvisional {
 
 const partidas = ref<PartidaProvisional[]>([])
 
+// Paginación de conceptos (5 por página)
+const paginaPartidas = ref(1)
+const itemsPorPaginaPartidas = 5
+const partidasPaginadas = computed(() => {
+  const inicio = (paginaPartidas.value - 1) * itemsPorPaginaPartidas
+  return partidas.value.slice(inicio, inicio + itemsPorPaginaPartidas)
+})
+
 function agregarConcepto(): void {
   if (!conceptoSeleccionadoId.value) return
 
@@ -194,6 +203,14 @@ const mostrarModalF1Alumnos = ref(false)
 const mostrarModalF2Cuentas = ref(false)
 const alumnosLista = ref<Array<{ matricula: string; nombreCompleto: string; carrera: string }>>([])
 const isCargandoF1 = ref(false)
+
+// Paginación de alumnos en submodal F1 (5 por página)
+const paginaAlumnosF1 = ref(1)
+const itemsPorPaginaAlumnosF1 = 5
+const alumnosListaPaginados = computed(() => {
+  const inicio = (paginaAlumnosF1.value - 1) * itemsPorPaginaAlumnosF1
+  return alumnosLista.value.slice(inicio, inicio + itemsPorPaginaAlumnosF1)
+})
 
 async function abrirF1Alumnos(): Promise<void> {
   mostrarModalF1Alumnos.value = true
@@ -603,7 +620,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
                   </div>
                 </td>
               </tr>
-              <tr v-for="p in partidas" :key="p.id" class="data-row">
+              <tr v-for="p in partidasPaginadas" :key="p.id" class="data-row">
                 <td class="col-concepto font-bold">{{ p.concepto }}</td>
                 <td class="col-cantidad font-mono text-center">{{ p.cantidad }}</td>
                 <td class="col-monto font-mono text-right">{{ formatearMoneda(p.cuota) }}</td>
@@ -624,6 +641,11 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
               </tr>
             </tbody>
           </table>
+          <UiPagination
+            v-model:currentPage="paginaPartidas"
+            :totalItems="partidas.length"
+            :pageSize="itemsPorPaginaPartidas"
+          />
         </div>
 
         <!-- FILA DE TOTAL Y OBSERVACIONES -->
@@ -745,7 +767,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
               </tr>
             </thead>
             <tbody>
-              <tr v-for="a in alumnosLista" :key="a.matricula">
+              <tr v-for="a in alumnosListaPaginados" :key="a.matricula">
                 <td class="font-mono font-bold">{{ a.matricula }}</td>
                 <td>{{ a.nombreCompleto }}</td>
                 <td>{{ a.carrera }}</td>
@@ -757,6 +779,11 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
               </tr>
             </tbody>
           </table>
+          <UiPagination
+            v-model:currentPage="paginaAlumnosF1"
+            :totalItems="alumnosLista.length"
+            :pageSize="itemsPorPaginaAlumnosF1"
+          />
         </div>
       </div>
     </div>

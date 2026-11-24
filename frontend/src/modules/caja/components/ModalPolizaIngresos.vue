@@ -4,6 +4,7 @@ import { useTheme } from '../../../shared/composables/useTheme'
 import * as cajaApi from '../api/cajaApi'
 import type { ConceptoCatalogo, ReporteDetalladoItem } from '../types/caja'
 import ConceptSearchDropdown from './ConceptSearchDropdown.vue'
+import UiPagination from '../../../shared/components/UiPagination.vue'
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -479,6 +480,8 @@ function buscar(): void {
   }
 
   movimientosFiltrados.value = lista
+  paginaResumen.value = 1
+  paginaMovimientos.value = 1
   isBuscando.value = false
 }
 
@@ -509,6 +512,23 @@ const filasPolizaAgrupadas = computed<FilaPolizaAgrupada[]>(() => {
   }
 
   return Array.from(mapa.values()).sort((a, b) => a.cuenta.localeCompare(b.cuenta))
+})
+
+// ==========================================
+// Paginación de 5 en 5 (Resumen y Movimientos)
+// ==========================================
+const paginaResumen = ref(1)
+const paginaMovimientos = ref(1)
+const itemsPorPagina = 5
+
+const filasPolizaPaginadas = computed(() => {
+  const inicio = (paginaResumen.value - 1) * itemsPorPagina
+  return filasPolizaAgrupadas.value.slice(inicio, inicio + itemsPorPagina)
+})
+
+const movimientosPaginados = computed(() => {
+  const inicio = (paginaMovimientos.value - 1) * itemsPorPagina
+  return movimientosFiltrados.value.slice(inicio, inicio + itemsPorPagina)
 })
 
 // ==========================================
@@ -1067,7 +1087,7 @@ onUnmounted(() => {
                   </div>
                 </td>
               </tr>
-              <tr v-for="f in filasPolizaAgrupadas" :key="f.cuenta + f.concepto" class="data-row">
+              <tr v-for="f in filasPolizaPaginadas" :key="f.cuenta + f.concepto" class="data-row">
                 <td class="col-cuenta font-mono font-bold">{{ f.cuenta }}</td>
                 <td class="col-concepto font-bold">{{ f.concepto }}</td>
                 <td class="col-cant font-mono text-center">{{ f.cantidad }}</td>
@@ -1085,6 +1105,11 @@ onUnmounted(() => {
               </tr>
             </tbody>
           </table>
+          <UiPagination
+            v-model:currentPage="paginaResumen"
+            :totalItems="filasPolizaAgrupadas.length"
+            :pageSize="itemsPorPagina"
+          />
         </div>
 
         <!-- CONTENIDO TAB 2: DETALLE DE MOVIMIENTOS INDIVIDUALES Y REFERENCIAS -->
@@ -1116,7 +1141,7 @@ onUnmounted(() => {
                   </div>
                 </td>
               </tr>
-              <tr v-for="m in movimientosFiltrados" :key="m.id" class="data-row">
+              <tr v-for="m in movimientosPaginados" :key="m.id" class="data-row">
                 <td class="col-rec font-mono text-center font-bold">{{ m.numeroRecibo }}</td>
                 <td class="col-fecha font-mono text-center">{{ m.fechaFormatted }}</td>
                 <td class="col-mat font-mono">{{ m.matricula }}</td>
@@ -1136,6 +1161,11 @@ onUnmounted(() => {
               </tr>
             </tbody>
           </table>
+          <UiPagination
+            v-model:currentPage="paginaMovimientos"
+            :totalItems="movimientosFiltrados.length"
+            :pageSize="itemsPorPagina"
+          />
         </div>
 
         <!-- TARJETAS DE TOTALES INSTITUCIONALES (CAJA, BANCO Y GENERAL) -->
@@ -1818,9 +1848,13 @@ onUnmounted(() => {
   border: 1px solid #CBD5E1;
   border-radius: 0 0 8px 8px;
   overflow: hidden;
-  max-height: 320px;
+  min-height: 250px;
+  max-height: 360px;
   overflow-y: auto;
   border-top: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .modal-backdrop.dark-theme .table-container {
