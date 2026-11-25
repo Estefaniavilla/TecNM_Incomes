@@ -7,5 +7,11 @@ export const cajaRoutes: RouteRecordRaw[] = [
     component: () => import('./views/CajaPrincipalView.vue'),
     meta: { requiresAuth: true },
   },
+  {
+    path: 'caja/indicadores',
+    name: 'caja-indicadores',
+    component: () => import('./views/DashboardIndicadoresView.vue'),
+    meta: { requiresAuth: true },
+  },
 ]
 

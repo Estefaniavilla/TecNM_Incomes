@@ -205,6 +205,11 @@ function irAMenuPrincipal(): void {
   void router.push('/')
 }
 
+function irAIndicadores(): void {
+  cerrarMenus()
+  void router.push({ name: 'caja-indicadores' })
+}
+
 function irARecibo(): void {
   cerrarMenus()
   mostrarModalCuentas.value = false
@@ -689,9 +694,9 @@ const granTotal = computed(() =>
 // ==========================================
 const historialTurno = ref<ReciboCaja[]>([])
 
-// Paginación del panel lateral de Turno Actual (5 por página)
+// Paginación del panel lateral de Turno Actual (4 por página)
 const paginaTurno = ref(1)
-const itemsPorPaginaTurno = 5
+const itemsPorPaginaTurno = 4
 const historialTurnoPaginado = computed(() => {
   const inicio = (paginaTurno.value - 1) * itemsPorPaginaTurno
   return historialTurno.value.slice(inicio, inicio + itemsPorPaginaTurno)
@@ -992,6 +997,23 @@ onMounted(async () => {
         >
           MENÚ
         </button>
+
+        <!-- Botón Indicadores de Caja al lado de MENÚ -->
+        <button
+          type="button"
+          class="btn-indicadores-nav"
+          title="Ir al Dashboard de Indicadores de Caja"
+          @click="irAIndicadores"
+        >
+          <svg class="indicadores-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="9" rx="1" />
+            <rect x="14" y="3" width="7" height="5" rx="1" />
+            <rect x="14" y="12" width="7" height="9" rx="1" />
+            <rect x="3" y="16" width="7" height="5" rx="1" />
+          </svg>
+          <span>Indicadores de Caja</span>
+        </button>
+
         <div class="menubar-items-group">
           <!-- 1. Archivo -->
           <div class="menubar-item">
@@ -1772,35 +1794,39 @@ onMounted(async () => {
             />
 
             <!-- Lista de recibos emitidos -->
-            <div
-              v-else
-              v-for="rec in historialTurnoPaginado"
-              :key="rec.id"
-              class="recent-receipt-card"
-              :class="{ active: rec.numeroRecibo === numeroRecibo }"
-              @click="cargarReciboHistorial(rec)"
-            >
-              <div class="recent-top">
-                <strong class="rec-num">#{{ rec.numeroRecibo }}</strong>
-                <UiBadge
-                  :tone="rec.estado === 'REGISTRADO' ? 'success' : rec.estado === 'CANCELADO' ? 'danger' : 'warning'"
-                >
-                  {{ rec.estado }}
-                </UiBadge>
-              </div>
-              <div class="rec-student">{{ rec.alumno.nombreCompleto }}</div>
-              <div class="rec-bottom">
-                <span class="rec-matricula">{{ rec.alumno.matricula }}</span>
-                <span class="rec-total font-bold">${{ rec.total.toFixed(2) }}</span>
+            <div class="receipts-scroll-area">
+              <div
+                v-if="!isCargandoHistorial && historialTurno.length > 0"
+                v-for="rec in historialTurnoPaginado"
+                :key="rec.id"
+                class="recent-receipt-card"
+                :class="{ active: rec.numeroRecibo === numeroRecibo }"
+                @click="cargarReciboHistorial(rec)"
+              >
+                <div class="recent-top">
+                  <strong class="rec-num">#{{ rec.numeroRecibo }}</strong>
+                  <UiBadge
+                    :tone="rec.estado === 'REGISTRADO' ? 'success' : rec.estado === 'CANCELADO' ? 'danger' : 'warning'"
+                  >
+                    {{ rec.estado }}
+                  </UiBadge>
+                </div>
+                <div class="rec-student">{{ rec.alumno.nombreCompleto }}</div>
+                <div class="rec-bottom">
+                  <span class="rec-matricula">{{ rec.alumno.matricula }}</span>
+                  <span class="rec-total font-bold">${{ rec.total.toFixed(2) }}</span>
+                </div>
               </div>
             </div>
-            <UiPagination
-              v-if="historialTurno.length > 5"
-              v-model:currentPage="paginaTurno"
-              :totalItems="historialTurno.length"
-              :pageSize="itemsPorPaginaTurno"
-              :compact="true"
-            />
+            <div class="receipts-pagination-footer">
+              <UiPagination
+                v-if="historialTurno.length > 4"
+                v-model:currentPage="paginaTurno"
+                :totalItems="historialTurno.length"
+                :pageSize="itemsPorPaginaTurno"
+                :compact="true"
+              />
+            </div>
           </div>
         </UiCard>
       </aside>
@@ -2087,6 +2113,45 @@ button.menubar-title-tag:hover {
 
 button.menubar-title-tag:active {
   transform: scale(0.96);
+}
+
+.btn-indicadores-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border-radius: 20px;
+  background: #1B396A;
+  color: #FFFFFF;
+  border: 1px solid #C5A059;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-right: 4px;
+}
+
+.btn-indicadores-nav:hover {
+  background: #244B88;
+  box-shadow: 0 2px 8px rgba(197, 160, 89, 0.3);
+  transform: translateY(-1px);
+}
+
+.dark-theme .btn-indicadores-nav {
+  background: #10223D;
+  color: #F8FAFC;
+  border-color: #D4B06A;
+}
+
+.dark-theme .btn-indicadores-nav:hover {
+  background: #1B3762;
+  color: #D4B06A;
+  box-shadow: 0 2px 8px rgba(212, 176, 106, 0.3);
+}
+
+.indicadores-icon {
+  width: 14px;
+  height: 14px;
 }
 
 .menubar-items-group {
@@ -3362,6 +3427,24 @@ button.menubar-title-tag:active {
   color: var(--color-primary, #1B396A);
 }
 
+/* ---- DARK MODE: Forma de Liquidación ---- */
+.dark-theme .payment-pill-option {
+  background: #10223D !important;
+  border-color: #274B82 !important;
+  color: #F8FAFC !important;
+}
+
+.dark-theme .payment-pill-option.selected {
+  border-color: #D4B06A !important;
+  background: #1B335A !important;
+  color: #D4B06A !important;
+}
+
+/* ---- DARK MODE: Botón Modificar Fecha ---- */
+.dark-theme .btn-text-action {
+  color: #F8FAFC !important;
+}
+
 .payment-icon {
   width: 20px;
   height: 20px;
@@ -3443,12 +3526,67 @@ button.menubar-title-tag:active {
   color: var(--color-text-secondary, #64748B);
 }
 
+.caja-sidebar-panel {
+  width: 100%;
+  overflow-x: hidden;
+}
+
 .recent-receipts-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  max-height: 520px;
-  overflow-y: auto;
+  overflow: hidden;
+}
+
+.receipts-scroll-area {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-x: hidden;
+}
+
+.receipts-pagination-footer {
+  margin-top: 10px;
+  border-top: 1px solid var(--color-border, #E2E8F0);
+  padding-top: 8px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.dark-theme .receipts-pagination-footer {
+  border-top-color: #1B3762;
+}
+
+.receipts-pagination-footer :deep(.ui-pagination-container) {
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 4px 0 !important;
+  border-top: none !important;
+  background: transparent !important;
+  width: 100% !important;
+  overflow-x: hidden !important;
+  box-shadow: none !important;
+}
+
+.receipts-pagination-footer :deep(.pagination-info) {
+  font-size: 0.74rem !important;
+  text-align: center !important;
+  justify-content: center !important;
+  white-space: normal !important;
+}
+
+.receipts-pagination-footer :deep(.pagination-controls) {
+  justify-content: center !important;
+  flex-wrap: wrap !important;
+  gap: 3px !important;
+}
+
+.receipts-pagination-footer :deep(.page-btn) {
+  min-width: 24px !important;
+  height: 24px !important;
+  padding: 0 4px !important;
+  font-size: 0.75rem !important;
 }
 
 .recent-skeleton-list {

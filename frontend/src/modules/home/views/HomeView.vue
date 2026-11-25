@@ -176,6 +176,11 @@ function irAMenuPrincipal(): void {
   void router.push({ name: 'home' })
 }
 
+function irAIndicadores(): void {
+  cerrarMenus()
+  void router.push({ name: 'caja-indicadores' })
+}
+
 // ==========================================
 // Hora actual en tiempo real
 // ==========================================
@@ -200,6 +205,23 @@ setInterval(actualizarHora, 1000)
         >
           MENÚ
         </button>
+
+        <!-- Botón Indicadores de Caja al lado de MENÚ -->
+        <button
+          type="button"
+          class="btn-indicadores-nav"
+          title="Ir al Dashboard de Indicadores de Caja"
+          @click="irAIndicadores"
+        >
+          <svg class="indicadores-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="9" rx="1" />
+            <rect x="14" y="3" width="7" height="5" rx="1" />
+            <rect x="14" y="12" width="7" height="9" rx="1" />
+            <rect x="3" y="16" width="7" height="5" rx="1" />
+          </svg>
+          <span>Indicadores de Caja</span>
+        </button>
+
         <div class="menubar-items-group">
           <!-- 1. Archivo -->
           <div class="menubar-item">
@@ -392,6 +414,26 @@ setInterval(actualizarHora, 1000)
             </svg>
           </button>
 
+          <!-- Indicadores de Caja (Dashboard) -->
+          <button class="quick-card quick-card--accent" type="button" @click="irAIndicadores">
+            <div class="quick-card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="9" rx="1" />
+                <rect x="14" y="3" width="7" height="5" rx="1" />
+                <rect x="14" y="12" width="7" height="9" rx="1" />
+                <rect x="3" y="16" width="7" height="5" rx="1" />
+              </svg>
+            </div>
+            <div class="quick-card-text">
+              <span class="quick-card-title">Indicadores de Caja</span>
+              <span class="quick-card-desc">Resumen ejecutivo, recaudación, gráficas y corte</span>
+            </div>
+            <svg class="quick-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+            </svg>
+          </button>
+
           <!-- Catálogo de Empleados -->
           <button class="quick-card" type="button" @click="abrirModalEmpleados">
             <div class="quick-card-icon">
@@ -536,11 +578,21 @@ setInterval(actualizarHora, 1000)
   flex-direction: column;
   font-family: 'Inter', system-ui, sans-serif;
   transition: background 0.25s, color 0.25s;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .home-wrapper.dark-theme {
-  background: #0f172a;
-  color: #e2e8f0;
+  background: #0A1628 !important;
+  color: #F8FAFC !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.dark-theme .home-main {
+  background: #0A1628 !important;
 }
 
 /* =====================================================
@@ -590,6 +642,45 @@ button.menubar-title-tag:hover {
 
 button.menubar-title-tag:active {
   transform: scale(0.96);
+}
+
+.btn-indicadores-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border-radius: 20px;
+  background: #244B88;
+  color: #FFFFFF;
+  border: 1px solid #C5A059;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-right: 6px;
+}
+
+.btn-indicadores-nav:hover {
+  background: #1B396A;
+  box-shadow: 0 2px 8px rgba(197, 160, 89, 0.35);
+  transform: translateY(-1px);
+}
+
+.dark-theme .btn-indicadores-nav {
+  background: #10223D;
+  color: #F8FAFC;
+  border-color: #D4B06A;
+}
+
+.dark-theme .btn-indicadores-nav:hover {
+  background: #1B3762;
+  color: #D4B06A;
+  box-shadow: 0 2px 8px rgba(212, 176, 106, 0.3);
+}
+
+.indicadores-icon {
+  width: 14px;
+  height: 14px;
 }
 
 .menubar-items-group {

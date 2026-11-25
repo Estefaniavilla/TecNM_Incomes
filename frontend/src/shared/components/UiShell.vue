@@ -17,7 +17,14 @@ withDefaults(defineProps<{ showHeader?: boolean; showSidebar?: boolean }>(), {
 </template>
 
 <style scoped>
-.app-shell { min-height: 100dvh; display: flex; flex-direction: column; }
+.app-shell {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
 .layout {
   --sidebar-width: 216px;
   width: 100%;
@@ -25,8 +32,14 @@ withDefaults(defineProps<{ showHeader?: boolean; showSidebar?: boolean }>(), {
   margin: 0;
   flex: 1;
   grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  border: none !important;
+  outline: none !important;
 }
-.ui-main { width: 100%; }
+.ui-main {
+  width: 100%;
+  border: none !important;
+  outline: none !important;
+}
 @media (max-width: 1100px) {
   .layout { --sidebar-width: 180px; }
 }
