@@ -18,6 +18,7 @@ services:
       - ./setup_cajadb_maestra.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
       - ./scripts/seed_alumnos_padron.sql:/docker-entrypoint-initdb.d/02-alumnos.sql:ro
       - ./scripts/seed_previos_completo.sql:/docker-entrypoint-initdb.d/03-previos.sql:ro
+      - ./scripts/seed_recibos_2012.sql:/docker-entrypoint-initdb.d/04-recibos-2012.sql:ro
     networks:
       - app-network
 
