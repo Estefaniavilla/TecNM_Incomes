@@ -131,6 +131,26 @@ const conceptoFiltro = ref('')
 const formaPagoFiltro = ref('')
 const estadoReciboFiltro = ref('')
 const impresora = ref('')
+const formatoExportacion = ref<'pdf' | 'csv' | 'word'>('pdf')
+const isExportando = ref(false)
+
+async function exportarIngresosFormato(): Promise<void> {
+  try {
+    isExportando.value = true
+    const blob = await cajaApi.exportarReporteIngresos({
+      fechaInicio: fechaInicio.value || undefined,
+      fechaFin: fechaFin.value || undefined,
+      formato: formatoExportacion.value,
+    })
+    const ext = formatoExportacion.value === 'pdf' ? 'pdf' : formatoExportacion.value === 'csv' ? 'csv' : 'doc'
+    const fecha = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+    cajaApi.descargarBlob(blob, `Reporte_Ingresos_${fecha}.${ext}`)
+  } catch (err) {
+    console.error('Error al exportar reporte de ingresos:', err)
+  } finally {
+    isExportando.value = false
+  }
+}
 
 // Catálogos
 const conceptosDisponibles = ref<string[]>([
@@ -915,12 +935,26 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <div class="impresora-combo">
-            <select v-model="impresora" class="tecnm-input tecnm-select printer-select">
-              <option v-for="p in impresorasDisponibles" :key="p.id" :value="p.id">
-                {{ p.nombre }}
-              </option>
+          <div class="impresora-combo export-combo-container">
+            <select v-model="formatoExportacion" class="tecnm-input tecnm-select export-select" title="Selecciona formato de exportación">
+              <option value="pdf">Documento PDF (.pdf)</option>
+              <option value="csv">Hoja de Cálculo Excel (.csv)</option>
+              <option value="word">Documento Word (.doc)</option>
             </select>
+            <button
+              type="button"
+              class="btn-action-primary btn-export-trigger"
+              :disabled="isExportando"
+              title="Exportar reporte de ingresos en el formato seleccionado"
+              @click="exportarIngresosFormato"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              {{ isExportando ? 'Exportando...' : 'Exportar' }}
+            </button>
           </div>
         </div>
 
@@ -937,6 +971,22 @@ onUnmounted(() => {
             <span class="doc-subtitle">Se imprimirán {{ resultados.length }} registros desglosados</span>
           </div>
           <div class="toolbar-actions">
+            <div class="export-preview-row">
+              <select v-model="formatoExportacion" class="tecnm-input tecnm-select export-select-mini" title="Formato de exportación">
+                <option value="pdf">PDF (.pdf)</option>
+                <option value="csv">CSV (.csv)</option>
+                <option value="word">Word (.doc)</option>
+              </select>
+              <button
+                type="button"
+                class="btn-action-primary"
+                :disabled="isExportando"
+                title="Descargar reporte en el formato seleccionado"
+                @click="exportarIngresosFormato"
+              >
+                {{ isExportando ? 'Exportando...' : 'Exportar' }}
+              </button>
+            </div>
             <button
               type="button"
               class="btn-action-primary"
@@ -1504,6 +1554,35 @@ onUnmounted(() => {
 
 .printer-select {
   width: 280px;
+}
+
+.export-combo-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.export-select {
+  width: 210px;
+}
+
+.btn-export-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.export-preview-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.export-select-mini {
+  width: 140px;
+  font-size: 0.82rem;
+  padding: 0.3rem 0.5rem;
 }
 
 /* =====================================================

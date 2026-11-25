@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useTheme } from '../../../shared/composables/useTheme'
+import * as cajaApi from '../api/cajaApi'
 import UiPagination from '../../../shared/components/UiPagination.vue'
 
 const emit = defineEmits<{
@@ -15,7 +16,27 @@ const { dark } = useTheme()
 const fechaInicio = ref('')
 const fechaFin = ref('')
 const impresora = ref('')
+const formatoExportacion = ref<'pdf' | 'csv' | 'word'>('pdf')
+const isExportando = ref(false)
 const isBuscando = ref(false)
+
+async function exportarIngresosPeriodo(): Promise<void> {
+  try {
+    isExportando.value = true
+    const blob = await cajaApi.exportarReporteIngresos({
+      fechaInicio: fechaInicio.value || undefined,
+      fechaFin: fechaFin.value || undefined,
+      formato: formatoExportacion.value,
+    })
+    const ext = formatoExportacion.value === 'pdf' ? 'pdf' : formatoExportacion.value === 'csv' ? 'csv' : 'doc'
+    const fecha = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+    cajaApi.descargarBlob(blob, `Reporte_Ingresos_Periodo_${fecha}.${ext}`)
+  } catch (err) {
+    console.error('Error al exportar reporte de ingresos por periodo:', err)
+  } finally {
+    isExportando.value = false
+  }
+}
 
 const pickerInicioRef = ref<HTMLInputElement | null>(null)
 const pickerFinRef = ref<HTMLInputElement | null>(null)
@@ -272,15 +293,26 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
           />
         </div>
 
-        <!-- Fila inferior: Impresora + Total -->
+        <!-- Fila inferior: Exportación + Total -->
         <div class="bottom-row">
           <div class="field-item item-impresora">
-            <label for="select-impresora-rep-periodo" class="field-label">Selecciona la impresora</label>
-            <select id="select-impresora-rep-periodo" v-model="impresora" class="tecnm-input tecnm-select">
-              <option v-for="imp in impresorasDisponibles" :key="imp.id" :value="imp.id">
-                {{ imp.nombre }}
-              </option>
-            </select>
+            <label for="select-export-rep-periodo" class="field-label">Formato de exportación</label>
+            <div class="export-controls-row">
+              <select id="select-export-rep-periodo" v-model="formatoExportacion" class="tecnm-input tecnm-select">
+                <option value="pdf">Documento PDF (.pdf)</option>
+                <option value="csv">Hoja de Cálculo Excel (.csv)</option>
+                <option value="word">Documento Word (.doc)</option>
+              </select>
+              <button
+                type="button"
+                class="btn-action-primary btn-export-trigger"
+                :disabled="isExportando"
+                title="Exportar reporte en el formato seleccionado"
+                @click="exportarIngresosPeriodo"
+              >
+                {{ isExportando ? 'Exportando...' : 'Exportar' }}
+              </button>
+            </div>
           </div>
 
           <div class="field-item item-total">
@@ -719,6 +751,16 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
 .item-impresora {
   flex: 1;
   min-width: 220px;
+}
+
+.export-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-export-trigger {
+  white-space: nowrap;
 }
 
 .tecnm-select {

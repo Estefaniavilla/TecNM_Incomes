@@ -102,7 +102,27 @@ function onFechaSeleccionada(campo: 'inicio' | 'fin', event: Event): void {
 // Impresoras y búsqueda
 // ==========================================
 const impresora = ref('')
+const formatoExportacion = ref<'pdf' | 'csv' | 'word'>('pdf')
+const isExportando = ref(false)
 const isBuscando = ref(false)
+
+async function exportarVariosFormato(): Promise<void> {
+  try {
+    isExportando.value = true
+    const blob = await cajaApi.exportarReporteIngresos({
+      fechaInicio: fechaInicio.value || undefined,
+      fechaFin: fechaFin.value || undefined,
+      formato: formatoExportacion.value,
+    })
+    const ext = formatoExportacion.value === 'pdf' ? 'pdf' : formatoExportacion.value === 'csv' ? 'csv' : 'doc'
+    const fecha = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+    cajaApi.descargarBlob(blob, `Reporte_Varios_${fecha}.${ext}`)
+  } catch (err) {
+    console.error('Error al exportar reporte varios:', err)
+  } finally {
+    isExportando.value = false
+  }
+}
 
 const impresorasDisponibles = [
   { id: '', nombre: '-- Seleccionar impresora --' },
@@ -436,15 +456,26 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
           />
         </div>
 
-        <!-- Fila inferior: Impresora + Total -->
+        <!-- Fila inferior: Exportación + Total -->
         <div class="bottom-row">
           <div class="field-item item-impresora">
-            <label for="select-impresora-rep-varios" class="field-label">Selecciona la impresora</label>
-            <select id="select-impresora-rep-varios" v-model="impresora" class="tecnm-input tecnm-select">
-              <option v-for="imp in impresorasDisponibles" :key="imp.id" :value="imp.id">
-                {{ imp.nombre }}
-              </option>
-            </select>
+            <label for="select-export-rep-varios" class="field-label">Formato de exportación</label>
+            <div class="export-controls-row">
+              <select id="select-export-rep-varios" v-model="formatoExportacion" class="tecnm-input tecnm-select">
+                <option value="pdf">Documento PDF (.pdf)</option>
+                <option value="csv">Hoja de Cálculo Excel (.csv)</option>
+                <option value="word">Documento Word (.doc)</option>
+              </select>
+              <button
+                type="button"
+                class="btn-action-primary btn-export-trigger"
+                :disabled="isExportando"
+                title="Exportar reporte en el formato seleccionado"
+                @click="exportarVariosFormato"
+              >
+                {{ isExportando ? 'Exportando...' : 'Exportar' }}
+              </button>
+            </div>
           </div>
 
           <div class="field-item item-total">
@@ -1038,6 +1069,16 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
 .item-impresora {
   flex: 1;
   min-width: 220px;
+}
+
+.export-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-export-trigger {
+  white-space: nowrap;
 }
 
 .tecnm-select {
