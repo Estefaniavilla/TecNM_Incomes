@@ -328,13 +328,6 @@ export async function cancelarRecibo(id: string, motivo: string): Promise<Recibo
   return adaptReciboResponse(data)
 }
 
-export async function exportarRecibo(numero: number): Promise<Blob> {
-  const response = await http.get(`/caja/recibos/${numero}/exportar`, {
-    responseType: 'blob',
-  })
-  return response.data
-}
-
 export async function getCorteCaja(fecha?: string): Promise<ResumenCajaTurno> {
   const { data } = await http.get<ResumenCajaTurno>('/caja/corte', {
     params: { fecha },
@@ -414,4 +407,72 @@ export async function exportarDashboardPdf(
     responseType: 'blob',
   })
   return response.data
+}
+
+// ==========================================
+// Módulo de Reportes & Exportaciones Multiformato (PDF, CSV, Word)
+// ==========================================
+export async function exportarReportePoliza(params: {
+  fechaInicio?: string
+  fechaFin?: string
+  formaPago?: string
+  cuentaContable?: string
+  modo?: 'cuentas' | 'detalle'
+  formato: 'pdf' | 'csv' | 'word'
+}): Promise<Blob> {
+  const response = await http.get('/reportes/poliza/exportar', {
+    params,
+    responseType: 'blob',
+  })
+  return response.data
+}
+
+export async function exportarReporteDeudores(params: {
+  periodo?: string
+  carreraId?: number
+  fechaCorte?: string
+  soloInscritos?: boolean
+  formato: 'pdf' | 'csv' | 'word'
+}): Promise<Blob> {
+  const response = await http.get('/reportes/deudores/exportar', {
+    params,
+    responseType: 'blob',
+  })
+  return response.data
+}
+
+export async function exportarReporteIngresos(params: {
+  fechaInicio?: string
+  fechaFin?: string
+  categoria?: string
+  cajero?: string
+  formato: 'pdf' | 'csv' | 'word'
+}): Promise<Blob> {
+  const response = await http.get('/reportes/ingresos/exportar', {
+    params,
+    responseType: 'blob',
+  })
+  return response.data
+}
+
+export async function exportarRecibo(
+  folio: number | string,
+  formato: 'pdf' | 'csv' | 'word' = 'pdf',
+): Promise<Blob> {
+  const response = await http.get(`/reportes/recibos/${folio}/exportar`, {
+    params: { formato },
+    responseType: 'blob',
+  })
+  return response.data
+}
+
+export function descargarBlob(blob: Blob, nombreArchivo: string): void {
+  const url = window.URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = nombreArchivo
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  window.URL.revokeObjectURL(url)
 }
