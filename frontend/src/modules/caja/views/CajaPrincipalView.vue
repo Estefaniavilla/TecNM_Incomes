@@ -782,6 +782,7 @@ async function onReciboCancelado(payload: { id: string; numeroRecibo: number; mo
 const mostrarModalImprimir = ref(false)
 const reciboParaImprimir = ref<ReciboCaja | null>(null)
 const isExportando = ref(false)
+const formatoExportacionRecibo = ref<'pdf' | 'csv' | 'word'>('pdf')
 
 function abrirImpresion(recibo?: ReciboCaja): void {
   if (recibo) {
@@ -818,7 +819,7 @@ function handleImprimirClick(): void {
 }
 
 async function handleExportarClick(): Promise<void> {
-  const num = Number(numeroRecibo.value)
+  const num = Number(numeroRecibo.value || reciboParaImprimir.value?.numeroRecibo)
   if (!num) {
     toastRef.value?.warning('Selecciona o consulta un recibo válido para exportar.', 2000)
     return
@@ -826,16 +827,11 @@ async function handleExportarClick(): Promise<void> {
 
   isExportando.value = true
   try {
-    const blob = await cajaApi.exportarRecibo(num)
-    const url = window.URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `Recibo_TecNM_${num}.txt`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    window.URL.revokeObjectURL(url)
-    toastRef.value?.success(`Recibo #${num} exportado correctamente.`, 2000)
+    const fmt = formatoExportacionRecibo.value
+    const blob = await cajaApi.exportarRecibo(num, fmt)
+    const ext = fmt === 'pdf' ? 'pdf' : fmt === 'csv' ? 'csv' : 'doc'
+    cajaApi.descargarBlob(blob, `Recibo_TecNM_${num}.${ext}`)
+    toastRef.value?.success(`Recibo #${num} exportado en ${fmt.toUpperCase()} correctamente.`, 2000)
   } catch {
     toastRef.value?.error(`No se pudo exportar el recibo #${num}.`, 2000)
   } finally {
@@ -1815,6 +1811,25 @@ onMounted(async () => {
               🖨️ Imprimir
             </UiButton>
 
+            <div class="export-inline-group">
+              <select
+                v-model="formatoExportacionRecibo"
+                class="export-format-select"
+                title="Formato de exportación del recibo"
+              >
+                <option value="pdf">PDF (.pdf)</option>
+                <option value="csv">CSV (.csv)</option>
+                <option value="word">Word (.doc)</option>
+              </select>
+              <UiButton
+                variant="secondary"
+                :disabled="!numeroRecibo || isExportando || isGuardandoCobro"
+                @click="handleExportarClick"
+              >
+                {{ isExportando ? 'Exportando...' : '⬇️ Exportar' }}
+              </UiButton>
+            </div>
+
             <UiButton
               variant="danger"
               :disabled="estadoRecibo === 'CANCELADO' || isGuardandoCobro"
@@ -2009,6 +2024,16 @@ onMounted(async () => {
         <UiButton variant="secondary" @click="mostrarModalImprimir = false">
           Cerrar
         </UiButton>
+        <div class="export-inline-group">
+          <select v-model="formatoExportacionRecibo" class="export-format-select">
+            <option value="pdf">PDF (.pdf)</option>
+            <option value="csv">CSV (.csv)</option>
+            <option value="word">Word (.doc)</option>
+          </select>
+          <UiButton variant="secondary" :disabled="isExportando" @click="handleExportarClick">
+            {{ isExportando ? 'Exportando...' : '⬇️ Exportar' }}
+          </UiButton>
+        </div>
         <UiButton variant="primary" @click="imprimirDocumento">
           🖨️ Mandar a Impresora
         </UiButton>
@@ -3846,6 +3871,22 @@ button.menubar-title-tag:active {
   justify-content: flex-end;
   gap: 12px;
   margin-top: 18px;
+}
+
+.export-inline-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.export-format-select {
+  height: 36px;
+  padding: 0 0.6rem;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #1e293b;
+  font-size: 0.85rem;
 }
 
 .txt-right {

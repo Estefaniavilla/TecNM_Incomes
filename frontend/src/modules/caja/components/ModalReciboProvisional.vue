@@ -189,6 +189,26 @@ const granTotal = computed(() => {
 // ==========================================
 const observaciones = ref('')
 const impresora = ref('')
+const formatoExportacion = ref<'pdf' | 'csv' | 'word'>('pdf')
+const isExportando = ref(false)
+
+async function exportarReciboFormato(): Promise<void> {
+  const num = Number(numeroRecibo.value)
+  if (!num) {
+    alert('No hay un número de recibo válido para exportar.')
+    return
+  }
+  try {
+    isExportando.value = true
+    const blob = await cajaApi.exportarRecibo(num, formatoExportacion.value)
+    const ext = formatoExportacion.value === 'pdf' ? 'pdf' : formatoExportacion.value === 'csv' ? 'csv' : 'doc'
+    cajaApi.descargarBlob(blob, `Recibo_TecNM_${num}.${ext}`)
+  } catch (err) {
+    console.error('Error al exportar recibo provisional:', err)
+  } finally {
+    isExportando.value = false
+  }
+}
 const impresorasDisponibles = [
   { id: '', nombre: '-- Seleccionar impresora --' },
   { id: 'termica', nombre: 'Impresora Térmica de Recibos (Caja)' },
@@ -670,19 +690,35 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
           </div>
         </div>
 
-        <!-- SELECTOR DE IMPRESORA -->
+        <!-- FORMATO DE EXPORTACIÓN -->
         <div class="printer-selection-row">
           <div class="field-item flex-grow">
-            <label for="select-prov-impresora" class="field-label">Selecciona la impresora:</label>
-            <select
-              id="select-prov-impresora"
-              v-model="impresora"
-              class="tecnm-input tecnm-select"
-            >
-              <option v-for="imp in impresorasDisponibles" :key="imp.id" :value="imp.id">
-                {{ imp.nombre }}
-              </option>
-            </select>
+            <label for="select-prov-export" class="field-label">Formato de exportación:</label>
+            <div class="export-controls-row">
+              <select
+                id="select-prov-export"
+                v-model="formatoExportacion"
+                class="tecnm-input tecnm-select"
+              >
+                <option value="pdf">Documento PDF (.pdf)</option>
+                <option value="csv">Hoja de Cálculo Excel (.csv)</option>
+                <option value="word">Documento Word (.doc)</option>
+              </select>
+              <button
+                type="button"
+                class="btn-action-primary btn-export-trigger"
+                :disabled="!numeroRecibo || isExportando"
+                title="Exportar recibo en el formato seleccionado"
+                @click="exportarReciboFormato"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                {{ isExportando ? 'Exportando...' : 'Exportar' }}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1307,6 +1343,16 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
 
 .input-total {
   width: 140px;
+}
+
+.export-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-export-trigger {
+  white-space: nowrap;
 }
 
 .readonly-input {
