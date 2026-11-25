@@ -3,11 +3,11 @@
 -- University Cash Register Management System - TecNM Campus Monclova
 -- ============================================================================
 -- Design rules:
--- 1. Table and column names in standard English.
--- 2. 'careers' table has NO short_name; only 'full_name' for formal presentation.
+-- 1. Table and column names in standard English (canonical schema).
+-- 2. Official 8 degrees catalog.
 -- 3. Strict foreign keys with ON DELETE RESTRICT on financial/academic records.
--- 4. Single-window operational model (cashier_sessions opening_balance = 0.00).
--- 5. Audit table 'migration_issues' for logging exceptions.
+-- 4. Single-window operational model.
+-- 5. Audit log table 'migration_issues'.
 -- ============================================================================
 
 BEGIN;
@@ -16,12 +16,13 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- ----------------------------------------------------------------------------
--- 1. CAREERS (Official Degree Programs - Full Name Only)
+-- 1. CAREERS (Official Degree Programs)
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS careers (
     career_id       INT PRIMARY KEY,
-    full_name       VARCHAR(150) NOT NULL,       -- Denominación institucional completa
-    degree_title    VARCHAR(150),                -- Grado académico que otorga
+    career_name     VARCHAR(50) NOT NULL,        -- Official abbreviation (e.g. 'Ing. Industrial')
+    full_name       VARCHAR(150) NOT NULL,       -- Institutional full denomination
+    degree_title    VARCHAR(150),                -- Academic title granted
     is_active       BOOLEAN NOT NULL DEFAULT TRUE
 );
 
@@ -30,7 +31,7 @@ CREATE TABLE IF NOT EXISTS careers (
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS academic_terms (
     term_id      SERIAL PRIMARY KEY,
-    code         VARCHAR(30) UNIQUE NOT NULL,    -- ej. '2012-1', '2025-2', '2026-1'
+    code         VARCHAR(30) UNIQUE NOT NULL,    -- e.g. '2012-1', '2025-2', '2026-1'
     description  VARCHAR(150),
     year         SMALLINT NOT NULL,
     cycle        VARCHAR(20) NOT NULL CHECK (cycle IN ('PRIMAVERA', 'OTONO', 'VERANO', 'VERANILLO')),
@@ -57,17 +58,17 @@ CREATE TABLE IF NOT EXISTS users (
 -- 4. STUDENTS (Master Student Registry)
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS students (
-    student_id              VARCHAR(20) PRIMARY KEY,     -- Matrícula institucional
-    full_name               VARCHAR(160) NOT NULL,       -- Nombre completo
+    student_id              VARCHAR(20) PRIMARY KEY,     -- Institutional student ID (Matrícula)
+    full_name               VARCHAR(160) NOT NULL,       -- Full name
     first_name              VARCHAR(100),
     last_name               VARCHAR(100),
     gender                  CHAR(1) CHECK (gender IN ('M', 'F') OR gender IS NULL),
-    career_id               INT REFERENCES careers(career_id) ON DELETE RESTRICT,
-    career_name             VARCHAR(150) NOT NULL,       -- Denominación oficial completa
-    semester                INTEGER NOT NULL CHECK (semester >= 1 AND semester <= 15),
-    shift                   VARCHAR(20) NOT NULL CHECK (shift IN ('Matutino', 'Nocturno', 'Vespertino', 'Sabatino')),
+    career_id               INT REFERENCES careers(career_id) ON DELETE SET NULL,
+    career_name             VARCHAR(150) NOT NULL DEFAULT 'Sin Asignar',
+    semester                INTEGER NOT NULL DEFAULT 1 CHECK (semester >= 1 AND semester <= 35),
+    shift                   VARCHAR(20) NOT NULL DEFAULT 'Matutino' CHECK (shift IN ('Matutino', 'Nocturno', 'Vespertino', 'Sabatino')),
     admission_ticket_number VARCHAR(30),
-    internal_account_number INT,                         -- cuenta_a
+    internal_account_number INT,                         -- 5-digit bank reference key (cuenta_a)
     academic_status         VARCHAR(30) NOT NULL DEFAULT 'Inscrito' CHECK (academic_status IN ('Inscrito', 'No Inscrito', 'Baja Temporal', 'Baja Definitiva', 'Egresado')),
     has_scholarship         BOOLEAN NOT NULL DEFAULT FALSE,
     scholarship_percentage  NUMERIC(5, 2) NOT NULL DEFAULT 0.00 CHECK (scholarship_percentage >= 0 AND scholarship_percentage <= 100),
@@ -80,7 +81,7 @@ CREATE INDEX IF NOT EXISTS idx_students_status ON students(academic_status);
 CREATE INDEX IF NOT EXISTS idx_students_account ON students(internal_account_number);
 
 -- ----------------------------------------------------------------------------
--- 5. STUDENT ENROLLMENT HISTORY (Historical Student IDs / Matrículas)
+-- 5. STUDENT ENROLLMENT HISTORY (Historical Student IDs)
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS student_enrollment_history (
     history_id           BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -131,12 +132,12 @@ CREATE INDEX IF NOT EXISTS idx_debts_term ON student_debts(term_id);
 CREATE INDEX IF NOT EXISTS idx_debts_status ON student_debts(status);
 
 -- ----------------------------------------------------------------------------
--- 8. PAYMENT CONCEPTS (Tariff Catalog - Original Descriptions Intact)
+-- 8. PAYMENT CONCEPTS (Tariff Catalog)
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS payment_concepts (
     id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     code                 VARCHAR(30) UNIQUE NOT NULL,
-    description          VARCHAR(200) NOT NULL,       -- Mantenida exactamente igual en español
+    description          VARCHAR(200) NOT NULL,
     base_fee             NUMERIC(12, 4) NOT NULL,
     display_order        INT DEFAULT 0,
     ledger_account_code  VARCHAR(30),
@@ -149,14 +150,14 @@ CREATE INDEX IF NOT EXISTS idx_concepts_code ON payment_concepts(code);
 CREATE INDEX IF NOT EXISTS idx_concepts_category ON payment_concepts(category);
 
 -- ----------------------------------------------------------------------------
--- 9. CASHIER SESSIONS (Single Window - Shift Openings & Closings)
+-- 9. CASHIER SESSIONS (Single Window - Shift Management)
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS cashier_sessions (
     session_id       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     cashier_username VARCHAR(64) NOT NULL REFERENCES users(username) ON DELETE RESTRICT,
     cashier_name     VARCHAR(160) NOT NULL,
     opened_at        TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    opening_balance  NUMERIC(12, 4) NOT NULL DEFAULT 0.00, -- Confirmado: $0.00 inicial
+    opening_balance  NUMERIC(12, 4) NOT NULL DEFAULT 0.00,
     closed_at        TIMESTAMPTZ,
     system_total     NUMERIC(12, 4) NOT NULL DEFAULT 0.00,
     counted_total    NUMERIC(12, 4),
@@ -169,7 +170,7 @@ CREATE INDEX IF NOT EXISTS idx_sessions_cashier ON cashier_sessions(cashier_user
 CREATE INDEX IF NOT EXISTS idx_sessions_status ON cashier_sessions(status);
 
 -- ----------------------------------------------------------------------------
--- 10. RECEIPT FOLIOS (Single Unified Series 'A')
+-- 10. RECEIPT FOLIOS
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS receipt_folios (
     folio_number    BIGINT PRIMARY KEY,
@@ -179,7 +180,7 @@ CREATE TABLE IF NOT EXISTS receipt_folios (
 );
 
 -- ----------------------------------------------------------------------------
--- 11. REVENUE POLICIES (Consolidated Accounting Policies)
+-- 11. REVENUE POLICIES (Accounting Policies)
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS revenue_policies (
     policy_id        BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -194,7 +195,7 @@ CREATE TABLE IF NOT EXISTS revenue_policies (
 CREATE INDEX IF NOT EXISTS idx_policies_date ON revenue_policies(policy_date);
 
 -- ----------------------------------------------------------------------------
--- 12. RECEIPTS (Official Payment Receipts with Immutable Snapshot)
+-- 12. RECEIPTS (Official Payment Receipts)
 -- ----------------------------------------------------------------------------
 CREATE SEQUENCE IF NOT EXISTS receipt_number_seq START WITH 128450;
 
@@ -206,19 +207,19 @@ CREATE TABLE IF NOT EXISTS receipts (
     effective_payment_date  TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     student_id              VARCHAR(20) NOT NULL REFERENCES students(student_id) ON DELETE RESTRICT,
     student_name            VARCHAR(160) NOT NULL,
-    student_career          VARCHAR(150) NOT NULL,       -- Denominación oficial completa
+    student_career          VARCHAR(150) NOT NULL,
     student_semester        INTEGER NOT NULL,
     student_shift           VARCHAR(20) NOT NULL,
-    payment_method          VARCHAR(30) NOT NULL CHECK (payment_method IN ('EFECTIVO', 'DEPOSITO_BANCARIO', 'TRANSFERENCIA', 'TARJETA_DEBITO', 'TARJETA_CREDITO')),
+    payment_method          VARCHAR(30) NOT NULL,
     bank_reference          VARCHAR(50),
     bank_account            VARCHAR(50),
     bank_transaction_date   TIMESTAMPTZ,
     subtotal                NUMERIC(12, 4) NOT NULL,
     discount_total          NUMERIC(12, 4) NOT NULL DEFAULT 0.00,
     total                   NUMERIC(12, 4) NOT NULL,
-    status_code             SMALLINT NOT NULL DEFAULT 1 CHECK (status_code IN (0, 1)),
-    status                  VARCHAR(20) NOT NULL DEFAULT 'REGISTERED' CHECK (status IN ('REGISTERED', 'PROVISIONAL', 'CANCELLED', 'LOCKED')),
-    receipt_type            VARCHAR(20) NOT NULL DEFAULT 'FINAL' CHECK (receipt_type IN ('PROVISIONAL', 'FINAL')),
+    status_code             SMALLINT NOT NULL DEFAULT 1,
+    status                  VARCHAR(20) NOT NULL DEFAULT 'REGISTRADO',
+    receipt_type            VARCHAR(20) NOT NULL DEFAULT 'DEFINITIVO',
     is_locked               BOOLEAN NOT NULL DEFAULT FALSE,
     session_id              UUID REFERENCES cashier_sessions(session_id) ON DELETE SET NULL,
     policy_id               BIGINT REFERENCES revenue_policies(policy_id) ON DELETE SET NULL,
@@ -259,7 +260,7 @@ CREATE INDEX IF NOT EXISTS idx_items_concept ON receipt_items(concept_id);
 CREATE TABLE IF NOT EXISTS payment_transactions (
     transaction_id   BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     receipt_id       UUID NOT NULL REFERENCES receipts(id) ON DELETE CASCADE,
-    payment_method   VARCHAR(30) NOT NULL CHECK (payment_method IN ('EFECTIVO', 'DEPOSITO_BANCARIO', 'TRANSFERENCIA', 'TARJETA_DEBITO', 'TARJETA_CREDITO')),
+    payment_method   VARCHAR(30) NOT NULL,
     reference_number VARCHAR(100),
     amount           NUMERIC(12, 4) NOT NULL CHECK (amount > 0),
     transaction_date TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,

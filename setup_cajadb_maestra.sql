@@ -1,36 +1,67 @@
 -- ============================================================================
 -- SCRIPT DEFINITIVO DE BASE DE DATOS: CAJADB UNIVERSITARIA
--- Diseñado por el Especialista de Base de Datos
--- Integra:
--- 1. Todas las 13 tablas maestras del modelo relacional.
--- 2. Carga completa de los datos de las 5 hojas del Excel (Cuentas, Previo, Recibo, Alumnos, Carrera).
--- 3. Usuarios listos para Login del Frontend/Backend (Admin, Cajero Matutino, Cajero Nocturno, Usuario Demo).
--- 4. Vistas SQL optimizadas para reportes, arqueos y exportación a Excel.
+-- TecNM Campus Monclova
+-- ============================================================================
+-- Arquitectura de Base de Datos:
+-- 1. Esquema Canónico Físico en INGLÉS (15 tablas con llaves primarias, foráneas, checks e índices).
+-- 2. Datos institucionales en ESPAÑOL (Catálogo de 8 Carreras Oficiales, Conceptos de Cobro, Usuarios y Periodos).
+-- 3. Reglas de negocio automatizadas: Trigger de reversión de adeudos al cancelar recibos.
+-- 4. 6 Vistas analíticas administrativas en INGLÉS para auditoría contable.
+-- 5. 14 Vistas de compatibilidad en ESPAÑOL (1:1 actualizables) para garantizar 
 -- ============================================================================
 
 ROLLBACK;
 
--- 1. LIMPIEZA EN CASCADA
-DROP VIEW IF EXISTS vw_polizas_ingreso_resumen CASCADE;
-DROP VIEW IF EXISTS vw_depositos_bancarios_conciliacion CASCADE;
-DROP VIEW IF EXISTS vw_corte_diario_caja CASCADE;
-DROP VIEW IF EXISTS vw_reporte_recibos_detallado CASCADE;
-DROP VIEW IF EXISTS vw_adeudos_estudiantes CASCADE;
+-- ----------------------------------------------------------------------------
+-- 1. LIMPIEZA EN CASCADA DE OBJETOS PREVIOS
+-- ----------------------------------------------------------------------------
+-- Vistas en Español
+DROP VIEW IF EXISTS migracion_incidencias CASCADE;
+DROP VIEW IF EXISTS movimientos_pago CASCADE;
+DROP VIEW IF EXISTS detalles_recibo CASCADE;
+DROP VIEW IF EXISTS detalle_recibo CASCADE;
+DROP VIEW IF EXISTS recibos CASCADE;
+DROP VIEW IF EXISTS polizas_ingreso CASCADE;
+DROP VIEW IF EXISTS folios CASCADE;
+DROP VIEW IF EXISTS sesiones_caja CASCADE;
+DROP VIEW IF EXISTS conceptos_cobro CASCADE;
+DROP VIEW IF EXISTS adeudos CASCADE;
+DROP VIEW IF EXISTS becas_descuentos CASCADE;
+DROP VIEW IF EXISTS alumno_matriculas_historial CASCADE;
+DROP VIEW IF EXISTS alumnos CASCADE;
+DROP VIEW IF EXISTS periodos_academicos CASCADE;
+DROP VIEW IF EXISTS carreras CASCADE;
+
+-- Vistas en Inglés
+DROP VIEW IF EXISTS vw_student_financial_kardex CASCADE;
+DROP VIEW IF EXISTS vw_revenue_policies_summary CASCADE;
+DROP VIEW IF EXISTS vw_bank_deposits_reconciliation CASCADE;
+DROP VIEW IF EXISTS vw_student_debts CASCADE;
+DROP VIEW IF EXISTS vw_receipt_details_report CASCADE;
+DROP VIEW IF EXISTS vw_daily_cash_cut CASCADE;
+
+-- Funciones y Triggers
+DROP FUNCTION IF EXISTS fn_reverse_debt_on_cancellation CASCADE;
 DROP FUNCTION IF EXISTS fn_revertir_adeudo_por_cancelacion CASCADE;
-DROP TABLE IF EXISTS movimientos_pago CASCADE;
-DROP TABLE IF EXISTS detalles_recibo CASCADE;
-DROP TABLE IF EXISTS detalle_recibo CASCADE;
-DROP TABLE IF EXISTS recibos CASCADE;
-DROP TABLE IF EXISTS polizas_ingreso CASCADE;
-DROP TABLE IF EXISTS folios CASCADE;
-DROP TABLE IF EXISTS adeudos CASCADE;
-DROP TABLE IF EXISTS becas_descuentos CASCADE;
-DROP TABLE IF EXISTS alumno_matriculas_historial CASCADE;
-DROP TABLE IF EXISTS alumnos CASCADE;
-DROP TABLE IF EXISTS conceptos_cobro CASCADE;
-DROP TABLE IF EXISTS periodos_academicos CASCADE;
-DROP TABLE IF EXISTS carreras CASCADE;
+
+-- Tablas en Inglés
+DROP TABLE IF EXISTS migration_issues CASCADE;
+DROP TABLE IF EXISTS payment_transactions CASCADE;
+DROP TABLE IF EXISTS receipt_items CASCADE;
+DROP TABLE IF EXISTS receipts CASCADE;
+DROP TABLE IF EXISTS revenue_policies CASCADE;
+DROP TABLE IF EXISTS receipt_folios CASCADE;
+DROP TABLE IF EXISTS cashier_sessions CASCADE;
+DROP TABLE IF EXISTS payment_concepts CASCADE;
+DROP TABLE IF EXISTS student_debts CASCADE;
+DROP TABLE IF EXISTS scholarships CASCADE;
+DROP TABLE IF EXISTS student_enrollment_history CASCADE;
+DROP TABLE IF EXISTS students CASCADE;
+DROP TABLE IF EXISTS academic_terms CASCADE;
+DROP TABLE IF EXISTS careers CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
+
+DROP SEQUENCE IF EXISTS receipt_number_seq CASCADE;
 DROP SEQUENCE IF EXISTS recibos_numero_recibo_seq CASCADE;
 
 BEGIN;
@@ -39,41 +70,265 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- ----------------------------------------------------------------------------
--- 1. CARRERAS (Catálogo Oficial de Oferta Académica TecNM)
+-- 2. TABLAS CANÓNICAS EN INGLÉS (DDL)
 -- ----------------------------------------------------------------------------
-CREATE TABLE carreras (
-    id_carrera      INT PRIMARY KEY,
-    carrera         VARCHAR(50) NOT NULL,        -- Abreviatura oficial (ej. 'Ing. Industrial')
-    nombre_carrera  VARCHAR(150) NOT NULL,       -- Nombre institucional completo
-    titulo          VARCHAR(150),                -- Grado que otorga
-    activo          BOOLEAN NOT NULL DEFAULT TRUE
+
+-- 1. Careers (Official Degree Programs)
+CREATE TABLE careers (
+    career_id       INT PRIMARY KEY,
+    career_name     VARCHAR(50) NOT NULL,        -- Official abbreviation
+    full_name       VARCHAR(150) NOT NULL,       -- Institutional full denomination
+    degree_title    VARCHAR(150),                -- Academic title granted
+    is_active       BOOLEAN NOT NULL DEFAULT TRUE
 );
 
-INSERT INTO carreras (id_carrera, carrera, nombre_carrera, titulo) VALUES
-(64, 'Lic. Informática',          'LICENCIATURA EN INFORMATICA',          'LICENCIADO EN INFORMATICA'),
-(65, 'Ing. Mecánica',             'INGENIERIA MECANICA',                  'INGENIERO MECANICO'),
-(67, 'Ing. Industrial',           'INGENIERIA INDUSTRIAL',                'INGENIERO INDUSTRIAL'),
-(68, 'Ing. Electrónica',          'INGENIERIA ELECTRONICA',               'INGENIERO ELECTRONICO'),
-(69, 'Ing. Informática',          'INGENIERIA INFORMATICA',               'INGENIERO INFORMATICO'),
-(70, 'Ing. Gestión Emp.',         'INGENIERIA EN GESTION EMPRESARIAL',    'INGENIERO EN GESTION EMPRESARIAL'),
-(71, 'Ing. Energías Renovables',  'INGENIERIA EN ENERGIAS RENOVABLES',    'INGENIERO EN ENERGIAS RENOVABLES'),
-(74, 'Ing. Mecatrónica',          'INGENIERIA MECATRONICA',               'INGENIERO MECATRONICO');
-
--- ----------------------------------------------------------------------------
--- 2. PERIODOS ACADÉMICOS (Ciclos para asociar cobros, adeudos y vigencias)
--- ----------------------------------------------------------------------------
-CREATE TABLE periodos_academicos (
-    id_periodo   SERIAL PRIMARY KEY,
-    codigo       VARCHAR(30) UNIQUE NOT NULL,
-    descripcion  VARCHAR(150),
-    anio         SMALLINT NOT NULL,
-    ciclo        VARCHAR(20) NOT NULL CHECK (ciclo IN ('PRIMAVERA', 'OTONO', 'VERANO', 'VERANILLO')),
-    fecha_inicio DATE,
-    fecha_fin    DATE,
-    activo       BOOLEAN NOT NULL DEFAULT TRUE
+-- 2. Academic Terms
+CREATE TABLE academic_terms (
+    term_id      SERIAL PRIMARY KEY,
+    code         VARCHAR(30) UNIQUE NOT NULL,
+    description  VARCHAR(150),
+    year         SMALLINT NOT NULL,
+    cycle        VARCHAR(20) NOT NULL CHECK (cycle IN ('PRIMAVERA', 'OTONO', 'VERANO', 'VERANILLO')),
+    start_date   DATE,
+    end_date     DATE,
+    is_active    BOOLEAN NOT NULL DEFAULT TRUE
 );
 
-INSERT INTO periodos_academicos (codigo, descripcion, anio, ciclo, fecha_inicio, fecha_fin, activo) VALUES
+-- 3. Users (System Staff & Roles)
+CREATE TABLE users (
+    id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    username       VARCHAR(64) UNIQUE NOT NULL,
+    email          VARCHAR(254) UNIQUE NOT NULL,
+    password       VARCHAR(512) NOT NULL,
+    name           VARCHAR(160) NOT NULL,
+    role           VARCHAR(20) NOT NULL DEFAULT 'Cajero' CHECK (role IN ('Admin', 'User', 'Cajero', 'Auditor')),
+    is_active      BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 4. Students (Master Student Registry)
+CREATE TABLE students (
+    student_id              VARCHAR(20) PRIMARY KEY,
+    full_name               VARCHAR(160) NOT NULL,
+    first_name              VARCHAR(100),
+    last_name               VARCHAR(100),
+    gender                  CHAR(1) CHECK (gender IN ('M', 'F') OR gender IS NULL),
+    career_id               INT REFERENCES careers(career_id) ON DELETE SET NULL,
+    career_name             VARCHAR(150) NOT NULL DEFAULT 'Sin Asignar',
+    semester                INTEGER NOT NULL DEFAULT 1 CHECK (semester >= 1 AND semester <= 35),
+    shift                   VARCHAR(20) NOT NULL DEFAULT 'Matutino' CHECK (shift IN ('Matutino', 'Nocturno', 'Vespertino', 'Sabatino')),
+    admission_ticket_number VARCHAR(30),
+    internal_account_number INT,
+    academic_status         VARCHAR(30) NOT NULL DEFAULT 'Inscrito' CHECK (academic_status IN ('Inscrito', 'No Inscrito', 'Baja Temporal', 'Baja Definitiva', 'Egresado')),
+    has_scholarship         BOOLEAN NOT NULL DEFAULT FALSE,
+    scholarship_percentage  NUMERIC(5, 2) NOT NULL DEFAULT 0.00 CHECK (scholarship_percentage >= 0 AND scholarship_percentage <= 100),
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_students_name ON students(full_name);
+CREATE INDEX idx_students_career ON students(career_id);
+CREATE INDEX idx_students_status ON students(academic_status);
+CREATE INDEX idx_students_account ON students(internal_account_number);
+
+-- 5. Student Enrollment History
+CREATE TABLE student_enrollment_history (
+    history_id           BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    student_id           VARCHAR(20) NOT NULL REFERENCES students(student_id) ON DELETE CASCADE,
+    previous_student_id  VARCHAR(30) NOT NULL,
+    term_id              INT REFERENCES academic_terms(term_id) ON DELETE RESTRICT,
+    registered_at        TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    change_reason        TEXT
+);
+
+CREATE INDEX idx_hist_student_id ON student_enrollment_history(student_id);
+CREATE INDEX idx_hist_prev_id ON student_enrollment_history(previous_student_id);
+
+-- 6. Scholarships & Discounts
+CREATE TABLE scholarships (
+    scholarship_id   BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    student_id       VARCHAR(20) NOT NULL REFERENCES students(student_id) ON DELETE CASCADE,
+    term_id          INT NOT NULL REFERENCES academic_terms(term_id) ON DELETE RESTRICT,
+    scholarship_type VARCHAR(50) NOT NULL DEFAULT 'ACADEMICA',
+    percentage       NUMERIC(5, 2) DEFAULT 0.00 CHECK (percentage BETWEEN 0 AND 100),
+    fixed_amount     NUMERIC(12, 4) DEFAULT 0.00 CHECK (fixed_amount >= 0),
+    reason           VARCHAR(250),
+    is_active        BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_scholarships_student ON scholarships(student_id);
+
+-- 7. Student Debts
+CREATE TABLE student_debts (
+    debt_id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    student_id       VARCHAR(20) NOT NULL REFERENCES students(student_id) ON DELETE RESTRICT,
+    concept_name     VARCHAR(100) NOT NULL,
+    term_id          INT NOT NULL REFERENCES academic_terms(term_id) ON DELETE RESTRICT,
+    original_amount  NUMERIC(12, 4) NOT NULL CHECK (original_amount >= 0),
+    pending_balance  NUMERIC(12, 4) NOT NULL CHECK (pending_balance >= 0),
+    due_date         DATE,
+    status           VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'PARTIAL', 'SETTLED', 'CONDONED')),
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_debts_student ON student_debts(student_id);
+CREATE INDEX idx_debts_term ON student_debts(term_id);
+CREATE INDEX idx_debts_status ON student_debts(status);
+
+-- 8. Payment Concepts
+CREATE TABLE payment_concepts (
+    id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code                 VARCHAR(30) UNIQUE NOT NULL,
+    description          VARCHAR(200) NOT NULL,
+    base_fee             NUMERIC(12, 4) NOT NULL CHECK (base_fee >= 0),
+    display_order        INT DEFAULT 0,
+    ledger_account_code  VARCHAR(30),
+    allows_scholarship   BOOLEAN NOT NULL DEFAULT FALSE,
+    category             VARCHAR(50) NOT NULL DEFAULT 'Inscripción',
+    is_active            BOOLEAN NOT NULL DEFAULT TRUE
+);
+
+CREATE INDEX idx_concepts_code ON payment_concepts(code);
+CREATE INDEX idx_concepts_category ON payment_concepts(category);
+CREATE INDEX idx_concepts_active ON payment_concepts(is_active);
+
+-- 9. Cashier Sessions (Single-Window Operational Model)
+CREATE TABLE cashier_sessions (
+    session_id       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    cashier_username VARCHAR(64) NOT NULL REFERENCES users(username) ON DELETE RESTRICT,
+    cashier_name     VARCHAR(160) NOT NULL,
+    opened_at        TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    initial_cash     NUMERIC(12, 4) NOT NULL DEFAULT 0.00,
+    closed_at        TIMESTAMPTZ,
+    system_total     NUMERIC(12, 4) NOT NULL DEFAULT 0.00,
+    counted_total    NUMERIC(12, 4),
+    difference       NUMERIC(12, 4) DEFAULT 0.00,
+    status           VARCHAR(20) NOT NULL DEFAULT 'OPEN' CHECK (status IN ('OPEN', 'CLOSED', 'AUDITED')),
+    notes            TEXT
+);
+
+CREATE INDEX idx_sessions_cashier ON cashier_sessions(cashier_username);
+CREATE INDEX idx_sessions_status ON cashier_sessions(status);
+
+-- 10. Receipt Folios
+CREATE TABLE receipt_folios (
+    folio_number    BIGINT PRIMARY KEY,
+    series          VARCHAR(10) NOT NULL DEFAULT 'A',
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    notes           TEXT
+);
+
+-- 11. Revenue Policies
+CREATE TABLE revenue_policies (
+    policy_id        BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    policy_number    VARCHAR(50) UNIQUE NOT NULL,
+    policy_date      DATE NOT NULL DEFAULT CURRENT_DATE,
+    total_collected  NUMERIC(12, 4) NOT NULL DEFAULT 0.00,
+    cashier_username VARCHAR(64) NOT NULL,
+    status           VARCHAR(20) NOT NULL DEFAULT 'OPEN' CHECK (status IN ('OPEN', 'CONSOLIDATED', 'CANCELLED')),
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_policies_date ON revenue_policies(policy_date);
+
+-- 12. Receipts
+CREATE SEQUENCE receipt_number_seq START WITH 128450;
+
+CREATE TABLE receipts (
+    id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    receipt_number          BIGINT NOT NULL DEFAULT nextval('receipt_number_seq') UNIQUE,
+    folio_number            VARCHAR(50) NOT NULL,
+    issued_at               TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    effective_payment_date  TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    student_id              VARCHAR(20) NOT NULL REFERENCES students(student_id) ON DELETE RESTRICT,
+    student_name            VARCHAR(160) NOT NULL,
+    student_career          VARCHAR(150) NOT NULL,
+    student_semester        INTEGER NOT NULL,
+    student_shift           VARCHAR(20) NOT NULL,
+    payment_method          VARCHAR(30) NOT NULL,
+    bank_reference          VARCHAR(50),
+    bank_account            VARCHAR(50),
+    bank_transaction_date   TIMESTAMPTZ,
+    subtotal                NUMERIC(12, 4) NOT NULL,
+    discount_total          NUMERIC(12, 4) NOT NULL DEFAULT 0.00,
+    total                   NUMERIC(12, 4) NOT NULL,
+    status_code             SMALLINT NOT NULL DEFAULT 1,
+    status                  VARCHAR(20) NOT NULL DEFAULT 'REGISTRADO',
+    receipt_type            VARCHAR(20) NOT NULL DEFAULT 'DEFINITIVO',
+    is_locked               BOOLEAN NOT NULL DEFAULT FALSE,
+    session_id              UUID REFERENCES cashier_sessions(session_id) ON DELETE SET NULL,
+    policy_id               BIGINT REFERENCES revenue_policies(policy_id) ON DELETE SET NULL,
+    cancellation_reason     VARCHAR(500),
+    cancelled_at            TIMESTAMPTZ,
+    cashier_username        VARCHAR(64) NOT NULL,
+    cashier_name            VARCHAR(160) NOT NULL
+);
+
+CREATE INDEX idx_receipts_number ON receipts(receipt_number);
+CREATE INDEX idx_receipts_folio ON receipts(folio_number);
+CREATE INDEX idx_receipts_student ON receipts(student_id);
+CREATE INDEX idx_receipts_reference ON receipts(bank_reference);
+CREATE INDEX idx_receipts_date ON receipts(issued_at);
+CREATE INDEX idx_receipts_status ON receipts(status);
+
+-- 13. Receipt Items
+CREATE TABLE receipt_items (
+    id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    receipt_id            UUID NOT NULL REFERENCES receipts(id) ON DELETE CASCADE,
+    concept_id            UUID REFERENCES payment_concepts(id) ON DELETE SET NULL,
+    description           VARCHAR(200) NOT NULL,
+    quantity              INTEGER NOT NULL CHECK (quantity > 0),
+    unit_price            NUMERIC(12, 4) NOT NULL,
+    scholarship_discount  NUMERIC(12, 4) NOT NULL DEFAULT 0.00,
+    total_amount          NUMERIC(12, 4) NOT NULL,
+    academic_term         VARCHAR(20)
+);
+
+CREATE INDEX idx_items_receipt ON receipt_items(receipt_id);
+CREATE INDEX idx_items_concept ON receipt_items(concept_id);
+
+-- 14. Payment Transactions
+CREATE TABLE payment_transactions (
+    transaction_id   BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    receipt_id       UUID NOT NULL REFERENCES receipts(id) ON DELETE CASCADE,
+    payment_method   VARCHAR(30) NOT NULL,
+    reference_number VARCHAR(100),
+    amount           NUMERIC(12, 4) NOT NULL CHECK (amount > 0),
+    transaction_date TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    cashier_username VARCHAR(64) NOT NULL
+);
+
+CREATE INDEX idx_transactions_receipt ON payment_transactions(receipt_id);
+CREATE INDEX idx_transactions_method ON payment_transactions(payment_method);
+
+-- 15. Migration Issues
+CREATE TABLE migration_issues (
+    id                BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    source_table      VARCHAR(50) NOT NULL,
+    record_identifier VARCHAR(100),
+    detected_issue    TEXT NOT NULL,
+    logged_at         TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    is_resolved       BOOLEAN NOT NULL DEFAULT FALSE,
+    resolution_notes  TEXT
+);
+
+-- ----------------------------------------------------------------------------
+-- 3. POBLACIÓN DE CATÁLOGOS BASE (DATOS INSTITUCIONALES EN ESPAÑOL)
+-- ----------------------------------------------------------------------------
+
+-- Las 8 Carreras Oficiales
+INSERT INTO careers (career_id, career_name, full_name, degree_title, is_active) VALUES
+(64, 'Lic. Informática',         'LICENCIATURA EN INFORMATICA',          'LICENCIADO EN INFORMATICA', true),
+(65, 'Ing. Mecánica',            'INGENIERIA MECANICA',                  'INGENIERO MECANICO', true),
+(67, 'Ing. Industrial',          'INGENIERIA INDUSTRIAL',                'INGENIERO INDUSTRIAL', true),
+(68, 'Ing. Electrónica',         'INGENIERIA ELECTRONICA',               'INGENIERO ELECTRONICO', true),
+(69, 'Ing. Informática',         'INGENIERIA INFORMATICA',               'INGENIERO INFORMATICO', true),
+(70, 'Ing. Gestión Emp.',        'INGENIERIA EN GESTION EMPRESARIAL',    'INGENIERO EN GESTION EMPRESARIAL', true),
+(71, 'Ing. Energías Renovables', 'INGENIERIA EN ENERGIAS RENOVABLES',    'INGENIERO EN ENERGIAS RENOVABLES', true),
+(74, 'Ing. Mecatrónica',         'INGENIERIA MECATRONICA',               'INGENIERO MECATRONICO', true);
+
+-- Periodos Académicos
+INSERT INTO academic_terms (code, description, year, cycle, start_date, end_date, is_active) VALUES
 ('2012-1', 'SEMESTRE ENERO-JUNIO 2012',        2012, 'PRIMAVERA', '2012-01-09', '2012-06-30', false),
 ('2016-1', 'SEMESTRE ENERO-JUNIO 2016',        2016, 'PRIMAVERA', '2016-01-11', '2016-06-30', false),
 ('2016-2', 'SEMESTRE AGOSTO-ENERO 2016-2017',  2016, 'OTONO',     '2016-08-08', '2017-01-31', false),
@@ -82,551 +337,418 @@ INSERT INTO periodos_academicos (codigo, descripcion, anio, ciclo, fecha_inicio,
 ('2025-2', 'SEMESTRE AGOSTO-DICIEMBRE 2025',   2025, 'OTONO',     '2025-08-11', '2025-12-19', false),
 ('2026-1', 'SEMESTRE ENERO-JUNIO 2026',        2026, 'PRIMAVERA', '2026-01-12', '2026-06-30', true);
 
--- ----------------------------------------------------------------------------
--- 3. USUARIOS Y EMPLEADOS DEL SISTEMA
--- Password: Password123!
--- ----------------------------------------------------------------------------
-CREATE TABLE users (
-    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    username    VARCHAR(64) UNIQUE NOT NULL,
-    email       VARCHAR(254) UNIQUE NOT NULL,
-    password    VARCHAR(512) NOT NULL,
-    name        VARCHAR(160) NOT NULL,
-    role        VARCHAR(20) NOT NULL DEFAULT 'Cajero' CHECK (role IN ('Admin', 'User', 'Cajero', 'Auditor')),
-    is_active   BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
+-- Usuarios de Sistema
 INSERT INTO users (id, username, email, password, name, role, is_active) VALUES
 ('10000000-0000-4000-8000-000000000001', 'admin',   'admin@tecnm.local',   'AQAAAAIAAYagAAAAEPjbneKeORd2reFIG62af0ufOMPtwf64j0jpBznNBo3Y8K/BUoUW+IhJOm0b5iqWOg==', 'Administrador General', 'Admin',  true),
 ('10000000-0000-4000-8000-000000000002', 'cajero1', 'cajero1@tecnm.local', 'AQAAAAIAAYagAAAAECBhXWISKf+YayCz0xB8E4vyjO6chAfRLTq+f2eA4ztdtdDqA99jr+VsfZXUoKbfdQ==', 'Cajero Turno Matutino', 'Cajero', true),
 ('10000000-0000-4000-8000-000000000003', 'cajero2', 'cajero2@tecnm.local', 'AQAAAAIAAYagAAAAECBhXWISKf+YayCz0xB8E4vyjO6chAfRLTq+f2eA4ztdtdDqA99jr+VsfZXUoKbfdQ==', 'Cajero Turno Nocturno', 'Cajero', true),
 ('10000000-0000-4000-8000-000000000004', 'usuario', 'usuario@tecnm.local', 'AQAAAAIAAYagAAAAECBhXWISKf+YayCz0xB8E4vyjO6chAfRLTq+f2eA4ztdtdDqA99jr+VsfZXUoKbfdQ==', 'Usuario Operativo Demo', 'User',  true);
 
--- ----------------------------------------------------------------------------
--- 4. ALUMNOS
--- ----------------------------------------------------------------------------
-CREATE TABLE alumnos (
-    matricula       VARCHAR(20) PRIMARY KEY,
-    nombre_completo VARCHAR(160) NOT NULL,
-    nombre          VARCHAR(160) GENERATED ALWAYS AS (nombre_completo) STORED, -- Compatibilidad Excel y consultas legacy
-    nombres         VARCHAR(100),
-    apellidos       VARCHAR(100),
-    sexo            CHAR(1),
-    id_carrera      INT REFERENCES carreras(id_carrera),
-    carrera         VARCHAR(100) NOT NULL,
-    semestre        INTEGER NOT NULL,
-    turno           VARCHAR(20) NOT NULL CHECK (turno IN ('Matutino', 'Nocturno', 'Vespertino', 'Sabatino')),
-    numero_ficha    VARCHAR(30),
-    cuenta_a        INT,
-    estatus         VARCHAR(30) NOT NULL DEFAULT 'Inscrito' CHECK (estatus IN ('Inscrito', 'No Inscrito', 'Baja Temporal', 'Baja Definitiva', 'Egresado')),
-    tiene_beca      BOOLEAN NOT NULL DEFAULT FALSE,
-    porcentaje_beca NUMERIC(5, 2) NOT NULL DEFAULT 0.00,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_alumnos_nombre ON alumnos(nombre_completo);
-CREATE INDEX idx_alumnos_carrera ON alumnos(id_carrera);
-CREATE INDEX idx_alumnos_estatus ON alumnos(estatus);
-CREATE INDEX idx_alumnos_cuenta_a ON alumnos(cuenta_a);
-
-INSERT INTO alumnos (matricula, nombre_completo, nombres, apellidos, sexo, id_carrera, carrera, semestre, turno, numero_ficha, cuenta_a, estatus, tiene_beca, porcentaje_beca)
-VALUES
-    -- Hoja ALUMNOS
-    ('G2605048',  'MARTINEZ SILVA MARIA JOSE',           'MARIA JOSE',           'MARTINEZ SILVA',          'F', 70, 'Ing. Gestión Emp.',         1, 'Matutino',   'F-2026-001', 24468, 'Inscrito', false, 0.00),
-    ('M2505057',  'PALOS DIAZ MARIA FERNADA',            'MARIA FERNANDA',       'PALOS DIAZ',              'F', 67, 'Ing. Industrial',           1, 'Matutino',   'F-2025-089', 23877, 'Inscrito', false, 0.00),
-    ('N2305000',  'CHAPOY LIMON CARLOS',                 'CARLOS',               'CHAPOY LIMON',            'M', 67, 'Ing. Industrial',           7, 'Matutino',   'F-2023-014', 11670, 'Inscrito', false, 0.00),
-    ('120050011', 'DE LA TORRE CAMPOS DANIEL ARTURO',    'DANIEL ARTURO',        'DE LA TORRE CAMPOS',      'M', 69, 'Ing. Informática',          8, 'Matutino',   'F-2020-050', 12121, 'Inscrito', false, 0.00),
-    ('120050012', 'DEL TORO LIRA FERNANDA',              'FERNANDA',             'DEL TORO LIRA',           'F', 69, 'Ing. Informática',          8, 'Matutino',   'F-2020-051', 11671, 'Inscrito', false, 0.00),
-    ('120050013', 'DIAZ COSTILLA ANGEL GABRIEL',         'ANGEL GABRIEL',        'DIAZ COSTILLA',           'M', 69, 'Ing. Informática',          8, 'Matutino',   'F-2020-052', 12122, 'Inscrito', false, 0.00),
-    ('120050023', 'MARINES YAÑEZ MARIO CUAUHTEMOC',      'MARIO CUAUHTEMOC',     'MARINES YAÑEZ',           'M', 69, 'Ing. Informática',          8, 'Matutino',   'F-2020-053', 11672, 'Inscrito', false, 0.00),
-    ('120050032', 'RAMIREZ GONZALEZ ESTEFANIA ARISBETH', 'ESTEFANIA ARISBETH',   'RAMIREZ GONZALEZ',        'F', 69, 'Ing. Informática',          8, 'Matutino',   'F-2020-054', 11673, 'Inscrito', false, 0.00),
-    ('120050040', 'TORRES TREJO VICTORIA ALEJANDRA',     'VICTORIA ALEJANDRA',   'TORRES TREJO',            'F', 69, 'Ing. Informática',          8, 'Matutino',   'F-2020-055', 11674, 'Inscrito', false, 0.00),
-    ('120050041', 'TOVAR COVARRUBIAS JARED ISRAEL',      'JARED ISRAEL',         'TOVAR COVARRUBIAS',       'M', 69, 'Ing. Informática',          8, 'Matutino',   'F-2020-056', 11675, 'Inscrito', false, 0.00),
-    -- Hoja PREVIO
-    ('N13050045', 'PEREZ SIFUENTES ALDO ULISES',         'ALDO ULISES',          'PEREZ SIFUENTES',         'M', 67, 'Ing. Industrial',           6, 'Matutino',   'F-2019-112', NULL,  'Inscrito', false, 0.00),
-    ('N13050041', 'ORTIZ DURON LUIS MANUEL',             'LUIS MANUEL',          'ORTIZ DURON',             'M', 67, 'Ing. Industrial',           6, 'Matutino',   'F-2019-110', NULL,  'Inscrito', false, 0.00),
-    ('G13050156', 'DAVILA HERNANDEZ ANA PATRICIA',       'ANA PATRICIA',         'DAVILA HERNANDEZ',        'F', 70, 'Ing. Gestión Emp.',         5, 'Matutino',   'F-2019-215', NULL,  'Inscrito', false, 0.00),
-    ('E15050004', 'REQUENA RODRIGUEZ NESTOR OMAR',       'NESTOR OMAR',          'REQUENA RODRIGUEZ',       'M', 68, 'Ing. Electrónica',          3, 'Nocturno',   'F-2021-004', NULL,  'Inscrito', false, 0.00),
-    ('N12050104', 'BARRERA TOVAR JESUS ENRIQUE',         'JESUS ENRIQUE',        'BARRERA TOVAR',           'M', 67, 'Ing. Industrial',           8, 'Nocturno',   'F-2018-090', NULL,  'Inscrito', false, 0.00),
-    ('G13050219', 'HERNANDEZ CASTILLO ARELY SARAHI',     'ARELY SARAHI',         'HERNANDEZ CASTILLO',      'F', 70, 'Ing. Gestión Emp.',         6, 'Matutino',   'F-2019-219', NULL,  'Inscrito', false, 0.00),
-    ('G14050252', 'MUÑOZ DE LEON ILSE ARACELI',          'ILSE ARACELI',          'MUÑOZ DE LEON',           'F', 70, 'Ing. Gestión Emp.',         4, 'Matutino',   'F-2020-252', NULL,  'Inscrito', false, 0.00),
-    ('N15050011', 'VILLASTRIGO GARCIA SABINO EMMANUEL',  'SABINO EMMANUEL',      'VILLASTRIGO GARCIA',      'M', 67, 'Ing. Industrial',           2, 'Matutino',   'F-2021-011', NULL,  'Inscrito', false, 0.00),
-    ('G13050164', 'GUTIERREZ SALAZAR CLAUDIA MONSERRAT', 'CLAUDIA MONSERRAT',    'GUTIERREZ SALAZAR',       'F', 70, 'Ing. Gestión Emp.',         6, 'Matutino',   'F-2019-164', NULL,  'Inscrito', false, 0.00),
-    ('N12050487', 'IBARRA MARTINEZ JULIO CESAR',         'JULIO CESAR',          'IBARRA MARTINEZ',         'M', 67, 'Ing. Industrial',           8, 'Nocturno',   'F-2018-487', NULL,  'Inscrito', false, 0.00),
-    -- Hoja RECIBO
-    ('I11050186', 'GUZMAN GUAJARDO BRANDO ISRAEL',       'BRANDO ISRAEL',        'GUZMAN GUAJARDO',         'M', 69, 'Ing. Informática',          2, 'Matutino',   'F-2017-040', NULL,  'Inscrito', false, 0.00),
-    ('I11050180', 'DELGADILLO GELACIO IRMA BERENICE',    'IRMA BERENICE',        'DELGADILLO GELACIO',      'F', 69, 'Ing. Informática',          1, 'Nocturno',   'F-2017-038', NULL,  'Inscrito', true,  50.00),
-    ('I11050199', 'OROZCO ALVARADO KAREN',               'KAREN',                'OROZCO ALVARADO',         'F', 69, 'Ing. Informática',          1, 'Matutino',   'F-2017-062', NULL,  'Inscrito', true,  25.00),
-    ('E11050286', 'MARTINEZ ALFARO LUIS ANGEL',          'LUIS ANGEL',           'MARTINEZ ALFARO',         'M', 68, 'Ing. Electrónica',          1, 'Matutino',   'F-2017-080', NULL,  'Baja Temporal', false, 0.00),
-    ('E11050559', 'FLORES EVANGELISTA ESTEBAN DAMIAN',   'ESTEBAN DAMIAN',       'FLORES EVANGELISTA',      'M', 68, 'Ing. Electrónica',          1, 'Nocturno',   'F-2017-559', NULL,  'Inscrito', true,  25.00),
-    -- Alumnos adicionales de prueba
-    ('23050243',  'ORTEGON HERNANDEZ KLEBER',            'KLEBER',               'ORTEGON HERNANDEZ',       'M', 67, 'Ing. Industrial',           4, 'Matutino',   'F-2023-243', 23050, 'Inscrito', false, 0.00),
-    ('23050118',  'GARCIA ZAVALA LUIS FERNANDO',         'LUIS FERNANDO',        'GARCIA ZAVALA',           'M', 74, 'Ing. Mecatrónica',          3, 'Matutino',   'F-2023-118', 23051, 'Inscrito', false, 0.00),
-    ('22050890',  'LOPEZ SANCHEZ MARIANA',               'MARIANA',              'LOPEZ SANCHEZ',           'F', 70, 'Ing. Gestión Emp.',         6, 'Matutino',   'F-2022-890', 22050, 'Inscrito', true,  50.00),
-    ('24050012',  'RODRIGUEZ MORALES CARLOS',            'CARLOS',               'RODRIGUEZ MORALES',       'M', 69, 'Ing. Informática',          1, 'Vespertino', 'F-2024-012', 24050, 'Inscrito', false, 0.00),
-    ('21050334',  'HERNANDEZ RAMIREZ SOFIA',             'SOFIA',                'HERNANDEZ RAMIREZ',       'F', 71, 'Ing. Energías Renovables',  8, 'Matutino',   'F-2021-334', 21050, 'Egresado', false, 0.00);
-
--- ----------------------------------------------------------------------------
--- 5. HISTORIAL DE MATRÍCULAS
--- ----------------------------------------------------------------------------
-CREATE TABLE alumno_matriculas_historial (
-    id_historial      BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    matricula_alumno  VARCHAR(20) NOT NULL REFERENCES alumnos(matricula) ON DELETE CASCADE,
-    matricula_previa  VARCHAR(30) NOT NULL,
-    id_periodo        INT REFERENCES periodos_academicos(id_periodo),
-    fecha_registro    TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    motivo_cambio     TEXT
-);
+-- 62 Conceptos Oficiales de Cobro
+INSERT INTO payment_concepts (code, description, base_fee, display_order, ledger_account_code, allows_scholarship, category, is_active) VALUES
+  ('5200-001-002-004', 'INSCRIPCION SEM. AGO 2012-ENERO 2013', 1700.00, NULL, '5200', true, 'Inscripción', true),
+  ('5200-001-002-021', 'REINSCRIPCION SEM. AGOSTO 2022-ENERO 2023', 500.00, NULL, '5200', true, 'Inscripción', true),
+  ('5200-001-002-051', 'REINSCRIPCION SEM. AGOSTO 2025-ENERO 2026', 500.00, NULL, '5200', true, 'Inscripción', true),
+  ('5200-001-002-082', 'REINSCRIPCION SEM FEB-JUL 2023', 500.00, NULL, '5200', true, 'Inscripción', true),
+  ('5200-001-002-115', 'INSCRIPCION FEB 2006', 1450.00, NULL, '5200', true, 'Inscripción', true),
+  ('5200-002-001-001', 'INSCRIPCIONES', 1350.00, NULL, '5200', true, 'Inscripción', true),
+  ('5200-002-001-009', 'INSCRIPCION AGO-05', 1400.00, NULL, '5200', true, 'Inscripción', true),
+  ('5200-002-004-011', 'REINSCRIPCION SEM. FEBRERO-JULIO 2024', 500.00, NULL, '5200', true, 'Inscripción', true),
+  ('5200-004-009-023', 'INSCRIPCION AGO-2006', 1450.00, NULL, '5200', true, 'Inscripción', true),
+  ('5200-004-009-028', 'Inscripción Feb-Jul-2007', 1500.00, NULL, '5200', true, 'Inscripción', true),
+  ('5200-004-009-029', 'RECARGOS POR INSCRIPCION', 200.00, NULL, '5200', false, 'Recargos', true),
+  ('5200-004-009-058', 'INSCRIPCION AGO-ENERO 2007', 1525.00, NULL, '5200', true, 'Inscripción', true),
+  ('5200-005-001-001', 'INSCRIPCION AGO-DIC-04 NVO. ING.', 1650.00, NULL, '5200', true, 'Inscripción', true),
+  ('5200-005-001-003', 'INSCRIPCION NVO. INGRESO', 1700.00, NULL, '5200', true, 'Inscripción', true),
+  ('5200-005-001-004', 'INSCRIPCION FEBRERO-JULIO 2008', 1550.00, NULL, '5200', true, 'Inscripción', true),
+  ('5200-005-001-013', 'INSCRIPCION SEM-FEB-JULIO-2009', 1600.00, NULL, '5200', true, 'Inscripción', true),
+  ('5200-005-001-017', 'INSCRIPCION SEM-AGOSTO 08-ENERO 09', 1550.00, NULL, '5200', true, 'Inscripción', true),
+  ('5200-006-001-0040', 'INSCRIPCION SEM. FEB-JUL 2010', 1600.00, NULL, '5200', true, 'Inscripción', true),
+  ('5200-006-001-035', 'INSCRIPCION SEM. AGO 09-ENE 10', 1600.00, NULL, '5200', true, 'Inscripción', true),
+  ('5200-006-001-036', 'REINSCRIPCION SEM. FEBRERO-JULIO 2026', 800.00, NULL, '5200', true, 'Inscripción', true),
+  ('5400-001-002-0016', 'INSCRIPCION FEBRERO-JULIO 2011', 1600.00, NULL, '5400', true, 'Inscripción', true),
+  ('5400-001-002-0028', 'INSCRIPCION AGOSTO 2011-ENERO 2012', 1600.00, NULL, '5400', true, 'Inscripción', true),
+  ('5400-001-002-0037', 'INSCRIPCION SEM. FEB-JUL 2012', 1700.00, 20, '5400', true, 'Inscripción', true),
+  ('5400-001-002-0063', 'REINSCRIPCION SEM. AGOSTO 2023-ENERO 2024', 500.00, NULL, '5400', true, 'Inscripción', true),
+  ('5400-001-002-0071', 'INSCRIPCION SEM. FEB/JUL 2013', 1700.00, NULL, '5400', true, 'Inscripción', true),
+  ('5400-001-002-0079', 'INSCRIPCION SEM. AGO. 2013-ENE. 2014', 1700.00, NULL, '5400', true, 'Inscripción', true),
+  ('5400-001-002-0097', 'REINSCRIPCION SEM. FEBRERO-JULIO 2025', 500.00, NULL, '5400', true, 'Inscripción', true),
+  ('5400-001-002-0098', 'INSCRIPCION SEM FEB-JUL 2014', 1700.00, NULL, '5400', true, 'Inscripción', true),
+  ('5400-001-002-0123', 'INSCRIPCION SEM. AGOSTO 2014-ENERO 2015', 1700.00, NULL, '5400', true, 'Inscripción', true),
+  ('5400-001-002-0125', 'INSCRIPCION SEM. FEBRERO-JULIO 2015', 1700.00, NULL, '5400', true, 'Inscripción', true),
+  ('5400-001-002-0143', 'INSCRIPCION SEM. AGOSTO 2015-ENERO 2016', 1700.00, 1, '5400', true, 'Inscripción', true),
+  ('5400-001-002-0147', 'INSCRIPCION SEM. FEBRERO-JULIO 2016', 1700.00, 2, '5400', true, 'Inscripción', true),
+  ('5400-001-002-0156', 'INSCRIPCION POSGRADO', 1700.00, NULL, '5400', true, 'Inscripción', true),
+  ('5400-001-002-0160', 'INSCRIPCION SEM. AGOSTO 2017-ENERO 2018', 1700.00, 4, '5400', true, 'Inscripción', true),
+  ('5400-001-002-0163', 'INSCRIPCIÓN SEM. FEBRERO-JULIO 2018', 1700.00, 5, '5400', true, 'Inscripción', true),
+  ('5400-001-002-0224', 'INSCRIPCION NVO. INGRESO SEM. AGO 2019-ENERO 2020', 500.00, NULL, '5400', true, 'Inscripción', true),
+  ('5400-001-002-0225', 'REINSCRIPCION SEM. FEB-JUL 2020', 500.00, 10, '5400', true, 'Inscripción', true),
+  ('5400-001-002-0231', 'REINSCRIPCION AGOSTO 2020 - ENERO 2021', 500.00, 11, '5400', true, 'Inscripción', true),
+  ('5400-001-002-0236', 'REINSCRIPCION FEB-JUL 2021', 500.00, 12, '5400', true, 'Inscripción', true),
+  ('5400-001-002-0242', 'REINSCRIPCION AGOSTO 2021-ENERO 2022', 500.00, 13, '5400', true, 'Inscripción', true),
+  ('5400-001-002-0249', 'REINSCRIPCION SEM. FEB-JUL 2022', 500.00, 14, '5400', true, 'Inscripción', true),
+  ('5400-001-002-0259', 'REINSCRIPCION SEM. AGOSTO-DICIEMBRE 2024', 500.00, 15, '5400', true, 'Inscripción', true),
+  ('5400-001-003-0001', 'INSCRIPCION SEM. AGOSTO 2018-ENERO 2019', 1700.00, 6, '5400', true, 'Inscripción', true),
+  ('5400-001-003-0008', 'INSCRIPCION SEM. FEBRERO-JULIO 2019', 1700.00, 7, '5400', true, 'Inscripción', true),
+  ('5400-001-003-0011', 'INSCRIPCION AGO-DIC 2003', 1300.00, NULL, '5400', true, 'Inscripción', true),
+  ('5400-001-003-0016', 'INSCRIPCION FEBRERO-JULIO 2004', 1300.00, NULL, '5400', true, 'Inscripción', true),
+  ('5400-001-003-0022', 'INSCRIPCION ENERO-JUNIO 2017', 1700.00, 3, '5400', true, 'Inscripción', true),
+  ('5400-001-003-0030', 'REINSCRIPCION SEM. FEBRERO-JULIO 2024', 500.00, NULL, '5400', true, 'Inscripción', true),
+  ('5400-001-003-0043', 'REINSCRIPCION SEM. FEB-JUL 2022', 500.00, NULL, '5400', true, 'Inscripción', true),
+  ('5400-001-003-0050', 'INSCRIPCIONES DE MAESTRIA', 2300.00, NULL, '5400', true, 'Inscripción', true),
+  ('5400-001-003-0055', 'REINSCRIPCION SEM. AGOSTO 2024-ENERO 2025', 500.00, NULL, '5400', true, 'Inscripción', true),
+  ('5400-001-003-0063', 'REINSCRIPCION SEM. AGOSTO 2023-ENERO 2024', 500.00, NULL, '5400', true, 'Inscripción', true),
+  ('5400-001-003-0068', 'REINSCRIPCION SEM. FEBRERO-JULIO 2023', 500.00, NULL, '5400', true, 'Inscripción', true),
+  ('5400-001-003-0081', 'INSCRIPCION NVO. ING. SEM. AGOSTO-DICIEMBRE 2024', 2000.00, 16, '5400', true, 'Inscripción', true),
+  ('5400-001-003-0097', 'REINSCRIPCION SEM. FEBRERO-JULIO 2025', 500.00, NULL, '5400', true, 'Inscripción', true),
+  ('5400-001-005-0001', 'INSCRIPCION ENERO-JUNIO 2005', 1350.00, NULL, '5400', true, 'Inscripción', true),
+  ('5400-001-005-0013', 'INSCRIPCION SEM. AGOSTO 2016-ENERO 2017', 1700.00, NULL, '5400', true, 'Inscripción', true),
+  ('INSC-VIG', 'CUOTA DE INSCRIPCION VIGENTE', 1700.00, 1, '5400', true, 'Inscripción', true),
+  ('KARD', 'EXPEDICION DE KARDEX OFICIAL', 100.00, 2, '5400', false, 'Constancias', true),
+  ('CONST', 'CONSTANCIA DE ESTUDIOS CON CALIFICACIONES', 80.00, 3, '5400', false, 'Constancias', true),
+  ('TITU', 'TRAMITE INTEGRAL DE TITULACION', 3500.00, 4, '5400', false, 'Titulación', true),
+  ('VERA', 'CURSO DE VERANO POR MATERIA', 1200.00, 5, '5400', false, 'Cursos', true)
+ON CONFLICT (code) DO NOTHING;
 
 -- ----------------------------------------------------------------------------
--- 6. BECAS Y DESCUENTOS
+-- 4. TRIGGER: REVERSIÓN AUTOMÁTICA DE ADEUDOS POR CANCELACIÓN
 -- ----------------------------------------------------------------------------
-CREATE TABLE becas_descuentos (
-    id_beca             BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    matricula           VARCHAR(20) NOT NULL REFERENCES alumnos(matricula) ON DELETE CASCADE,
-    id_periodo          INT NOT NULL REFERENCES periodos_academicos(id_periodo),
-    tipo_beca           VARCHAR(50) NOT NULL DEFAULT 'ACADEMICA',
-    porcentaje          NUMERIC(5, 2) DEFAULT 0.00 CHECK (porcentaje BETWEEN 0 AND 100),
-    monto_fijo          NUMERIC(12, 4) DEFAULT 0.00,
-    motivo              VARCHAR(250),
-    activa              BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at          TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-INSERT INTO becas_descuentos (matricula, id_periodo, tipo_beca, porcentaje, monto_fijo, motivo, activa)
-VALUES
-    ('22050890', (SELECT id_periodo FROM periodos_academicos WHERE codigo = '2026-1'), 'ACADEMICA', 50.00, 0.00, 'Promedio superior a 95', true),
-    ('I11050180', (SELECT id_periodo FROM periodos_academicos WHERE codigo = '2012-1'), 'APOYO_INSTITUCIONAL', 5.88, 100.00, 'Convenio sindical', true);
-
--- ----------------------------------------------------------------------------
--- 7. ADEUDOS DE ALUMNOS
--- ----------------------------------------------------------------------------
-CREATE TABLE adeudos (
-    id_adeudo           BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    matricula           VARCHAR(20) NOT NULL REFERENCES alumnos(matricula) ON DELETE CASCADE,
-    concepto_cobro      VARCHAR(100) NOT NULL,
-    id_periodo          INT NOT NULL REFERENCES periodos_academicos(id_periodo),
-    monto_original      NUMERIC(12, 4) NOT NULL,
-    saldo_pendiente     NUMERIC(12, 4) NOT NULL,
-    fecha_limite        DATE,
-    estado              VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE' CHECK (estado IN ('PENDIENTE', 'PARCIAL', 'LIQUIDADO', 'CONDONADO')),
-    created_at          TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_adeudos_alumno ON adeudos(matricula);
-CREATE INDEX idx_adeudos_periodo ON adeudos(id_periodo);
-
-INSERT INTO adeudos (matricula, concepto_cobro, id_periodo, monto_original, saldo_pendiente, fecha_limite, estado)
-VALUES
-    ('23050243', 'Pago de Inscripción', (SELECT id_periodo FROM periodos_academicos WHERE codigo = '2025-2'), 2600.00, 2600.00, '2025-10-30', 'PENDIENTE'),
-    ('23050243', 'Pago de Inscripción', (SELECT id_periodo FROM periodos_academicos WHERE codigo = '2025-1'), 2450.00, 1000.00, '2025-04-30', 'PARCIAL'),
-    ('N2305000', 'Curso de Verano',     (SELECT id_periodo FROM periodos_academicos WHERE codigo = '2024-2'), 1200.00, 1200.00, '2024-07-15', 'PENDIENTE');
-
--- ----------------------------------------------------------------------------
--- 8. CONCEPTOS DE COBRO
--- ----------------------------------------------------------------------------
-CREATE TABLE conceptos_cobro (
-    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    clave             VARCHAR(30) UNIQUE NOT NULL,
-    descripcion       VARCHAR(200) NOT NULL,
-    cuota_base        NUMERIC(12, 4) NOT NULL,
-    orden             INT,
-    cuenta_referencia VARCHAR(30),
-    aplica_beca       BOOLEAN NOT NULL DEFAULT FALSE,
-    categoria         VARCHAR(50) NOT NULL DEFAULT 'Inscripción',
-    is_active         BOOLEAN NOT NULL DEFAULT TRUE
-);
-
-CREATE INDEX idx_conceptos_clave ON conceptos_cobro(clave);
-CREATE INDEX idx_conceptos_categoria ON conceptos_cobro(categoria);
-
-INSERT INTO conceptos_cobro (clave, descripcion, cuota_base, orden, cuenta_referencia, aplica_beca, categoria, is_active) VALUES
--- Cuentas oficiales del catálogo Excel TecNM
-('5200-001-002-004', 'INSCRIPCION SEM. AGO 2012-ENERO 2013', 1700.00, NULL, '5200', true, 'Inscripción', true),
-('5200-001-002-021', 'REINSCRIPCION SEM. AGOSTO 2022-ENERO 2023', 500.00, NULL, '5200', true, 'Inscripción', true),
-('5200-001-002-051', 'REINSCRIPCION SEM. AGOSTO 2025-ENERO 2026', 500.00, NULL, '5200', true, 'Inscripción', true),
-('5200-001-002-082', 'REINSCRIPCION SEM FEB-JUL 2023', 500.00, NULL, '5200', true, 'Inscripción', true),
-('5200-001-002-115', 'INSCRIPCION FEB 2006', 1450.00, NULL, '5200', true, 'Inscripción', true),
-('5200-002-001-001', 'INSCRIPCIONES', 1350.00, NULL, '5200', true, 'Inscripción', true),
-('5200-002-001-009', 'INSCRIPCION AGO-05', 1400.00, NULL, '5200', true, 'Inscripción', true),
-('5200-002-004-011', 'REINSCRIPCION SEM. FEBRERO-JULIO 2024', 500.00, NULL, '5200', true, 'Inscripción', true),
-('5200-004-009-023', 'INSCRIPCION AGO-2006', 1450.00, NULL, '5200', true, 'Inscripción', true),
-('5200-004-009-028', 'Inscripción Feb-Jul-2007', 1500.00, NULL, '5200', true, 'Inscripción', true),
-('5200-004-009-029', 'RECARGOS POR INSCRIPCION', 200.00, NULL, '5200', false, 'Recargos', true),
-('5200-004-009-058', 'INSCRIPCION AGO-ENERO 2007', 1525.00, NULL, '5200', true, 'Inscripción', true),
-('5200-005-001-001', 'INSCRIPCION AGO-DIC-04 NVO. ING.', 1650.00, NULL, '5200', true, 'Inscripción', true),
-('5200-005-001-003', 'INSCRIPCION NVO. INGRESO', 1700.00, NULL, '5200', true, 'Inscripción', true),
-('5200-005-001-004', 'INSCRIPCION FEBRERO-JULIO 2008', 1550.00, NULL, '5200', true, 'Inscripción', true),
-('5200-005-001-013', 'INSCRIPCION SEM-FEB-JULIO-2009', 1600.00, NULL, '5200', true, 'Inscripción', true),
-('5200-005-001-017', 'INSCRIPCION SEM-AGOSTO 08-ENERO 09', 1550.00, NULL, '5200', true, 'Inscripción', true),
-('5200-006-001-0040', 'INSCRIPCION SEM. FEB-JUL 2010', 1600.00, NULL, '5200', true, 'Inscripción', true),
-('5200-006-001-035', 'INSCRIPCION SEM. AGO 09-ENE 10', 1600.00, NULL, '5200', true, 'Inscripción', true),
-('5200-006-001-036', 'REINSCRIPCION SEM. FEBRERO-JULIO 2026', 800.00, NULL, '5200', true, 'Inscripción', true),
-('5400-001-002-0016', 'INSCRIPCION FEBRERO-JULIO 2011', 1600.00, NULL, '5400', true, 'Inscripción', true),
-('5400-001-002-0028', 'INSCRIPCION AGOSTO 2011-ENERO 2012', 1600.00, NULL, '5400', true, 'Inscripción', true),
-('5400-001-002-0037', 'INSCRIPCION SEM. FEB-JUL 2012', 1700.00, 20, '5400', true, 'Inscripción', true),
-('5400-001-002-0063', 'REINSCRIPCION SEM. AGOSTO 2023-ENERO 2024', 500.00, NULL, '5400', true, 'Inscripción', true),
-('5400-001-002-0071', 'INSCRIPCION SEM. FEB/JUL 2013', 1700.00, NULL, '5400', true, 'Inscripción', true),
-('5400-001-002-0079', 'INSCRIPCION SEM. AGO. 2013-ENE. 2014', 1700.00, NULL, '5400', true, 'Inscripción', true),
-('5400-001-002-0097', 'REINSCRIPCION SEM. FEBRERO-JULIO 2025', 500.00, NULL, '5400', true, 'Inscripción', true),
-('5400-001-002-0098', 'INSCRIPCION SEM FEB-JUL 2014', 1700.00, NULL, '5400', true, 'Inscripción', true),
-('5400-001-002-0123', 'INSCRIPCION SEM. AGOSTO 2014-ENERO 2015', 1700.00, NULL, '5400', true, 'Inscripción', true),
-('5400-001-002-0125', 'INSCRIPCION SEM. FEBRERO-JULIO 2015', 1700.00, NULL, '5400', true, 'Inscripción', true),
-('5400-001-002-0143', 'INSCRIPCION SEM. AGOSTO 2015-ENERO 2016', 1700.00, 1, '5400', true, 'Inscripción', true),
-('5400-001-002-0147', 'INSCRIPCION SEM. FEBRERO-JULIO 2016', 1700.00, 2, '5400', true, 'Inscripción', true),
-('5400-001-002-0156', 'INSCRIPCION POSGRADO', 1700.00, NULL, '5400', true, 'Inscripción', true),
-('5400-001-002-0160', 'INSCRIPCION SEM. AGOSTO 2017-ENERO 2018', 1700.00, 4, '5400', true, 'Inscripción', true),
-('5400-001-002-0163', 'INSCRIPCIÓN SEM. FEBRERO-JULIO 2018', 1700.00, 5, '5400', true, 'Inscripción', true),
-('5400-001-002-0224', 'INSCRIPCION NVO. INGRESO SEM. AGO 2019-ENERO 2020', 500.00, NULL, '5400', true, 'Inscripción', true),
-('5400-001-002-0225', 'REINSCRIPCION SEM. FEB-JUL 2020', 500.00, 10, '5400', true, 'Inscripción', true),
-('5400-001-002-0231', 'REINSCRIPCION AGOSTO 2020 - ENERO 2021', 500.00, 11, '5400', true, 'Inscripción', true),
-('5400-001-002-0232', 'INSCRIPCION NVO. INGRESO AGOSTO 2020 - ENERO 2021', 500.00, NULL, '5400', true, 'Inscripción', true),
-('5400-001-002-0236', 'REINSCRIPCION SEM. FEB-JUL 2021', 500.00, 13, '5400', true, 'Inscripción', true),
-('5400-001-002-0258', 'REINSCRIPCION SEM. AGOSTO 2021-ENERO 2022', 500.00, 15, '5400', true, 'Inscripción', true),
-('5400-001-002-0259', 'INSCRIPCION NVO. INGRESO SEM. AGO-2021-ENERO 2022', 500.00, NULL, '5400', true, 'Inscripción', true),
-('5400-001-002-0262', 'REINSCRIPCION SEM. FEB-JUL 2022', 500.00, NULL, '5400', true, 'Inscripción', true),
-('5400-001-003-0017', 'INSCRIPCION AGOSTO 2016 ENERO 2017', 1700.00, NULL, '5400', true, 'Inscripción', true),
-('5400-001-003-0022', 'REINSCRIPCION SEM. AGOSTO 2024-ENERO 2025', 500.00, NULL, '5400', true, 'Inscripción', true),
-('5400-001-003-0024', 'INSCRIPCION SEM. FEBRERO-JULIO 2017', 1700.00, 3, '5400', true, 'Inscripción', true),
-('5400-001-003-0084', 'INSCRIPCION SEM. AGOSTO 2018-ENERO 2019', 1700.00, 6, '5400', true, 'Inscripción', true),
-('5400-001-003-0090', 'INSCRIPCION SEM. FEBRERO-JULIO 2019', 1700.00, 7, '5400', true, 'Inscripción', true),
-('5400-001-003-0094', 'REINSCRIPCION SEM. AGOSTO 2026-ENERO 2027', 800.00, 8, '5400', true, 'Inscripción', true),
-('54001-002-009', 'INSCRIPCION AGOSTO 2010-ENERO 2011', 1600.00, NULL, '5400', true, 'Inscripción', true),
--- Conceptos operativos institucionales y de servicios
-('INSC-VIG',         'Pago de Inscripción (Periodo Vigente 2026)',   2600.00, 50, '5200', true,  'Inscripción', true),
-('INSC-ANT',         'Adeudo Inscripción Periodos Anteriores',       2450.00, 51, '5200', false, 'Inscripción', true),
-('5400-001-003-0001', 'REINSCRIPCION SEMESTRAL TARIFA 1',             520.00, 60, '5400', false, 'Inscripción', true),
-('5400-001-003-0002', 'REINSCRIPCION SEMESTRAL TARIFA 2',             620.00, 61, '5400', false, 'Inscripción', true),
-('5400-001-003-0003', 'REINSCRIPCION SEMESTRAL TARIFA 3',             620.00, 62, '5400', false, 'Inscripción', true),
-('5400-001-003-0005', 'REINSCRIPCION SEMESTRAL TARIFA 5',             700.00, 63, '5400', false, 'Inscripción', true),
-('5400-001-003-0006', 'REINSCRIPCION SEMESTRAL TARIFA 6',             700.00, 64, '5400', false, 'Inscripción', true),
-('5400-001-002-0038', 'DESCUENTO DE INSCRIPCION',                    -100.00, 65, '5400', false, 'Descuentos',  true),
-('KARD',              'KARDEX OFICIAL',                               150.00, 70, '5200', false, 'Constancias',  true),
-('CONST',             'Constancia de Estudios con Calificaciones',    100.00, 71, '5200', false, 'Constancias',  true),
-('VERA',              'Curso de Verano (Por Asignatura)',            1200.00, 72, '5200', false, 'Cursos',       true),
-('TITU',              'Trámite de Titulación Integral y Cédula',     3800.00, 73, '5200', false, 'Otros',        true);
-
--- ----------------------------------------------------------------------------
--- 9. FOLIOS ADMINISTRATIVOS
--- ----------------------------------------------------------------------------
-CREATE TABLE folios (
-    numero_folio    BIGINT PRIMARY KEY,
-    serie           VARCHAR(10) NOT NULL DEFAULT 'A',
-    fecha_creacion  TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    observaciones   TEXT
-);
-
-INSERT INTO folios (numero_folio, serie) VALUES
-(1, 'A'), (2, 'A'), (3, 'A'), (4, 'A'), (5, 'A'), (9, 'A'), (10, 'A'), (12, 'A'), (14, 'A'), (18, 'A'),
-(2922, 'B'), (3354, 'B'), (3661, 'B'), (3662, 'B'), (3692, 'B'),
-(5001, 'C'), (5002, 'C'), (5003, 'C');
-
--- ----------------------------------------------------------------------------
--- 10. PÓLIZAS DE INGRESO
--- ----------------------------------------------------------------------------
-CREATE TABLE polizas_ingreso (
-    id_poliza       BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    numero_poliza   VARCHAR(50) UNIQUE NOT NULL,
-    fecha_poliza    DATE NOT NULL DEFAULT CURRENT_DATE,
-    total_recaudado NUMERIC(12, 4) NOT NULL DEFAULT 0.00,
-    cajero_usuario  VARCHAR(64) NOT NULL,
-    estado          VARCHAR(20) NOT NULL DEFAULT 'ABIERTA' CHECK (estado IN ('ABIERTA', 'CONSOLIDADA', 'CANCELADA')),
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-INSERT INTO polizas_ingreso (numero_poliza, fecha_poliza, total_recaudado, cajero_usuario, estado) VALUES
-('POL-2016-06-001', '2016-06-07', 2880.00, 'cajero1', 'CONSOLIDADA'),
-('POL-2016-06-002', '2016-06-08', 3260.00, 'cajero1', 'CONSOLIDADA'),
-('POL-2012-01-001', '2012-01-23', 6500.00, 'cajero2', 'CONSOLIDADA');
-
--- ----------------------------------------------------------------------------
--- 11. RECIBOS
--- ----------------------------------------------------------------------------
-CREATE SEQUENCE recibos_numero_recibo_seq START WITH 128450;
-
-CREATE TABLE recibos (
-    id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    numero_recibo        BIGINT NOT NULL DEFAULT nextval('recibos_numero_recibo_seq') UNIQUE,
-    folio_administrativo VARCHAR(50) NOT NULL,
-    fecha_operacion      TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    fecha_efectiva_pago  TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    alumno_matricula     VARCHAR(20) NOT NULL REFERENCES alumnos(matricula),
-    alumno_nombre        VARCHAR(160) NOT NULL,
-    alumno_carrera       VARCHAR(100) NOT NULL,
-    alumno_semestre      INTEGER NOT NULL,
-    alumno_turno         VARCHAR(20) NOT NULL,
-    metodo_pago          VARCHAR(30) NOT NULL,
-    referencia_bancaria  VARCHAR(50),
-    cuenta_bancaria      VARCHAR(50),
-    fecha_bancaria       TIMESTAMPTZ,
-    subtotal             NUMERIC(12, 4) NOT NULL,
-    descuento_total      NUMERIC(12, 4) NOT NULL,
-    total                NUMERIC(12, 4) NOT NULL,
-    status               SMALLINT NOT NULL DEFAULT 1,
-    estado               VARCHAR(20) NOT NULL DEFAULT 'REGISTRADO',
-    tipo_recibo          VARCHAR(20) NOT NULL DEFAULT 'DEFINITIVO' CHECK (tipo_recibo IN ('PREVIO', 'DEFINITIVO')),
-    is_locked            BOOLEAN NOT NULL DEFAULT FALSE,
-    poliza_id            BIGINT REFERENCES polizas_ingreso(id_poliza),
-    motivo_cancelacion   VARCHAR(500),
-    fecha_cancelacion    TIMESTAMPTZ,
-    cajero_usuario       VARCHAR(64) NOT NULL,
-    cajero_nombre        VARCHAR(160) NOT NULL
-);
-
-CREATE INDEX idx_recibos_numero ON recibos(numero_recibo);
-CREATE INDEX idx_recibos_folio ON recibos(folio_administrativo);
-CREATE INDEX idx_recibos_matricula ON recibos(alumno_matricula);
-CREATE INDEX idx_recibos_referencia ON recibos(referencia_bancaria);
-CREATE INDEX idx_recibos_fecha ON recibos(fecha_operacion);
-CREATE INDEX idx_recibos_estado ON recibos(estado);
-CREATE INDEX idx_recibos_fecha_estado ON recibos(fecha_operacion, estado);
-
--- ----------------------------------------------------------------------------
--- FUNCIÓN Y TRIGGER: REVERSIÓN AUTOMÁTICA DE ADEUDOS POR CANCELACIÓN
--- Regla de negocio y auditoría: al cancelar un recibo, cualquier adeudo que
--- hubiese sido amortizado o liquidado por este recibo regresa a 'PENDIENTE'
--- y restaura su saldo original automáticamente.
--- ----------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION fn_revertir_adeudo_por_cancelacion()
+CREATE OR REPLACE FUNCTION fn_reverse_debt_on_cancellation()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF NEW.estado = 'CANCELADO' AND (OLD.estado IS NULL OR OLD.estado != 'CANCELADO') THEN
-        UPDATE adeudos a
-        SET estado = 'PENDIENTE',
-            saldo_pendiente = a.monto_original
-        WHERE a.matricula = NEW.alumno_matricula
-          AND a.estado IN ('LIQUIDADO', 'PARCIAL')
+    IF NEW.status IN ('CANCELLED', 'CANCELADO') AND (OLD.status IS NULL OR OLD.status NOT IN ('CANCELLED', 'CANCELADO')) THEN
+        UPDATE student_debts sd
+        SET status = 'PENDING',
+            pending_balance = sd.original_amount
+        WHERE sd.student_id = NEW.student_id
+          AND sd.status IN ('SETTLED', 'PARTIAL', 'LIQUIDADO')
           AND EXISTS (
               SELECT 1 
-              FROM detalles_recibo d
-              WHERE d.recibo_id = NEW.id
-                AND (d.descripcion ILIKE '%' || a.concepto_cobro || '%' OR a.concepto_cobro ILIKE '%' || d.descripcion || '%')
+              FROM receipt_items ri
+              WHERE ri.receipt_id = NEW.id
+                AND (ri.description ILIKE '%' || sd.concept_name || '%' OR sd.concept_name ILIKE '%' || ri.description || '%')
           );
     END IF;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-DROP TRIGGER IF EXISTS trg_revertir_adeudo_cancelacion ON recibos;
-CREATE TRIGGER trg_revertir_adeudo_cancelacion
-AFTER UPDATE OF estado ON recibos
+DROP TRIGGER IF EXISTS trg_reverse_debt_cancellation ON receipts;
+CREATE TRIGGER trg_reverse_debt_cancellation
+AFTER UPDATE OF status ON receipts
 FOR EACH ROW
-EXECUTE FUNCTION fn_revertir_adeudo_por_cancelacion();
-
--- Poblado de Recibos PREVIOS
-INSERT INTO recibos (
-    id, folio_administrativo, fecha_operacion, alumno_matricula, alumno_nombre, alumno_carrera, alumno_semestre, alumno_turno,
-    metodo_pago, referencia_bancaria, subtotal, descuento_total, total, status, estado, tipo_recibo, cajero_usuario, cajero_nombre
-) VALUES
-('b0000000-0000-4000-8000-000000000001', '1',  '2016-06-07 08:30:00-06', 'N13050045', 'PEREZ SIFUENTES ALDO ULISES',         'Ing. Industrial',          6, 'Matutino', 'EFECTIVO', '0', 620.00, 0.00, 620.00, 1, 'PREVIO', 'PREVIO', 'cajero1', 'Cajero Turno Matutino'),
-('b0000000-0000-4000-8000-000000000002', '2',  '2016-06-07 09:15:00-06', 'N13050041', 'ORTIZ DURON LUIS MANUEL',             'Ing. Industrial',          6, 'Matutino', 'EFECTIVO', '0', 620.00, 0.00, 620.00, 1, 'PREVIO', 'PREVIO', 'cajero1', 'Cajero Turno Matutino'),
-('b0000000-0000-4000-8000-000000000003', '3',  '2016-06-07 10:00:00-06', 'G13050156', 'DAVILA HERNANDEZ ANA PATRICIA',       'Ing. Gestión Emp.',         5, 'Matutino', 'EFECTIVO', '0', 620.00, 0.00, 620.00, 1, 'PREVIO', 'PREVIO', 'cajero1', 'Cajero Turno Matutino'),
-('b0000000-0000-4000-8000-000000000004', '4',  '2016-06-07 11:20:00-06', 'E15050004', 'REQUENA RODRIGUEZ NESTOR OMAR',       'Ing. Electrónica',         3, 'Nocturno', 'EFECTIVO', '0', 520.00, 0.00, 520.00, 1, 'PREVIO', 'PREVIO', 'cajero1', 'Cajero Turno Matutino'),
-('b0000000-0000-4000-8000-000000000005', '5',  '2016-06-07 12:45:00-06', 'N12050104', 'BARRERA TOVAR JESUS ENRIQUE',         'Ing. Industrial',          8, 'Nocturno', 'EFECTIVO', '0', 520.00, 0.00, 520.00, 1, 'PREVIO', 'PREVIO', 'cajero1', 'Cajero Turno Matutino'),
-('b0000000-0000-4000-8000-000000000006', '9',  '2016-06-08 08:45:00-06', 'G13050219', 'HERNANDEZ CASTILLO ARELY SARAHI',     'Ing. Gestión Emp.',         6, 'Matutino', 'EFECTIVO', '0', 620.00, 0.00, 620.00, 1, 'PREVIO', 'PREVIO', 'cajero1', 'Cajero Turno Matutino'),
-('b0000000-0000-4000-8000-000000000007', '10', '2016-06-08 09:30:00-06', 'G14050252', 'MUÑOZ DE LEON ILSE ARACELI',          'Ing. Gestión Emp.',         4, 'Matutino', 'EFECTIVO', '0', 620.00, 0.00, 620.00, 1, 'PREVIO', 'PREVIO', 'cajero1', 'Cajero Turno Matutino'),
-('b0000000-0000-4000-8000-000000000008', '12', '2016-06-08 10:15:00-06', 'N15050011', 'VILLASTRIGO GARCIA SABINO EMMANUEL',  'Ing. Industrial',          2, 'Matutino', 'EFECTIVO', '0', 700.00, 0.00, 700.00, 1, 'PREVIO', 'PREVIO', 'cajero1', 'Cajero Turno Matutino'),
-('b0000000-0000-4000-8000-000000000009', '14', '2016-06-08 11:10:00-06', 'G13050164', 'GUTIERREZ SALAZAR CLAUDIA MONSERRAT', 'Ing. Gestión Emp.',         6, 'Matutino', 'EFECTIVO', '0', 620.00, 0.00, 620.00, 1, 'PREVIO', 'PREVIO', 'cajero1', 'Cajero Turno Matutino'),
-('b0000000-0000-4000-8000-000000000010', '18', '2016-06-08 12:00:00-06', 'N12050487', 'IBARRA MARTINEZ JULIO CESAR',         'Ing. Industrial',          8, 'Nocturno', 'EFECTIVO', '0', 700.00, 0.00, 700.00, 1, 'PREVIO', 'PREVIO', 'cajero1', 'Cajero Turno Matutino');
-
--- Poblado de Recibos DEFINITIVOS
-INSERT INTO recibos (
-    id, folio_administrativo, fecha_operacion, alumno_matricula, alumno_nombre, alumno_carrera, alumno_semestre, alumno_turno,
-    metodo_pago, referencia_bancaria, subtotal, descuento_total, total, status, estado, tipo_recibo, cajero_usuario, cajero_nombre
-) VALUES
-('c0000000-0000-4000-8000-000000000001', '3692', '2012-01-23 10:00:00-06', 'I11050186', 'GUZMAN GUAJARDO BRANDO ISRAEL',        'Ing. Informática', 2, 'Matutino', 'DEPOSITO_BANCARIO', 'REF-2012-001', 1700.00,   0.00, 1700.00, 1, 'REGISTRADO', 'DEFINITIVO', 'cajero2', 'Cajero Turno Nocturno'),
-('c0000000-0000-4000-8000-000000000002', '3354', '2012-01-23 10:30:00-06', 'I11050180', 'DELGADILLO GELACIO IRMA BERENICE',     'Ing. Informática', 1, 'Nocturno', 'DEPOSITO_BANCARIO', 'REF-2012-002', 1700.00, 100.00, 1600.00, 1, 'REGISTRADO', 'DEFINITIVO', 'cajero2', 'Cajero Turno Nocturno'),
-('c0000000-0000-4000-8000-000000000003', '3661', '2012-01-23 11:00:00-06', 'I11050199', 'OROZCO ALVARADO KAREN',                'Ing. Informática', 1, 'Matutino', 'DEPOSITO_BANCARIO', 'REF-2012-003', 1700.00, 100.00, 1600.00, 1, 'REGISTRADO', 'DEFINITIVO', 'cajero2', 'Cajero Turno Nocturno'),
-('c0000000-0000-4000-8000-000000000004', '2922', '2012-01-23 11:30:00-06', 'E11050286', 'MARTINEZ ALFARO LUIS ANGEL',           'Ing. Electrónica', 1, 'Matutino', 'DEPOSITO_BANCARIO', 'REF-2012-004', 1700.00, 100.00, 1600.00, 0, 'CANCELADO',  'DEFINITIVO', 'cajero1', 'Cajero Turno Matutino'),
-('c0000000-0000-4000-8000-000000000005', '3662', '2012-01-23 12:00:00-06', 'E11050559', 'FLORES EVANGELISTA ESTEBAN DAMIAN',    'Ing. Electrónica', 1, 'Nocturno', 'DEPOSITO_BANCARIO', 'REF-2012-005', 1700.00, 100.00, 1600.00, 1, 'REGISTRADO', 'DEFINITIVO', 'cajero2', 'Cajero Turno Nocturno');
+EXECUTE FUNCTION fn_reverse_debt_on_cancellation();
 
 -- ----------------------------------------------------------------------------
--- 12. DETALLES DE RECIBO
+-- 5. VISTAS ANALÍTICAS EN INGLÉS (REPORTES FORMALES)
 -- ----------------------------------------------------------------------------
-CREATE TABLE detalles_recibo (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    recibo_id       UUID NOT NULL REFERENCES recibos(id) ON DELETE CASCADE,
-    concepto_id     UUID REFERENCES conceptos_cobro(id) ON DELETE SET NULL,
-    descripcion     VARCHAR(200) NOT NULL,
-    cantidad        INTEGER NOT NULL,
-    cuota_unitario  NUMERIC(12, 4) NOT NULL,
-    descuento_beca  NUMERIC(12, 4) NOT NULL,
-    importe_total   NUMERIC(12, 4) NOT NULL,
-    periodo_ano     VARCHAR(20)
-);
-
-CREATE INDEX idx_detalles_recibo ON detalles_recibo(recibo_id);
-CREATE INDEX idx_detalles_concepto ON detalles_recibo(concepto_id);
-
-INSERT INTO detalles_recibo (recibo_id, concepto_id, descripcion, cantidad, cuota_unitario, descuento_beca, importe_total, periodo_ano)
-SELECT r.id, c.id, c.descripcion, 1, c.cuota_base, 0.00, c.cuota_base, '2016-1'
-FROM recibos r
-JOIN conceptos_cobro c ON (
-    (r.folio_administrativo IN ('1','2','3','9','10','14') AND c.clave = '5400-001-003-0003') OR
-    (r.folio_administrativo = '4' AND c.clave = '5400-001-003-0002') OR
-    (r.folio_administrativo = '5' AND c.clave = '5400-001-003-0001') OR
-    (r.folio_administrativo = '12' AND c.clave = '5400-001-003-0006') OR
-    (r.folio_administrativo = '18' AND c.clave = '5400-001-003-0005')
-)
-WHERE r.tipo_recibo = 'PREVIO';
-
-INSERT INTO detalles_recibo (recibo_id, concepto_id, descripcion, cantidad, cuota_unitario, descuento_beca, importe_total, periodo_ano)
-SELECT r.id, c.id, c.descripcion, 1, 1700.00, 0.00, 1700.00, '2012-1'
-FROM recibos r
-CROSS JOIN conceptos_cobro c
-WHERE r.tipo_recibo = 'DEFINITIVO' AND c.clave = '5400-001-002-0037';
-
-INSERT INTO detalles_recibo (recibo_id, concepto_id, descripcion, cantidad, cuota_unitario, descuento_beca, importe_total, periodo_ano)
-SELECT r.id, c.id, c.descripcion, 1, -100.00, 0.00, -100.00, '2012-1'
-FROM recibos r
-CROSS JOIN conceptos_cobro c
-WHERE r.folio_administrativo IN ('3354','3661','2922','3662') AND c.clave = '5400-001-002-0038';
-
--- ----------------------------------------------------------------------------
--- 13. MOVIMIENTOS DE PAGO
--- ----------------------------------------------------------------------------
-CREATE TABLE movimientos_pago (
-    id_movimiento       BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    recibo_id           UUID NOT NULL REFERENCES recibos(id) ON DELETE CASCADE,
-    forma_pago          VARCHAR(30) NOT NULL CHECK (forma_pago IN ('EFECTIVO', 'DEPOSITO_BANCARIO', 'TRANSFERENCIA', 'TARJETA_DEBITO', 'TARJETA_CREDITO')),
-    referencia_bancaria VARCHAR(100),
-    monto               NUMERIC(12, 4) NOT NULL CHECK (monto > 0),
-    fecha_movimiento    TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    cajero_usuario      VARCHAR(64) NOT NULL
-);
-
-CREATE INDEX idx_movimientos_recibo ON movimientos_pago(recibo_id);
-CREATE INDEX idx_movimientos_forma ON movimientos_pago(forma_pago);
-
-INSERT INTO movimientos_pago (recibo_id, forma_pago, referencia_bancaria, monto, fecha_movimiento, cajero_usuario)
-SELECT r.id, 'EFECTIVO', '0', r.total, r.fecha_operacion, r.cajero_usuario
-FROM recibos r
-WHERE r.tipo_recibo = 'PREVIO';
-
-INSERT INTO movimientos_pago (recibo_id, forma_pago, referencia_bancaria, monto, fecha_movimiento, cajero_usuario)
-SELECT r.id, 'DEPOSITO_BANCARIO', r.referencia_bancaria, r.total, r.fecha_operacion, r.cajero_usuario
-FROM recibos r
-WHERE r.tipo_recibo = 'DEFINITIVO';
-
--- ============================================================================
--- VISTAS INTELIGENTES PARA REPORTES Y EXPORTACIÓN A EXCEL
--- ============================================================================
-
-CREATE OR REPLACE VIEW vw_corte_diario_caja AS
+CREATE VIEW vw_daily_cash_cut AS
 SELECT 
-    r.fecha_operacion::DATE AS fecha,
-    r.cajero_usuario,
-    r.cajero_nombre,
-    m.forma_pago,
-    COUNT(DISTINCT r.id) AS total_recibos_emitidos,
-    COUNT(DISTINCT CASE WHEN r.estado = 'CANCELADO' THEN r.id END) AS recibos_cancelados,
-    SUM(CASE WHEN r.estado != 'CANCELADO' THEN m.monto ELSE 0 END) AS total_recaudado
-FROM recibos r
-LEFT JOIN movimientos_pago m ON r.id = m.recibo_id
-GROUP BY r.fecha_operacion::DATE, r.cajero_usuario, r.cajero_nombre, m.forma_pago;
+    r.issued_at::DATE AS cut_date,
+    r.cashier_username,
+    r.cashier_name,
+    pt.payment_method,
+    COUNT(DISTINCT r.id) AS total_receipts_issued,
+    COUNT(DISTINCT CASE WHEN r.status IN ('CANCELLED', 'CANCELADO') THEN r.id END) AS cancelled_receipts,
+    SUM(CASE WHEN r.status NOT IN ('CANCELLED', 'CANCELADO') THEN pt.amount ELSE 0 END) AS total_collected
+FROM receipts r
+LEFT JOIN payment_transactions pt ON r.id = pt.receipt_id
+GROUP BY r.issued_at::DATE, r.cashier_username, r.cashier_name, pt.payment_method;
 
-CREATE OR REPLACE VIEW vw_reporte_recibos_detallado AS
+CREATE VIEW vw_receipt_details_report AS
 SELECT 
-    r.id AS recibo_id,
-    r.numero_recibo,
-    r.folio_administrativo,
-    r.fecha_operacion,
-    r.fecha_efectiva_pago,
-    r.alumno_matricula,
-    r.alumno_nombre,
-    r.alumno_carrera,
-    r.alumno_semestre,
-    r.alumno_turno,
-    d.descripcion AS concepto_detalle,
-    d.cantidad,
-    d.cuota_unitario,
-    d.descuento_beca,
-    d.importe_total AS importe_renglon,
-    r.total AS total_recibo,
-    r.metodo_pago,
-    r.referencia_bancaria,
-    r.tipo_recibo,
-    r.estado AS estado_recibo,
-    r.motivo_cancelacion,
-    r.fecha_cancelacion,
-    r.cajero_usuario,
-    r.cajero_nombre
-FROM recibos r
-JOIN detalles_recibo d ON r.id = d.recibo_id;
+    r.id AS receipt_id,
+    r.receipt_number,
+    r.folio_number,
+    r.issued_at,
+    r.effective_payment_date,
+    r.student_id,
+    r.student_name,
+    r.student_career,
+    r.student_semester,
+    r.student_shift,
+    ri.description AS item_description,
+    ri.quantity,
+    ri.unit_price,
+    ri.scholarship_discount,
+    ri.total_amount AS item_total,
+    r.total AS receipt_total,
+    r.payment_method,
+    r.bank_reference,
+    r.receipt_type,
+    r.status AS receipt_status,
+    r.cancellation_reason,
+    r.cancelled_at,
+    r.cashier_username,
+    r.cashier_name
+FROM receipts r
+JOIN receipt_items ri ON r.id = ri.receipt_id;
 
-CREATE OR REPLACE VIEW vw_adeudos_estudiantes AS
+CREATE VIEW vw_student_debts AS
 SELECT 
-    a.id_adeudo,
-    a.matricula,
-    al.nombre_completo AS alumno_nombre,
-    al.carrera,
-    al.semestre,
-    al.turno,
-    al.estatus AS estatus_alumno,
-    a.concepto_cobro,
-    p.codigo AS periodo_codigo,
-    p.anio AS periodo_anio,
-    p.ciclo AS periodo_ciclo,
-    a.monto_original,
-    a.saldo_pendiente,
-    a.fecha_limite,
-    a.estado AS estado_adeudo
-FROM adeudos a
-JOIN alumnos al ON a.matricula = al.matricula
-JOIN periodos_academicos p ON a.id_periodo = p.id_periodo;
+    sd.debt_id,
+    sd.student_id,
+    s.full_name AS student_name,
+    s.career_name,
+    s.semester,
+    s.shift,
+    s.academic_status,
+    sd.concept_name,
+    at.code AS term_code,
+    at.year AS term_year,
+    at.cycle AS term_cycle,
+    sd.original_amount,
+    sd.pending_balance,
+    sd.due_date,
+    sd.status AS debt_status
+FROM student_debts sd
+JOIN students s ON sd.student_id = s.student_id
+JOIN academic_terms at ON sd.term_id = at.term_id;
 
-CREATE OR REPLACE VIEW vw_depositos_bancarios_conciliacion AS
+CREATE VIEW vw_bank_deposits_reconciliation AS
 SELECT
-    r.id AS recibo_id,
-    r.numero_recibo,
-    r.folio_administrativo,
-    r.fecha_operacion,
-    r.fecha_efectiva_pago,
-    r.alumno_matricula,
-    r.alumno_nombre,
-    al.cuenta_a,
-    r.referencia_bancaria,
-    SUBSTRING(r.referencia_bancaria FROM 1 FOR 5) AS referencia_cuenta_alumno,
-    SUBSTRING(r.referencia_bancaria FROM 6 FOR 5) AS referencia_concepto_arancel,
-    r.cuenta_bancaria,
+    r.id AS receipt_id,
+    r.receipt_number,
+    r.folio_number,
+    r.issued_at,
+    r.effective_payment_date,
+    r.student_id,
+    r.student_name,
+    s.internal_account_number,
+    r.bank_reference,
+    SUBSTRING(r.bank_reference FROM 1 FOR 5) AS student_account_prefix,
+    SUBSTRING(r.bank_reference FROM 6 FOR 5) AS concept_code_suffix,
+    r.bank_account,
     r.total,
-    r.estado,
-    r.cajero_usuario
-FROM recibos r
-LEFT JOIN alumnos al ON r.alumno_matricula = al.matricula
-WHERE r.metodo_pago IN ('DEPOSITO_BANCARIO', 'TRANSFERENCIA');
+    r.status,
+    r.cashier_username
+FROM receipts r
+LEFT JOIN students s ON r.student_id = s.student_id
+WHERE r.payment_method IN ('DEPOSITO_BANCARIO', 'TRANSFERENCIA');
 
-CREATE OR REPLACE VIEW vw_polizas_ingreso_resumen AS
+CREATE VIEW vw_revenue_policies_summary AS
 SELECT
-    p.id_poliza,
-    p.numero_poliza,
-    p.fecha_poliza,
-    p.total_recaudado,
-    p.cajero_usuario,
-    p.estado,
-    COUNT(r.id) AS total_recibos_asociados,
-    p.created_at
-FROM polizas_ingreso p
-LEFT JOIN recibos r ON p.id_poliza = r.poliza_id
-GROUP BY p.id_poliza, p.numero_poliza, p.fecha_poliza, p.total_recaudado, p.cajero_usuario, p.estado, p.created_at;
+    rp.policy_id,
+    rp.policy_number,
+    rp.policy_date,
+    rp.total_collected,
+    rp.cashier_username,
+    rp.status,
+    COUNT(r.id) AS associated_receipts_count,
+    rp.created_at
+FROM revenue_policies rp
+LEFT JOIN receipts r ON rp.policy_id = r.policy_id
+GROUP BY rp.policy_id, rp.policy_number, rp.policy_date, rp.total_collected, rp.cashier_username, rp.status, rp.created_at;
 
--- Sincronizar secuencia de números de recibo para evitar conflictos con registros manuales o seeds
-SELECT setval('recibos_numero_recibo_seq', COALESCE((SELECT MAX(numero_recibo) FROM recibos), 128450));
+CREATE VIEW vw_student_financial_kardex AS
+SELECT
+    r.student_id,
+    r.student_name,
+    r.student_career,
+    r.receipt_number,
+    r.folio_number,
+    r.issued_at,
+    ri.description AS concept_description,
+    ri.quantity,
+    ri.unit_price,
+    ri.scholarship_discount,
+    ri.total_amount,
+    r.payment_method,
+    r.status AS receipt_status,
+    r.cashier_name
+FROM receipts r
+JOIN receipt_items ri ON r.id = ri.receipt_id;
+
+-- ----------------------------------------------------------------------------
+-- 6. VISTAS DE COMPATIBILIDAD EN ESPAÑOL (ACTUALIZABLES PARA BACKEND Y FRONTEND)
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE VIEW carreras AS
+SELECT 
+    career_id       AS id_carrera,
+    career_name     AS carrera,
+    full_name       AS nombre_carrera,
+    degree_title    AS titulo,
+    is_active       AS activo
+FROM careers;
+
+CREATE OR REPLACE VIEW periodos_academicos AS
+SELECT
+    term_id      AS id_periodo,
+    code         AS codigo,
+    description  AS descripcion,
+    year         AS anio,
+    cycle        AS ciclo,
+    start_date   AS fecha_inicio,
+    end_date     AS fecha_fin,
+    is_active    AS activo
+FROM academic_terms;
+
+CREATE OR REPLACE VIEW alumnos AS
+SELECT
+    student_id              AS matricula,
+    full_name               AS nombre_completo,
+    first_name              AS nombres,
+    last_name               AS apellidos,
+    gender                  AS sexo,
+    career_id               AS id_carrera,
+    career_name             AS carrera,
+    semester                AS semestre,
+    shift                   AS turno,
+    admission_ticket_number AS numero_ficha,
+    internal_account_number AS cuenta_a,
+    academic_status         AS estatus,
+    has_scholarship         AS tiene_beca,
+    scholarship_percentage  AS porcentaje_beca,
+    created_at
+FROM students;
+
+CREATE OR REPLACE VIEW alumno_matriculas_historial AS
+SELECT
+    history_id          AS id_historial,
+    student_id          AS matricula_alumno,
+    previous_student_id AS matricula_previa,
+    term_id             AS id_periodo,
+    registered_at       AS fecha_registro,
+    change_reason       AS motivo_cambio
+FROM student_enrollment_history;
+
+CREATE OR REPLACE VIEW becas_descuentos AS
+SELECT
+    scholarship_id   AS id_beca,
+    student_id       AS matricula,
+    term_id          AS id_periodo,
+    scholarship_type AS tipo_beca,
+    percentage       AS porcentaje,
+    fixed_amount     AS monto_fijo,
+    reason           AS motivo,
+    is_active        AS activa,
+    created_at
+FROM scholarships;
+
+CREATE OR REPLACE VIEW adeudos AS
+SELECT
+    debt_id          AS id_adeudo,
+    student_id       AS matricula,
+    concept_name     AS concepto_cobro,
+    term_id          AS id_periodo,
+    original_amount  AS monto_original,
+    pending_balance  AS saldo_pendiente,
+    due_date         AS fecha_limite,
+    status           AS estado,
+    created_at
+FROM student_debts;
+
+CREATE OR REPLACE VIEW conceptos_cobro AS
+SELECT
+    id,
+    code                AS clave,
+    description         AS descripcion,
+    base_fee            AS cuota_base,
+    display_order       AS orden,
+    ledger_account_code AS cuenta_referencia,
+    allows_scholarship  AS aplica_beca,
+    category            AS categoria,
+    is_active
+FROM payment_concepts;
+
+CREATE OR REPLACE VIEW sesiones_caja AS
+SELECT
+    session_id       AS id_sesion,
+    cashier_username AS usuario_cajero,
+    cashier_name     AS nombre_cajero,
+    opened_at        AS fecha_apertura,
+    initial_cash     AS monto_inicial,
+    closed_at        AS fecha_cierre,
+    system_total     AS total_sistema,
+    counted_total    AS total_arqueo,
+    difference       AS diferencia,
+    status           AS estado,
+    notes            AS observaciones
+FROM cashier_sessions;
+
+CREATE OR REPLACE VIEW folios AS
+SELECT
+    folio_number AS numero_folio,
+    series       AS serie,
+    created_at   AS fecha_creacion,
+    notes        AS observaciones
+FROM receipt_folios;
+
+CREATE OR REPLACE VIEW polizas_ingreso AS
+SELECT
+    policy_id        AS id_poliza,
+    policy_number    AS numero_poliza,
+    policy_date      AS fecha_poliza,
+    total_collected  AS total_recaudado,
+    cashier_username AS cajero_usuario,
+    status           AS estado,
+    created_at
+FROM revenue_policies;
+
+CREATE OR REPLACE VIEW recibos AS
+SELECT
+    id,
+    receipt_number          AS numero_recibo,
+    folio_number            AS folio_administrativo,
+    issued_at               AS fecha_operacion,
+    effective_payment_date  AS fecha_efectiva_pago,
+    student_id              AS alumno_matricula,
+    student_name            AS alumno_nombre,
+    student_career          AS alumno_carrera,
+    student_semester        AS alumno_semestre,
+    student_shift           AS alumno_turno,
+    payment_method          AS metodo_pago,
+    bank_reference          AS referencia_bancaria,
+    bank_account            AS cuenta_bancaria,
+    bank_transaction_date   AS fecha_bancaria,
+    subtotal,
+    discount_total          AS descuento_total,
+    total,
+    status_code             AS status,
+    status                  AS estado,
+    receipt_type            AS tipo_recibo,
+    is_locked,
+    session_id              AS sesion_id,
+    policy_id               AS poliza_id,
+    cancellation_reason     AS motivo_cancelacion,
+    cancelled_at            AS fecha_cancelacion,
+    cashier_username        AS cajero_usuario,
+    cashier_name            AS cajero_nombre
+FROM receipts;
+
+CREATE OR REPLACE VIEW detalles_recibo AS
+SELECT
+    id,
+    receipt_id           AS recibo_id,
+    concept_id           AS concepto_id,
+    description          AS descripcion,
+    quantity             AS cantidad,
+    unit_price           AS cuota_unitario,
+    scholarship_discount AS descuento_beca,
+    total_amount         AS importe_total,
+    academic_term        AS periodo_ano
+FROM receipt_items;
+
+CREATE OR REPLACE VIEW movimientos_pago AS
+SELECT
+    transaction_id   AS id_movimiento,
+    receipt_id       AS recibo_id,
+    payment_method   AS forma_pago,
+    reference_number AS referencia_bancaria,
+    amount           AS monto,
+    transaction_date AS fecha_movimiento,
+    cashier_username AS cajero_usuario
+FROM payment_transactions;
+
+CREATE OR REPLACE VIEW migracion_incidencias AS
+SELECT
+    id,
+    source_table      AS tabla_origen,
+    record_identifier AS identificador_registro,
+    detected_issue    AS incidencia_detectada,
+    logged_at         AS fecha_registro,
+    is_resolved       AS resuelta,
+    resolution_notes  AS notas_resolucion
+FROM migration_issues;
 
 COMMIT;
-
--- REPORTE FINAL DE VERIFICACIÓN
-SELECT 'carreras' AS tabla, COUNT(*) AS registros FROM carreras
-UNION ALL SELECT 'periodos_academicos', COUNT(*) FROM periodos_academicos
-UNION ALL SELECT 'users', COUNT(*) FROM users
-UNION ALL SELECT 'alumnos', COUNT(*) FROM alumnos
-UNION ALL SELECT 'alumno_matriculas_historial', COUNT(*) FROM alumno_matriculas_historial
-UNION ALL SELECT 'becas_descuentos', COUNT(*) FROM becas_descuentos
-UNION ALL SELECT 'adeudos', COUNT(*) FROM adeudos
-UNION ALL SELECT 'conceptos_cobro', COUNT(*) FROM conceptos_cobro
-UNION ALL SELECT 'folios', COUNT(*) FROM folios
-UNION ALL SELECT 'polizas_ingreso', COUNT(*) FROM polizas_ingreso
-UNION ALL SELECT 'recibos', COUNT(*) FROM recibos
-UNION ALL SELECT 'detalles_recibo', COUNT(*) FROM detalles_recibo
-UNION ALL SELECT 'movimientos_pago', COUNT(*) FROM movimientos_pago;
