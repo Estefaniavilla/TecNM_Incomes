@@ -6,7 +6,7 @@ import { useTheme } from '../../../shared/composables/useTheme'
 import { logout, me } from '../../auth/api/authApi'
 import { clearSessionMarker } from '../../../shared/utils/sessionCookie'
 import * as cajaApi from '../api/cajaApi'
-import type { ReciboCaja, ReporteDetalladoItem } from '../types/caja'
+import type { DashboardIndicadoresResponse } from '../api/cajaApi'
 
 // ==========================================
 // Estado General y Navegación
@@ -15,52 +15,38 @@ const router = useRouter()
 const { dark } = useTheme()
 
 const usuarioActual = ref('Administrador General')
+const scopeLabel = ref('Vista Global (Administrador)')
 const fechaHoy = ref(new Date().toISOString().split('T')[0])
 const isCargando = ref(true)
+const isExportandoPdf = ref(false)
 
 // Periodo activo: 'hoy' | 'semana' | 'mes'
 const periodoActivo = ref<'hoy' | 'semana' | 'mes'>('hoy')
 
 // ==========================================
-// Datos Crudos de la Base de Datos
+// Datos Calculados en Backend C# por Rol/Turno
 // ==========================================
-const recibos = ref<ReciboCaja[]>([])
-const reporteDetalles = ref<ReporteDetalladoItem[]>([])
-const adeudos = ref<any[]>([])
+const dashboardData = ref<DashboardIndicadoresResponse | null>(null)
 
 // ==========================================
-// Carga de Datos desde la API
+// Carga de Datos desde C# (/api/dashboard/indicadores)
 // ==========================================
 async function cargarDatos(): Promise<void> {
   isCargando.value = true
   try {
-    // 1. Usuario actual
+    const res = await cajaApi.getDashboardIndicadores(periodoActivo.value)
+    dashboardData.value = res
+    if (res.usuarioActual) usuarioActual.value = res.usuarioActual
+    if (res.scopeLabel) scopeLabel.value = res.scopeLabel
+    if (res.fechaReferencia) fechaHoy.value = res.fechaReferencia
+  } catch (err) {
+    console.error('Error al cargar indicadores desde C#:', err)
     try {
       const u = await me()
       if (u?.name) usuarioActual.value = u.name
-      else if (u?.username) usuarioActual.value = u.username
     } catch {
-      // Offline fallback
+      // ignore
     }
-
-    // 2. Cargar recibos recientes, reporte detallado y adeudos en paralelo
-    const [recibosRes, reporteRes, adeudosRes] = await Promise.allSettled([
-      cajaApi.getRecibosRecientes(250),
-      cajaApi.getReporteDetallado(),
-      cajaApi.getAdeudosGeneral(),
-    ])
-
-    if (recibosRes.status === 'fulfilled') {
-      recibos.value = recibosRes.value || []
-    }
-    if (reporteRes.status === 'fulfilled') {
-      reporteDetalles.value = reporteRes.value || []
-    }
-    if (adeudosRes.status === 'fulfilled') {
-      adeudos.value = adeudosRes.value || []
-    }
-  } catch (err) {
-    console.error('Error al cargar datos del dashboard:', err)
   } finally {
     isCargando.value = false
   }
@@ -70,87 +56,15 @@ onMounted(() => {
   void cargarDatos()
 })
 
-// ==========================================
-// Determinación de la Fecha de Referencia
-// ==========================================
-// Si en la base de datos hay recibos con fecha de hoy, se usa hoy;
-// Si no, se toma la fecha más reciente registrada para mostrar datos reales.
-const fechaReferencia = computed(() => {
-  if (recibos.value.length === 0) return fechaHoy.value
-  const fechas = recibos.value.map(r => r.fechaOperacion).filter(Boolean).sort()
-  const ultimaFecha = fechas[fechas.length - 1]
-  // Si la última fecha existe, usarla como ancla de referencia
-  return ultimaFecha || fechaHoy.value
+watch(periodoActivo, () => {
+  void cargarDatos()
 })
 
 // ==========================================
-// Filtrado por Periodo (Hoy, Esta Semana, Este Mes)
+// 1. KPI Cards Superiores (Desde C#)
 // ==========================================
-const recibosFiltrados = computed(() => {
-  if (recibos.value.length === 0) return []
-
-  const refDateStr = fechaReferencia.value
-  const refDate = new Date(refDateStr + 'T12:00:00')
-
-  if (periodoActivo.value === 'hoy') {
-    return recibos.value.filter(r => {
-      const f = r.fechaOperacion?.split('T')[0]
-      return f === refDateStr
-    })
-  }
-
-  if (periodoActivo.value === 'semana') {
-    // Calcular Lunes a Domingo de la semana de referencia
-    const dayOfWeek = refDate.getDay() // 0 = Dom, 1 = Lun, ...
-    const distToMon = (dayOfWeek + 6) % 7
-    const lunes = new Date(refDate)
-    lunes.setDate(refDate.getDate() - distToMon)
-    lunes.setHours(0, 0, 0, 0)
-
-    const domingo = new Date(lunes)
-    domingo.setDate(lunes.getDate() + 6)
-    domingo.setHours(23, 59, 59, 999)
-
-    return recibos.value.filter(r => {
-      const f = new Date((r.fechaOperacion?.split('T')[0] || '') + 'T12:00:00')
-      return f >= lunes && f <= domingo
-    })
-  }
-
-  if (periodoActivo.value === 'mes') {
-    const yearMonth = refDateStr.slice(0, 7) // "YYYY-MM"
-    return recibos.value.filter(r => {
-      const f = r.fechaOperacion?.split('T')[0] || ''
-      return f.startsWith(yearMonth)
-    })
-  }
-
-  return recibos.value
-})
-
-// Detalles de conceptos filtrados por el mismo periodo
-const detallesFiltrados = computed(() => {
-  if (reporteDetalles.value.length === 0) return []
-  const idsRecibosValidos = new Set(recibosFiltrados.value.map(r => r.numeroRecibo))
-  return reporteDetalles.value.filter(d => idsRecibosValidos.has(d.numeroRecibo))
-})
-
-// ==========================================
-// 1. KPI Cards Superiores
-// ==========================================
-// Recaudación Total
-const recaudacionTotal = computed(() => {
-  return recibosFiltrados.value
-    .filter(r => r.estado !== 'CANCELADO')
-    .reduce((acc, r) => acc + (Number(r.total) || 0), 0)
-})
-
-// Meta dinámica según periodo
-const metaObjetivo = computed(() => {
-  if (periodoActivo.value === 'hoy') return 165000
-  if (periodoActivo.value === 'semana') return 850000
-  return 3200000
-})
+const recaudacionTotal = computed(() => dashboardData.value?.recaudacionTotal ?? 0)
+const metaObjetivo = computed(() => dashboardData.value?.metaObjetivo ?? 165000)
 
 const metaLabel = computed(() => {
   if (periodoActivo.value === 'hoy') return 'diaria'
@@ -164,72 +78,19 @@ const periodoTexto = computed(() => {
   return 'Este Mes'
 })
 
-// Recibos Emitidos
-const totalRecibosEmitidos = computed(() => {
-  return recibosFiltrados.value.filter(r => r.estado !== 'CANCELADO').length
-})
+const totalRecibosEmitidos = computed(() => dashboardData.value?.totalRecibosEmitidos ?? 0)
+const ultimoFolio = computed(() => dashboardData.value?.ultimoFolio ?? '0')
+const promedioPorRecibo = computed(() => dashboardData.value?.promedioPorRecibo ?? 0)
 
-const ultimoFolio = computed(() => {
-  if (recibosFiltrados.value.length === 0) return '128465'
-  const folios = recibosFiltrados.value.map(r => r.numeroRecibo).filter(Boolean)
-  return folios.length > 0 ? String(Math.max(...folios)) : '128465'
-})
+const totalAlumnosAtendidos = computed(() => dashboardData.value?.totalAlumnosAtendidos ?? 0)
+const porcentajeAlCorriente = computed(() => dashboardData.value?.porcentajeAlCorriente ?? 100)
+const porcentajeConAdeudo = computed(() => dashboardData.value?.porcentajeConAdeudo ?? 0)
 
-const promedioPorRecibo = computed(() => {
-  if (totalRecibosEmitidos.value === 0) return 0
-  return recaudacionTotal.value / totalRecibosEmitidos.value
-})
-
-// Alumnos Atendidos
-const totalAlumnosAtendidos = computed(() => {
-  const mats = new Set(recibosFiltrados.value.map(r => r.alumno?.matricula).filter(Boolean))
-  return mats.size > 0 ? mats.size : totalRecibosEmitidos.value
-})
-
-const porcentajeAlCorriente = computed(() => {
-  // Calculado a partir del ratio de alumnos sin adeudo pendiente
-  if (totalAlumnosAtendidos.value === 0) return 94
-  const matriculasActivas = new Set(recibosFiltrados.value.map(r => r.alumno?.matricula).filter(Boolean))
-  const matriculasConAdeudo = new Set(
-    adeudos.value
-      .filter(a => a.estado === 'PENDIENTE')
-      .map(a => a.matricula || a.alumnoMatricula)
-      .filter(Boolean)
-  )
-  let conAdeudo = 0
-  for (const m of matriculasActivas) {
-    if (matriculasConAdeudo.has(m)) conAdeudo++
-  }
-  const alCorriente = totalAlumnosAtendidos.value - conAdeudo
-  return Math.min(100, Math.max(80, Math.round((alCorriente / totalAlumnosAtendidos.value) * 100)))
-})
-
-const porcentajeConAdeudo = computed(() => {
-  return 100 - porcentajeAlCorriente.value
-})
-
-// Adeudos Recuperados
-const adeudosRecuperadosMonto = computed(() => {
-  // Suma de conceptos asociados a adeudos, previos o regularizaciones
-  const conceptosRegularizacion = detallesFiltrados.value.filter(d => {
-    const desc = (d.conceptoDetalle || '').toLowerCase()
-    return desc.includes('adeudo') || desc.includes('previo') || desc.includes('regularizacion') || desc.includes('especial')
-  })
-  const suma = conceptosRegularizacion.reduce((acc, d) => acc + (Number(d.importeRenglon) || 0), 0)
-  return suma > 0 ? suma : 42800
-})
-
-const alumnosAdeudoRecuperado = computed(() => {
-  const conceptosRegularizacion = detallesFiltrados.value.filter(d => {
-    const desc = (d.conceptoDetalle || '').toLowerCase()
-    return desc.includes('adeudo') || desc.includes('previo') || desc.includes('regularizacion') || desc.includes('especial')
-  })
-  const mats = new Set(conceptosRegularizacion.map(d => d.alumnoMatricula).filter(Boolean))
-  return mats.size > 0 ? mats.size : 18
-})
+const adeudosRecuperadosMonto = computed(() => dashboardData.value?.adeudosRecuperadosMonto ?? 0)
+const alumnosAdeudoRecuperado = computed(() => dashboardData.value?.alumnosAdeudoRecuperado ?? 0)
 
 // ==========================================
-// 2. Gráfica de Métodos de Pago Más Usados
+// 2. Gráfica de Métodos de Pago Más Usados (Desde C#)
 // ==========================================
 interface MetodoDesglose {
   key: string
@@ -242,60 +103,20 @@ interface MetodoDesglose {
 }
 
 const metodosPagoDesglose = computed<MetodoDesglose[]>(() => {
-  const sumas: Record<string, number> = {
-    tarjeta: 0,
-    transferencia: 0,
-    efectivo: 0,
-    referenciado: 0,
-  }
-
-  for (const r of recibosFiltrados.value) {
-    if (r.estado === 'CANCELADO') continue
-    const metodo = (r.metodoPago || '').toUpperCase()
-    const monto = Number(r.total) || 0
-
-    if (metodo.includes('TARJETA') || metodo.includes('CREDITO') || metodo.includes('DEBITO')) {
-      sumas.tarjeta += monto
-    } else if (metodo.includes('SPEI') || metodo.includes('TRANSFERENCIA') || metodo.includes('DEPOSITO_BANCARIO')) {
-      sumas.transferencia += monto
-    } else if (metodo.includes('REFERENCIADO') || (r.referenciaBancaria && r.referenciaBancaria !== '0' && r.referenciaBancaria !== 'N/A')) {
-      sumas.referenciado += monto
-    } else {
-      sumas.efectivo += monto
-    }
-  }
-
-  let totalMonto = sumas.tarjeta + sumas.transferencia + sumas.efectivo + sumas.referenciado
-  // Si no hay datos suficientes en el periodo, usar datos de referencia oficiales
-  if (totalMonto === 0) {
-    sumas.tarjeta = 88569
-    sumas.transferencia = 49820
-    sumas.efectivo = 33213
-    sumas.referenciado = 12916
-    totalMonto = 184518
-  }
-
+  const items = dashboardData.value?.metodosPago ?? []
   const circumference = 2 * Math.PI * 65 // radio = 65 -> ~408.4
   let currentOffset = 0
 
-  const itemsConfig = [
-    { key: 'tarjeta', nombre: 'Tarjeta Débito/Crédito', color: '#1B396A', monto: sumas.tarjeta },
-    { key: 'transferencia', nombre: 'Transferencia SPEI', color: '#3B82F6', monto: sumas.transferencia },
-    { key: 'efectivo', nombre: 'Efectivo', color: '#C5A059', monto: sumas.efectivo },
-    { key: 'referenciado', nombre: 'Depósito Referenciado', color: '#10B981', monto: sumas.referenciado },
-  ]
-
-  return itemsConfig.map(it => {
-    const pct = totalMonto > 0 ? (it.monto / totalMonto) * 100 : 0
-    const dashLength = (pct / 100) * circumference
+  return items.map(it => {
+    const dashLength = (it.porcentaje / 100) * circumference
     const offset = currentOffset
     currentOffset += dashLength
 
     return {
       key: it.key,
       nombre: it.nombre,
-      monto: it.monto,
-      porcentaje: Math.round(pct),
+      monto: Number(it.monto) || 0,
+      porcentaje: it.porcentaje,
       color: it.color,
       strokeDashoffset: -offset,
       strokeDasharray: `${dashLength} ${circumference}`,
@@ -304,7 +125,7 @@ const metodosPagoDesglose = computed<MetodoDesglose[]>(() => {
 })
 
 // ==========================================
-// 3. Tendencia de Ingresos Semanales (Bar Chart)
+// 3. Tendencia de Ingresos Semanales (Desde C#)
 // ==========================================
 interface DiaBarra {
   dia: string
@@ -316,68 +137,20 @@ interface DiaBarra {
 }
 
 const diasSemanaGrafica = computed<DiaBarra[]>(() => {
-  const nombresDias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
-  const acumuladoPorDia: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 }
-
-  for (const r of recibosFiltrados.value) {
-    if (r.estado === 'CANCELADO') continue
-    const fStr = r.fechaOperacion?.split('T')[0]
-    if (!fStr) continue
-    const d = new Date(fStr + 'T12:00:00')
-    const diaNum = d.getDay()
-    if (diaNum >= 1 && diaNum <= 6) {
-      acumuladoPorDia[diaNum] += Number(r.total) || 0
-    }
-  }
-
-  // Si está vacío, usar valores de la imagen
-  const fallbackMontos: Record<number, number> = {
-    1: 142000,
-    2: 168000,
-    3: 131000,
-    4: 176000,
-    5: 184500,
-    6: 94000,
-  }
-
-  const tieneDatos = Object.values(acumuladoPorDia).some(v => v > 0)
-  const datosFinales = tieneDatos ? acumuladoPorDia : fallbackMontos
-  const maxMonto = Math.max(...Object.values(datosFinales), 200000)
-
-  const diasClave = [1, 2, 3, 4, 5, 6] // Lun a Sáb
-  let diaMaxMonto = 5 // Por defecto Viernes
-
-  let mayor = 0
-  for (const d of diasClave) {
-    if (datosFinales[d] > mayor) {
-      mayor = datosFinales[d]
-      diaMaxMonto = d
-    }
-  }
-
-  return diasClave.map(diaNum => {
-    const monto = datosFinales[diaNum]
-    const pct = Math.min(100, Math.max(15, (monto / maxMonto) * 100))
-    const montoK = monto >= 1000 ? `$${(monto / 1000).toFixed(monto % 1000 === 0 ? 0 : 1)}k` : `$${monto}`
-
-    return {
-      dia: nombresDias[diaNum],
-      diaCorto: nombresDias[diaNum],
-      monto,
-      etiquetaK: montoK,
-      porcentajeAltura: pct,
-      esDestacado: diaNum === diaMaxMonto,
-    }
-  })
+  return (dashboardData.value?.tendenciaSemanal ?? []).map(d => ({
+    dia: d.dia,
+    diaCorto: d.diaCorto,
+    monto: Number(d.monto) || 0,
+    etiquetaK: d.etiquetaK,
+    porcentajeAltura: d.porcentajeAltura,
+    esDestacado: d.esDestacado,
+  }))
 })
 
-const promedioSemanal = computed(() => {
-  const total = diasSemanaGrafica.value.reduce((acc, d) => acc + d.monto, 0)
-  return diasSemanaGrafica.value.length > 0 ? total / diasSemanaGrafica.value.length : 158400
-})
+const promedioSemanal = computed(() => dashboardData.value?.promedioSemanal ?? 0)
 
 // ==========================================
-// 4. Recaudación por Concepto
+// 4. Recaudación por Concepto (Desde C#)
 // ==========================================
 interface ConceptoProgreso {
   nombre: string
@@ -386,37 +159,15 @@ interface ConceptoProgreso {
 }
 
 const conceptosTop = computed<ConceptoProgreso[]>(() => {
-  const sumas: Record<string, number> = {}
-
-  for (const d of detallesFiltrados.value) {
-    const desc = d.conceptoDetalle || 'Otros Derechos'
-    sumas[desc] = (sumas[desc] || 0) + (Number(d.importeRenglon) || 0)
-  }
-
-  const total = Object.values(sumas).reduce((a, b) => a + b, 0)
-  let lista = Object.entries(sumas).map(([nombre, monto]) => ({
-    nombre,
-    monto,
-    porcentaje: total > 0 ? Math.round((monto / total) * 100) : 0,
+  return (dashboardData.value?.conceptosTop ?? []).map(c => ({
+    nombre: c.nombre,
+    monto: Number(c.monto) || 0,
+    porcentaje: c.porcentaje,
   }))
-
-  lista.sort((a, b) => b.monto - a.monto)
-
-  // Fallback visual si la base de datos tiene pocos conceptos clasificados
-  if (lista.length === 0) {
-    return [
-      { nombre: 'Reinscripción', monto: 106800, porcentaje: 58 },
-      { nombre: 'Constancias', monto: 33210, porcentaje: 18 },
-      { nombre: 'Exámenes Especiales', monto: 25830, porcentaje: 14 },
-      { nombre: 'Titulación', monto: 18680, porcentaje: 10 },
-    ]
-  }
-
-  return lista.slice(0, 4)
 })
 
 // ==========================================
-// 5. Últimos Recibos Emitidos
+// 5. Últimos Recibos Emitidos (Datos Reales C#)
 // ==========================================
 interface ReciboTablaItem {
   id: string
@@ -429,41 +180,15 @@ interface ReciboTablaItem {
 }
 
 const ultimosRecibosTabla = computed<ReciboTablaItem[]>(() => {
-  const fuente = recibosFiltrados.value.length > 0 ? recibosFiltrados.value : recibos.value
-
-  const lista = fuente.slice(0, 5).map(r => {
-    let metodoLegible = 'Efectivo'
-    const m = (r.metodoPago || '').toUpperCase()
-    if (m.includes('TARJETA') || m.includes('CREDITO') || m.includes('DEBITO')) {
-      metodoLegible = 'Tarjeta Débito'
-    } else if (m.includes('SPEI') || m.includes('TRANSFERENCIA')) {
-      metodoLegible = 'Transferencia SPEI'
-    } else if (m.includes('DEPOSITO') || (r.referenciaBancaria && r.referenciaBancaria !== '0')) {
-      metodoLegible = 'Depósito Bancario'
-    }
-
-    return {
-      id: r.id,
-      folio: String(r.numeroRecibo || r.folioAdministrativo),
-      matricula: r.alumno?.matricula || '22040182',
-      alumno: r.alumno?.nombreCompleto || 'Estudiante TecNM',
-      metodoPago: metodoLegible,
-      monto: Number(r.total) || 0,
-      estado: r.estado === 'CANCELADO' ? 'Cancelado' : 'Pagado',
-    }
-  })
-
-  // Si no hay suficientes, completar con ejemplos limpios
-  if (lista.length === 0) {
-    return [
-      { id: '1', folio: '128465', matricula: '22040182', alumno: 'Sofia Garza Mendoza', metodoPago: 'Tarjeta Débito', monto: 2450, estado: 'Pagado' },
-      { id: '2', folio: '128464', matricula: '21040815', alumno: 'Carlos Eduardo Ruiz', metodoPago: 'Transferencia SPEI', monto: 1850, estado: 'Pagado' },
-      { id: '3', folio: '128463', matricula: '23040411', alumno: 'Valeria Torres Villarreal', metodoPago: 'Efectivo', monto: 350, estado: 'Pagado' },
-      { id: '4', folio: '128462', matricula: '20040734', alumno: 'Diego Alejandro Morales', metodoPago: 'Tarjeta Crédito', monto: 3200, estado: 'Pagado' },
-    ]
-  }
-
-  return lista
+  return (dashboardData.value?.ultimosRecibos ?? []).map(r => ({
+    id: r.id,
+    folio: r.folio,
+    matricula: r.matricula,
+    alumno: r.alumno,
+    metodoPago: r.metodoPago,
+    monto: Number(r.monto) || 0,
+    estado: r.estado,
+  }))
 })
 
 // ==========================================
@@ -487,10 +212,26 @@ async function cerrarSesion(): Promise<void> {
 }
 
 // ==========================================
-// Exportar a PDF (Impresión Oficial Ejecutiva)
+// Exportar a PDF (Descarga Directa de PDF desde C#)
 // ==========================================
-function exportarCortePDF(): void {
-  window.print()
+async function exportarCortePDF(): Promise<void> {
+  if (isExportandoPdf.value) return
+  isExportandoPdf.value = true
+  try {
+    const blob = await cajaApi.exportarDashboardPdf(periodoActivo.value)
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `Corte_Caja_${periodoActivo.value}_${fechaHoy.value}.pdf`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  } catch (err) {
+    console.error('Error al exportar corte en PDF:', err)
+  } finally {
+    isExportandoPdf.value = false
+  }
 }
 
 // Formateador de moneda
@@ -577,7 +318,7 @@ function formatearMoneda(val: number): string {
       <!-- Encabezado de la Sección -->
       <div class="dashboard-header-row no-print">
         <div class="header-breadcrumb-area">
-          <span class="breadcrumb-tag">TESORERÍA INSTITUCIONAL • Caja Central</span>
+          <span class="breadcrumb-tag">TESORERÍA INSTITUCIONAL • {{ scopeLabel }}</span>
           <h1 class="dashboard-main-title">Resumen Ejecutivo de Caja</h1>
         </div>
 

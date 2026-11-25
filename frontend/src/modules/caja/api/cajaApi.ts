@@ -346,3 +346,72 @@ export async function getReporteDetallado(): Promise<ReporteDetalladoItem[]> {
   const { data } = await http.get<ReporteDetalladoItem[]>('/caja/reportes/detallado')
   return data
 }
+
+export interface DashboardIndicadoresResponse {
+  usuarioActual: string
+  rolActual: string
+  scopeLabel: string
+  periodo: string
+  fechaReferencia: string
+  recaudacionTotal: number
+  metaObjetivo: number
+  totalRecibosEmitidos: number
+  ultimoFolio: string
+  promedioPorRecibo: number
+  totalAlumnosAtendidos: number
+  porcentajeAlCorriente: number
+  porcentajeConAdeudo: number
+  adeudosRecuperadosMonto: number
+  alumnosAdeudoRecuperado: number
+  metodosPago: Array<{
+    key: string
+    nombre: string
+    monto: number
+    porcentaje: number
+    color: string
+  }>
+  tendenciaSemanal: Array<{
+    dia: string
+    diaCorto: string
+    monto: number
+    etiquetaK: string
+    porcentajeAltura: number
+    esDestacado: boolean
+  }>
+  promedioSemanal: number
+  conceptosTop: Array<{
+    nombre: string
+    monto: number
+    porcentaje: number
+  }>
+  ultimosRecibos: Array<{
+    id: string
+    folio: string
+    matricula: string
+    alumno: string
+    metodoPago: string
+    monto: number
+    estado: string
+    fechaOperacion: string
+    cajeroUsuario: string
+  }>
+}
+
+export async function getDashboardIndicadores(
+  periodo: 'hoy' | 'semana' | 'mes' = 'hoy',
+): Promise<DashboardIndicadoresResponse> {
+  const { data } = await http.get<DashboardIndicadoresResponse>('/dashboard/indicadores', {
+    params: { periodo },
+  })
+  return data
+}
+
+export async function exportarDashboardPdf(
+  periodo: 'hoy' | 'semana' | 'mes' = 'hoy',
+): Promise<Blob> {
+  const response = await http.get('/dashboard/exportar-pdf', {
+    params: { periodo },
+    responseType: 'blob',
+  })
+  return response.data
+}
