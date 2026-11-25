@@ -107,7 +107,29 @@ function onFechaSeleccionada(campo: 'inicio' | 'fin', event: Event): void {
 // Impresoras y Estado de Búsqueda
 // ==========================================
 const impresora = ref('')
+const formatoExportacion = ref<'pdf' | 'csv' | 'word'>('pdf')
+const isExportando = ref(false)
 const isBuscando = ref(false)
+
+async function exportarDeudoresFormato(): Promise<void> {
+  try {
+    isExportando.value = true
+    const blob = await cajaApi.exportarReporteDeudores({
+      periodo: periodoSeleccionado.value ? String(periodoSeleccionado.value) : undefined,
+      carreraId: undefined,
+      fechaCorte: activarFecha.value ? (fechaFin.value || fechaInicio.value || undefined) : undefined,
+      soloInscritos: false,
+      formato: formatoExportacion.value,
+    })
+    const ext = formatoExportacion.value === 'pdf' ? 'pdf' : formatoExportacion.value === 'csv' ? 'csv' : 'doc'
+    const fecha = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+    cajaApi.descargarBlob(blob, `Reporte_Deudores_${fecha}.${ext}`)
+  } catch (err) {
+    console.error('Error al exportar deudores:', err)
+  } finally {
+    isExportando.value = false
+  }
+}
 
 const impresorasDisponibles = [
   { id: '', nombre: '-- Seleccionar impresora --' },
@@ -796,19 +818,36 @@ function handleKeydown(e: KeyboardEvent): void {
           />
         </div>
 
-        <!-- FILA DE TOTALES E IMPRESORA -->
+        <!-- FILA DE TOTALES Y EXPORTACIÓN -->
         <div class="bottom-tools-row">
-          <div class="impresora-group">
-            <label for="select-deud-printer" class="field-label">Selecciona la impresora</label>
-            <select
-              id="select-deud-printer"
-              v-model="impresora"
-              class="tecnm-input tecnm-select printer-select"
-            >
-              <option v-for="p in impresorasDisponibles" :key="p.id" :value="p.id">
-                {{ p.nombre }}
-              </option>
-            </select>
+          <div class="impresora-group export-combo-container">
+            <label for="select-deud-export" class="field-label">Formato de exportación</label>
+            <div class="export-controls-row">
+              <select
+                id="select-deud-export"
+                v-model="formatoExportacion"
+                class="tecnm-input tecnm-select export-select"
+                title="Selecciona formato de exportación"
+              >
+                <option value="pdf">Documento PDF (.pdf)</option>
+                <option value="csv">Hoja de Cálculo Excel (.csv)</option>
+                <option value="word">Documento Word (.doc)</option>
+              </select>
+              <button
+                type="button"
+                class="btn-action-primary btn-export-trigger"
+                :disabled="isExportando"
+                title="Exportar reporte de deudores en el formato seleccionado"
+                @click="exportarDeudoresFormato"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                {{ isExportando ? 'Exportando...' : 'Exportar' }}
+              </button>
+            </div>
           </div>
 
           <div class="total-group">
@@ -1441,6 +1480,20 @@ function handleKeydown(e: KeyboardEvent): void {
 
 .printer-select {
   width: 100%;
+}
+
+.export-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.export-select {
+  width: 220px;
+}
+
+.btn-export-trigger {
+  white-space: nowrap;
 }
 
 .total-group {

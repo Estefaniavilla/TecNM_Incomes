@@ -28,6 +28,26 @@ const conceptosSeleccionados = ref<ConceptoItem[]>([])
 // Fecha y búsqueda
 const fecha = ref('')
 const isBuscando = ref(false)
+const formatoExportacion = ref<'pdf' | 'csv' | 'word'>('pdf')
+const isExportando = ref(false)
+
+async function exportarDeudoresCuenta(): Promise<void> {
+  try {
+    isExportando.value = true
+    const blob = await cajaApi.exportarReporteDeudores({
+      fechaCorte: fecha.value || undefined,
+      soloInscritos: false,
+      formato: formatoExportacion.value,
+    })
+    const ext = formatoExportacion.value === 'pdf' ? 'pdf' : formatoExportacion.value === 'csv' ? 'csv' : 'doc'
+    const f = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+    cajaApi.descargarBlob(blob, `Deudores_FechaCuenta_${f}.${ext}`)
+  } catch (err) {
+    console.error('Error al exportar deudores por fecha y cuenta:', err)
+  } finally {
+    isExportando.value = false
+  }
+}
 const pickerFechaRef = ref<HTMLInputElement | null>(null)
 
 // Fallback de conceptos con cuenta contable
@@ -355,9 +375,25 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
 
       </section>
 
-      <!-- Barra de acciones inferior: Imprimir, Limpiar, Salir -->
+      <!-- Barra de acciones inferior: Exportar, Imprimir, Limpiar, Salir -->
       <footer class="window-footer-bar">
         <div class="footer-buttons-group">
+          <div class="export-controls-row">
+            <select v-model="formatoExportacion" class="tecnm-input tecnm-select export-select-sm" title="Formato de exportación">
+              <option value="pdf">PDF (.pdf)</option>
+              <option value="csv">CSV (.csv)</option>
+              <option value="word">Word (.doc)</option>
+            </select>
+            <button
+              type="button"
+              class="btn-action-primary"
+              :disabled="isExportando"
+              title="Exportar reporte en el formato seleccionado"
+              @click="exportarDeudoresCuenta"
+            >
+              {{ isExportando ? 'Exportando...' : 'Exportar' }}
+            </button>
+          </div>
           <button
             type="button"
             class="btn-action-primary"
