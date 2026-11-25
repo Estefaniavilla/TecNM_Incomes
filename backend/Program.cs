@@ -12,6 +12,7 @@ using TecNM.Api.Modules.Recibos;
 using TecNM.Api.Modules.Alumnos;
 using TecNM.Api.Modules.Polizas;
 using TecNM.Api.Modules.Dashboard;
+using TecNM.Api.Modules.Reportes;
 
 const string FrontendCors = "Frontend";
 
@@ -64,6 +65,7 @@ builder.Services.AddScoped<RecibosService>();
 builder.Services.AddScoped<AlumnosService>();
 builder.Services.AddScoped<PolizasService>();
 builder.Services.AddScoped<DashboardService>();
+builder.Services.AddScoped<ReportesService>();
 builder.Services.AddScoped<PasswordHasher<User>>();
 builder.Services.AddSingleton(jwtSettings);
 builder.Services.AddCors(options => options.AddPolicy(FrontendCors, policy =>
