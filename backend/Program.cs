@@ -8,6 +8,9 @@ using TecNM.Api.Data;
 using TecNM.Api.Modules.Auth;
 using TecNM.Api.Modules.Caja;
 using TecNM.Api.Modules.ConceptosCobro;
+using TecNM.Api.Modules.Recibos;
+using TecNM.Api.Modules.Alumnos;
+using TecNM.Api.Modules.Polizas;
 
 const string FrontendCors = "Frontend";
 
@@ -56,6 +59,9 @@ builder.Services.AddDbContext<TecNMDbContext>(options => options.UseNpgsql(conne
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<CajaService>();
 builder.Services.AddScoped<ConceptoCobroService>();
+builder.Services.AddScoped<RecibosService>();
+builder.Services.AddScoped<AlumnosService>();
+builder.Services.AddScoped<PolizasService>();
 builder.Services.AddScoped<PasswordHasher<User>>();
 builder.Services.AddSingleton(jwtSettings);
 builder.Services.AddCors(options => options.AddPolicy(FrontendCors, policy =>
