@@ -74,7 +74,33 @@ function onFechaSeleccionada(campo: 'inicio' | 'fin', event: Event): void {
 const formaPagoFiltro = ref('')
 const cuentaFiltro = ref('')
 const impresora = ref('')
+const formatoExportacion = ref<'pdf' | 'csv' | 'word'>('pdf')
+const isExportando = ref(false)
 const isBuscando = ref(false)
+
+async function exportarPolizaFormato(): Promise<void> {
+  try {
+    isExportando.value = true
+    const modo = modoVistaPrevia.value
+      ? (tipoReporteVista.value === 'cuentas' ? 'cuentas' : 'detalle')
+      : (pestanaActiva.value === 'resumen' ? 'cuentas' : 'detalle')
+    const blob = await cajaApi.exportarReportePoliza({
+      fechaInicio: fechaInicio.value || undefined,
+      fechaFin: fechaFin.value || undefined,
+      formaPago: formaPagoFiltro.value || undefined,
+      cuentaContable: cuentaFiltro.value || undefined,
+      modo,
+      formato: formatoExportacion.value,
+    })
+    const ext = formatoExportacion.value === 'pdf' ? 'pdf' : formatoExportacion.value === 'csv' ? 'csv' : 'doc'
+    const fecha = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+    cajaApi.descargarBlob(blob, `Poliza_Ingresos_${fecha}.${ext}`)
+  } catch (err) {
+    console.error('Error al exportar póliza:', err)
+  } finally {
+    isExportando.value = false
+  }
+}
 
 const catalogoConceptos = ref<ConceptoCatalogo[]>([])
 const sugerenciasConceptos = ref<ConceptoCatalogo[]>([])
@@ -1194,12 +1220,26 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <div class="impresora-combo">
-            <select v-model="impresora" class="tecnm-input tecnm-select printer-select">
-              <option value="">-- Impresora Institucional --</option>
-              <option value="laser">Impresora Láser (Pólizas)</option>
-              <option value="pdf">Documento PDF</option>
+          <div class="impresora-combo export-combo-container">
+            <select v-model="formatoExportacion" class="tecnm-input tecnm-select export-select" title="Selecciona formato de exportación">
+              <option value="pdf">Documento PDF (.pdf)</option>
+              <option value="csv">Hoja de Cálculo Excel (.csv)</option>
+              <option value="word">Documento Word (.doc)</option>
             </select>
+            <button
+              type="button"
+              class="btn-action-primary btn-export-trigger"
+              :disabled="isExportando"
+              title="Exportar póliza en el formato seleccionado"
+              @click="exportarPolizaFormato"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              {{ isExportando ? 'Exportando...' : 'Exportar' }}
+            </button>
           </div>
         </div>
 
@@ -1256,9 +1296,31 @@ onUnmounted(() => {
               </button>
             </div>
 
+            <div class="export-preview-row">
+              <select v-model="formatoExportacion" class="tecnm-input tecnm-select export-select-mini" title="Formato de exportación">
+                <option value="pdf">PDF (.pdf)</option>
+                <option value="csv">Excel (.csv)</option>
+                <option value="word">Word (.doc)</option>
+              </select>
+              <button
+                type="button"
+                class="btn-action-primary"
+                :disabled="isExportando"
+                title="Exportar póliza oficial en el formato seleccionado"
+                @click="exportarPolizaFormato"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                {{ isExportando ? 'Exportando...' : 'Exportar' }}
+              </button>
+            </div>
+
             <button
               type="button"
-              class="btn-action-primary"
+              class="btn-action-secondary"
               title="Mandar a imprimir la hoja oficial"
               @click="imprimir"
             >
@@ -2102,6 +2164,39 @@ onUnmounted(() => {
 
 .printer-select {
   width: 260px;
+}
+
+.export-combo-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.export-select {
+  width: 210px;
+}
+
+.btn-export-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.9rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.export-preview-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.export-select-mini {
+  width: 140px;
+  font-size: 0.82rem;
+  padding: 0.3rem 0.5rem;
 }
 
 /* =====================================================
