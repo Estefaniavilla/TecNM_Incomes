@@ -32,7 +32,6 @@ import ModalReporteDeudoresFechaCuenta from '../components/ModalReporteDeudoresF
 import ModalReporteDeudoresInscritos from '../components/ModalReporteDeudoresInscritos.vue'
 import ModalDepositoBancario from '../components/ModalDepositoBancario.vue'
 import ModalReciboProvisional from '../components/ModalReciboProvisional.vue'
-import ModalReciboProvisionalCancelar from '../components/ModalReciboProvisionalCancelar.vue'
 import ModalConsultaCancelacionRecibos from '../components/ModalConsultaCancelacionRecibos.vue'
 import UiPagination from '../../../shared/components/UiPagination.vue'
 import * as cajaApi from '../api/cajaApi'
@@ -102,7 +101,6 @@ const mostrarModalReporteDeudoresFechaCuenta = ref(false)
 const mostrarModalReporteDeudoresInscritos = ref(false)
 const mostrarModalDepositoBancario = ref(false)
 const mostrarModalReciboProvisional = ref(false)
-const mostrarModalReciboProvisionalCancelar = ref(false)
 const mostrarModalConsultaCancelacionRecibos = ref(false)
 const menuAbierto = ref<'catalogo' | 'imprimir' | 'control' | null>(null)
 
@@ -190,11 +188,6 @@ function abrirModalReciboProvisional(): void {
   cerrarMenus()
 }
 
-function abrirModalReciboProvisionalCancelar(): void {
-  mostrarModalReciboProvisionalCancelar.value = true
-  cerrarMenus()
-}
-
 function abrirModalConsultaCancelacionRecibos(): void {
   mostrarModalConsultaCancelacionRecibos.value = true
   cerrarMenus()
@@ -226,7 +219,6 @@ function irARecibo(): void {
   mostrarModalReporteDeudoresInscritos.value = false
   mostrarModalDepositoBancario.value = false
   mostrarModalReciboProvisional.value = false
-  mostrarModalReciboProvisionalCancelar.value = false
   mostrarModalConsultaCancelacionRecibos.value = false
 
   if (route.name !== 'caja-recibo') {
@@ -283,7 +275,7 @@ const permitirEditarFecha = ref(false)
 // ==========================================
 const numeroRecibo = ref<number | string>('')
 const folioAdministrativo = ref('')
-const estadoRecibo = ref<EstadoRecibo>('REGISTRADO')
+const estadoRecibo = ref<EstadoRecibo>('PREVIO')
 const metodoPagoSeleccionado = ref<MetodoPago>('EFECTIVO')
 const referenciaBancaria = ref('')
 const fechaBancaria = ref('')
@@ -711,8 +703,10 @@ function cargarReciboHistorial(rec: ReciboCaja): void {
   busquedaMatricula.value = rec.alumno.matricula
   partidas.value = [...rec.detalles]
   metodoPagoSeleccionado.value = rec.metodoPago
-  if (rec.referenciaBancaria) referenciaBancaria.value = rec.referenciaBancaria
-  if (rec.cuentaBancaria) cuentaBancaria.value = rec.cuentaBancaria
+  // Always reset bank fields first, then populate only if the loaded receipt had them
+  referenciaBancaria.value = rec.referenciaBancaria ?? ''
+  cuentaBancaria.value = rec.cuentaBancaria ?? ''
+  fechaBancaria.value = ''
   toastRef.value?.info(`Recibo #${rec.numeroRecibo} cargado en vista`)
 }
 
@@ -749,19 +743,104 @@ async function confirmarCancelacion(): Promise<void> {
   estadoRecibo.value = 'CANCELADO'
   mostrarModalCancelar.value = false
 
-  if (rec) {
-    rec.estado = 'CANCELADO'
-    rec.motivoCancelacion = motivoCancelacion.value
-    rec.fechaCancelacion = new Date().toISOString()
+  try {
+    const recientes = await cajaApi.getRecibosRecientes(15)
+    if (recientes && recientes.length > 0) {
+      historialTurno.value = recientes
+    }
+  } catch {
+    if (rec) {
+      rec.estado = 'CANCELADO'
+      rec.motivoCancelacion = motivoCancelacion.value
+      rec.fechaCancelacion = new Date().toISOString()
+    }
   }
 
-  toastRef.value?.warning(`Recibo #${numeroRecibo.value} cancelado formalmente`)
+  toastRef.value?.warning(`Recibo #${numeroRecibo.value} cancelado formalmente`, 2000)
+}
+
+async function onReciboCancelado(payload: { id: string; numeroRecibo: number; motivo: string }): Promise<void> {
+  try {
+    const recientes = await cajaApi.getRecibosRecientes(15)
+    if (recientes && recientes.length > 0) {
+      historialTurno.value = recientes
+    }
+  } catch {
+    const rec = historialTurno.value.find(r => r.id === payload.id || Number(r.numeroRecibo) === Number(payload.numeroRecibo))
+    if (rec) {
+      rec.estado = 'CANCELADO'
+      rec.motivoCancelacion = payload.motivo
+      rec.fechaCancelacion = new Date().toISOString()
+    }
+  }
+  if (Number(numeroRecibo.value) === Number(payload.numeroRecibo)) {
+    estadoRecibo.value = 'CANCELADO'
+  }
+  toastRef.value?.warning(`Recibo #${payload.numeroRecibo} cancelado formalmente`, 2000)
 }
 
 const mostrarModalImprimir = ref(false)
+const reciboParaImprimir = ref<ReciboCaja | null>(null)
+const isExportando = ref(false)
 
-function abrirImpresion(): void {
+function abrirImpresion(recibo?: ReciboCaja): void {
+  if (recibo) {
+    reciboParaImprimir.value = recibo
+  } else {
+    // Snapshot current form for printing if no explicit receipt given
+    reciboParaImprimir.value = {
+      id: `rec-${numeroRecibo.value}`,
+      numeroRecibo: Number(numeroRecibo.value) || 0,
+      folioAdministrativo: folioAdministrativo.value,
+      fechaOperacion: fechaOperacion.value,
+      alumno: { ...alumno.value },
+      detalles: [...partidas.value],
+      metodoPago: metodoPagoSeleccionado.value,
+      subtotal: subtotal.value,
+      descuentoTotal: totalDescuentos.value,
+      total: granTotal.value,
+      estado: estadoRecibo.value,
+    }
+  }
   mostrarModalImprimir.value = true
+}
+
+function handleImprimirClick(): void {
+  if (partidas.value.length > 0) {
+    const rec = historialTurno.value.find(r => Number(r.numeroRecibo) === Number(numeroRecibo.value))
+    abrirImpresion(rec)
+  } else if (historialTurno.value.length > 0) {
+    cargarReciboHistorial(historialTurno.value[0])
+    abrirImpresion(historialTurno.value[0])
+  } else {
+    toastRef.value?.warning('Selecciona un recibo del turno para imprimir.', 2000)
+  }
+}
+
+async function handleExportarClick(): Promise<void> {
+  const num = Number(numeroRecibo.value)
+  if (!num) {
+    toastRef.value?.warning('Selecciona o consulta un recibo válido para exportar.', 2000)
+    return
+  }
+
+  isExportando.value = true
+  try {
+    const blob = await cajaApi.exportarRecibo(num)
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `Recibo_TecNM_${num}.txt`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+    toastRef.value?.success(`Recibo #${num} exportado correctamente.`, 2000)
+  } catch {
+    toastRef.value?.error(`No se pudo exportar el recibo #${num}.`, 2000)
+  } finally {
+    isExportando.value = false
+  }
 }
 
 function imprimirDocumento(): void {
@@ -772,6 +851,7 @@ function limpiarFormulario(): void {
   const num = typeof numeroRecibo.value === 'number' ? numeroRecibo.value : Number(numeroRecibo.value) || 128450
   numeroRecibo.value = num + 1
   folioAdministrativo.value = `FOL-2026-09-${numeroRecibo.value}`
+  // Status pill always resets to PREVIO / EN CAPTURA on a clean slate
   estadoRecibo.value = 'PREVIO'
   busquedaMatricula.value = ''
   adeudosAlumno.value = []
@@ -787,6 +867,11 @@ function limpiarFormulario(): void {
     porcentajeBeca: 0,
   }
   partidas.value = []
+  // Clear all bank / payment details so they don't bleed into the next receipt
+  metodoPagoSeleccionado.value = 'EFECTIVO'
+  referenciaBancaria.value = ''
+  fechaBancaria.value = ''
+  cuentaBancaria.value = ''
 }
 
 // ==========================================
@@ -830,19 +915,15 @@ async function registrarCobro(): Promise<void> {
   try {
     const nuevoRecibo = await cajaApi.crearRecibo(payload)
 
-    numeroRecibo.value = nuevoRecibo.numeroRecibo
-    folioAdministrativo.value = nuevoRecibo.folioAdministrativo
-    estadoRecibo.value = 'REGISTRADO'
-
     historialTurno.value.unshift(nuevoRecibo)
     isGuardandoCobro.value = false
 
-    toastRef.value?.success(`Recibo #${nuevoRecibo.numeroRecibo} registrado con éxito ($${nuevoRecibo.total.toFixed(2)})`)
-    abrirImpresion()
+    toastRef.value?.success(`Recibo #${nuevoRecibo.numeroRecibo} registrado con éxito ($${nuevoRecibo.total.toFixed(2)})`, 2000)
+    // Clear the cash register form right away so inputs don't stay populated
+    limpiarFormulario()
   } catch (e: any) {
     // Si la conexión falla en desarrollo, registrar en memoria local para no bloquear la ventanilla
     const fallbackNumero = typeof numeroRecibo.value === 'number' ? numeroRecibo.value : (Date.now() % 1000000)
-    estadoRecibo.value = 'REGISTRADO'
     const fallbackRecibo: ReciboCaja = {
       id: `rec-${fallbackNumero}`,
       numeroRecibo: fallbackNumero,
@@ -860,10 +941,9 @@ async function registrarCobro(): Promise<void> {
       cajaNumero: cajaNumero.value,
     }
     historialTurno.value.unshift(fallbackRecibo)
-    numeroRecibo.value = fallbackNumero
     isGuardandoCobro.value = false
-    toastRef.value?.success(`Recibo #${fallbackNumero} procesado ($${fallbackRecibo.total.toFixed(2)})`)
-    abrirImpresion()
+    toastRef.value?.success(`Recibo #${fallbackNumero} procesado ($${fallbackRecibo.total.toFixed(2)})`, 2000)
+    limpiarFormulario()
   }
 }
 
@@ -1079,7 +1159,7 @@ onMounted(async () => {
             </div>
           </div>
 
-          <!-- 3. Imprimir (15 opciones del reporte) -->
+          <!-- 3. Reportes (15 opciones del reporte) -->
           <div class="menubar-item dropdown-parent" :class="{ open: menuAbierto === 'imprimir' }">
             <button
               type="button"
@@ -1087,7 +1167,7 @@ onMounted(async () => {
               :aria-expanded="menuAbierto === 'imprimir'"
               @click.stop="toggleMenu('imprimir')"
             >
-              Imprimir <span class="arrow-indicator">▾</span>
+              Reportes <span class="arrow-indicator">▾</span>
             </button>
 
             <div v-if="menuAbierto === 'imprimir'" class="menubar-dropdown-panel menubar-dropdown-scroll" role="menu">
@@ -1111,9 +1191,6 @@ onMounted(async () => {
               </button>
               <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalReciboProvisional">
                 <span>Recibo Provisional</span>
-              </button>
-              <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalReciboProvisionalCancelar">
-                <span>Recibo Provisional Cancelar</span>
               </button>
               <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalImprimeVerano">
                 <span>Imprime Verano</span>
@@ -1173,7 +1250,7 @@ onMounted(async () => {
         </div>
         <div class="meta-item">
           <span class="meta-label">Estatus del Recibo</span>
-          <UiBadge tone="success">
+          <UiBadge :tone="estadoRecibo === 'REGISTRADO' ? 'success' : estadoRecibo === 'CANCELADO' ? 'danger' : 'warning'">
             {{ estadoRecibo }}
           </UiBadge>
         </div>
@@ -1719,7 +1796,7 @@ onMounted(async () => {
               @click="registrarCobro"
             >
               <UiSpinner v-if="isGuardandoCobro" size="sm" class="btn-spinner" />
-              <span>{{ isGuardandoCobro ? 'Guardando e Imprimiendo...' : '✓ Registrar Cobro' }}</span>
+              <span>{{ isGuardandoCobro ? 'Cobrando...' : '✓ Registrar Cobro' }}</span>
             </UiButton>
 
             <UiButton
@@ -1732,8 +1809,8 @@ onMounted(async () => {
 
             <UiButton
               variant="secondary"
-              :disabled="partidas.length === 0 || isGuardandoCobro"
-              @click="abrirImpresion"
+              :disabled="(partidas.length === 0 && historialTurno.length === 0) || isGuardandoCobro"
+              @click="handleImprimirClick"
             >
               🖨️ Imprimir
             </UiButton>
@@ -1764,7 +1841,7 @@ onMounted(async () => {
               <span class="chip-label">Emitidos</span>
             </div>
             <div class="summary-chip highlight">
-              <span class="chip-number">${{ historialTurno.filter(r => r.estado === 'REGISTRADO').reduce((a, b) => a + b.total, 0).toFixed(0) }}</span>
+              <span class="chip-number">${{ historialTurno.filter(r => r.estado === 'REGISTRADO').reduce((a, b) => a + b.total, 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}</span>
               <span class="chip-label">Corte Caja</span>
             </div>
           </div>
@@ -1834,6 +1911,7 @@ onMounted(async () => {
 
     <!-- DIÁLOGO: Cancelar Recibo (Justificación requerida) -->
     <UiDialog
+      v-if="mostrarModalCancelar"
       :open="mostrarModalCancelar"
       title="Cancelar Recibo Oficial"
       description="Por normativa universitaria, toda cancelación debe registrar un motivo formal y no eliminará el registro histórico."
@@ -1865,6 +1943,7 @@ onMounted(async () => {
 
     <!-- DIÁLOGO: Vista Previa de Recibo Oficial Imprimible -->
     <UiDialog
+      v-if="mostrarModalImprimir"
       :open="mostrarModalImprimir"
       title="Recibo Oficial de Ingresos - TecNM"
       description="Comprobante digital emitido conforme a los registros del sistema de caja"
@@ -1878,16 +1957,16 @@ onMounted(async () => {
         </div>
 
         <div class="ticket-meta-grid">
-          <div><span>Recibo No:</span> <strong>{{ numeroRecibo }}</strong></div>
-          <div><span>Fecha:</span> <strong>{{ fechaOperacion }}</strong></div>
-          <div><span>Folio:</span> <strong>{{ folioAdministrativo }}</strong></div>
+          <div><span>Recibo No:</span> <strong>{{ reciboParaImprimir ? reciboParaImprimir.numeroRecibo : numeroRecibo }}</strong></div>
+          <div><span>Fecha:</span> <strong>{{ reciboParaImprimir ? reciboParaImprimir.fechaOperacion : fechaOperacion }}</strong></div>
+          <div><span>Folio:</span> <strong>{{ reciboParaImprimir ? reciboParaImprimir.folioAdministrativo : folioAdministrativo }}</strong></div>
           <div><span>Caja:</span> <strong>01 ({{ cajeroActual }})</strong></div>
         </div>
 
         <div class="ticket-student-info">
-          <div><span>Estudiante:</span> <strong>{{ alumno.nombreCompleto }}</strong></div>
-          <div><span>Matrícula:</span> <strong>{{ alumno.matricula }}</strong></div>
-          <div><span>Carrera:</span> <strong>{{ alumno.carrera }}</strong></div>
+          <div><span>Estudiante:</span> <strong>{{ reciboParaImprimir ? reciboParaImprimir.alumno.nombreCompleto : alumno.nombreCompleto }}</strong></div>
+          <div><span>Matrícula:</span> <strong>{{ reciboParaImprimir ? reciboParaImprimir.alumno.matricula : alumno.matricula }}</strong></div>
+          <div><span>Carrera:</span> <strong>{{ reciboParaImprimir ? reciboParaImprimir.alumno.carrera : alumno.carrera }}</strong></div>
         </div>
 
         <table class="ticket-table">
@@ -1899,7 +1978,7 @@ onMounted(async () => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="p in partidas" :key="p.id">
+            <tr v-for="p in (reciboParaImprimir ? reciboParaImprimir.detalles : partidas)" :key="p.id">
               <td>{{ p.descripcion }}</td>
               <td class="txt-right">{{ p.cantidad }}</td>
               <td class="txt-right">${{ p.importeTotal.toFixed(2) }}</td>
@@ -1910,7 +1989,7 @@ onMounted(async () => {
         <div class="ticket-total-box">
           <div class="ticket-total-row">
             <span>TOTAL:</span>
-            <strong>${{ granTotal.toFixed(2) }} M.N.</strong>
+            <strong>${{ (reciboParaImprimir ? reciboParaImprimir.total : granTotal).toFixed(2) }} M.N.</strong>
           </div>
         </div>
 
@@ -2012,14 +2091,10 @@ onMounted(async () => {
       @close="mostrarModalReciboProvisional = false"
     />
 
-    <ModalReciboProvisionalCancelar
-      v-if="mostrarModalReciboProvisionalCancelar"
-      @close="mostrarModalReciboProvisionalCancelar = false"
-    />
-
     <ModalConsultaCancelacionRecibos
       v-if="mostrarModalConsultaCancelacionRecibos"
       @close="mostrarModalConsultaCancelacionRecibos = false"
+      @recibo-cancelado="onReciboCancelado"
     />
 
     <!-- Sistema de Notificaciones Flotantes (Toasts) -->

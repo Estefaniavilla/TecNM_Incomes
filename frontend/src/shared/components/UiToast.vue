@@ -13,7 +13,7 @@ const toasts = ref<ToastItem[]>([])
 let nextId = 1
 const timers = new Map<number, ReturnType<typeof setTimeout>>()
 
-function show(message: string, tone: ToastTone = 'success', duration = 4000) {
+function show(message: string, tone: ToastTone = 'success', duration = 2000) {
   const id = nextId++
   toasts.value.push({ id, message, tone })
 

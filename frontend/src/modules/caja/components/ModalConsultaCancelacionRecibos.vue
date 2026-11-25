@@ -8,6 +8,7 @@ import UiPagination from '../../../shared/components/UiPagination.vue'
 
 const emit = defineEmits<{
   (e: 'close'): void
+  (e: 'recibo-cancelado', payload: { id: string; numeroRecibo: number; motivo: string }): void
 }>()
 
 const { dark } = useTheme()
@@ -272,6 +273,11 @@ async function ejecutarCancelacion(): Promise<void> {
       reciboCargado.value.fechaCancelacion = new Date().toISOString()
     }
     mensajeExito.value = `El recibo No. ${numeroReciboBusqueda.value} ha sido cancelado satisfactoriamente.`
+    emit('recibo-cancelado', {
+      id: reciboCargado.value.id,
+      numeroRecibo: Number(numeroReciboBusqueda.value) || reciboCargado.value.numeroRecibo,
+      motivo,
+    })
   } catch {
     // Si falla el endpoint directo, actualizamos localmente el estado como contingencia
     if (reciboCargado.value) {
@@ -279,6 +285,11 @@ async function ejecutarCancelacion(): Promise<void> {
       reciboCargado.value.motivoCancelacion = motivo
       reciboCargado.value.fechaCancelacion = new Date().toISOString()
       mensajeExito.value = `El recibo No. ${numeroReciboBusqueda.value} ha sido marcado como cancelado.`
+      emit('recibo-cancelado', {
+        id: reciboCargado.value.id,
+        numeroRecibo: Number(numeroReciboBusqueda.value) || reciboCargado.value.numeroRecibo,
+        motivo,
+      })
     } else {
       errorBusqueda.value = 'Error al procesar la cancelación del recibo.'
     }

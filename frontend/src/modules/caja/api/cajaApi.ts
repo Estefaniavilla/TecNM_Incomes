@@ -328,6 +328,13 @@ export async function cancelarRecibo(id: string, motivo: string): Promise<Recibo
   return adaptReciboResponse(data)
 }
 
+export async function exportarRecibo(numero: number): Promise<Blob> {
+  const response = await http.get(`/caja/recibos/${numero}/exportar`, {
+    responseType: 'blob',
+  })
+  return response.data
+}
+
 export async function getCorteCaja(fecha?: string): Promise<ResumenCajaTurno> {
   const { data } = await http.get<ResumenCajaTurno>('/caja/corte', {
     params: { fecha },

@@ -19,7 +19,6 @@ import ModalReporteDeudoresFechaCuenta from '../../caja/components/ModalReporteD
 import ModalReporteDeudoresInscritos from '../../caja/components/ModalReporteDeudoresInscritos.vue'
 import ModalDepositoBancario from '../../caja/components/ModalDepositoBancario.vue'
 import ModalReciboProvisional from '../../caja/components/ModalReciboProvisional.vue'
-import ModalReciboProvisionalCancelar from '../../caja/components/ModalReciboProvisionalCancelar.vue'
 import ModalConsultaCancelacionRecibos from '../../caja/components/ModalConsultaCancelacionRecibos.vue'
 
 const router = useRouter()
@@ -75,7 +74,6 @@ const mostrarModalReporteDeudoresFechaCuenta = ref(false)
 const mostrarModalReporteDeudoresInscritos = ref(false)
 const mostrarModalDepositoBancario = ref(false)
 const mostrarModalReciboProvisional = ref(false)
-const mostrarModalReciboProvisionalCancelar = ref(false)
 const mostrarModalConsultaCancelacionRecibos = ref(false)
 
 function toggleMenu(menu: 'catalogo' | 'imprimir' | 'control'): void {
@@ -153,11 +151,6 @@ function abrirModalDepositoBancario(): void {
 
 function abrirModalReciboProvisional(): void {
   mostrarModalReciboProvisional.value = true
-  cerrarMenus()
-}
-
-function abrirModalReciboProvisionalCancelar(): void {
-  mostrarModalReciboProvisionalCancelar.value = true
   cerrarMenus()
 }
 
@@ -271,7 +264,7 @@ setInterval(actualizarHora, 1000)
               :aria-expanded="menuAbierto === 'imprimir'"
               @click.stop="toggleMenu('imprimir')"
             >
-              Imprimir <span class="arrow-indicator">▾</span>
+              Reportes <span class="arrow-indicator">▾</span>
             </button>
             <div v-if="menuAbierto === 'imprimir'" class="menubar-dropdown-panel menubar-dropdown-scroll" role="menu">
               <button type="button" class="dropdown-entry" role="menuitem" @click="irARecibo">
@@ -294,9 +287,6 @@ setInterval(actualizarHora, 1000)
               </button>
               <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalReciboProvisional">
                 <span>Recibo Provisional</span>
-              </button>
-              <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalReciboProvisionalCancelar">
-                <span>Recibo Provisional Cancelar</span>
               </button>
               <button type="button" class="dropdown-entry" role="menuitem" @click="abrirModalImprimeVerano">
                 <span>Imprime Verano</span>
@@ -553,7 +543,6 @@ setInterval(actualizarHora, 1000)
     <ModalReporteDeudoresInscritos v-if="mostrarModalReporteDeudoresInscritos" @close="mostrarModalReporteDeudoresInscritos = false" />
     <ModalDepositoBancario v-if="mostrarModalDepositoBancario" @close="mostrarModalDepositoBancario = false" />
     <ModalReciboProvisional v-if="mostrarModalReciboProvisional" @close="mostrarModalReciboProvisional = false" />
-    <ModalReciboProvisionalCancelar v-if="mostrarModalReciboProvisionalCancelar" @close="mostrarModalReciboProvisionalCancelar = false" />
     <ModalConsultaCancelacionRecibos v-if="mostrarModalConsultaCancelacionRecibos" @close="mostrarModalConsultaCancelacionRecibos = false" />
   </div>
 </template>

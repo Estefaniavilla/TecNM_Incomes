@@ -1,13 +1,26 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref, useAttrs, useId, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, useAttrs, useId, watch } from 'vue'
 
 defineOptions({ inheritAttrs: false })
 
-defineProps<{
-  title: string
+const props = withDefaults(
+  defineProps<{
+    title: string
+    description?: string
+    open?: boolean
+  }>(),
+  {
+    open: false,
+    description: undefined,
+  },
+)
+
+const emit = defineEmits<{
+  (e: 'close'): void
 }>()
 
 const model = defineModel<boolean>({ default: false })
+const isOpen = computed(() => Boolean(model.value || props.open))
 const attrs = useAttrs()
 const dialog = ref<HTMLDialogElement | null>(null)
 const titleId = useId()
@@ -18,7 +31,12 @@ async function openDialog(): Promise<void> {
   if (!dialog.value || dialog.value.open) return
 
   previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null
-  dialog.value.showModal()
+  try {
+    dialog.value.showModal()
+  } catch {
+    // Fallback if browser doesn't support showModal or already open
+    if (dialog.value) dialog.value.open = true
+  }
 }
 
 function restoreFocus(): void {
@@ -28,41 +46,48 @@ function restoreFocus(): void {
 }
 
 function closeDialog(): void {
-  if (!dialog.value?.open) {
-    restoreFocus()
-    return
+  if (dialog.value && dialog.value.open) {
+    try {
+      dialog.value.close()
+    } catch {
+      dialog.value.open = false
+    }
   }
-
-  dialog.value.close()
+  restoreFocus()
+  emit('close')
 }
 
 function syncModelFromDialog(): void {
   model.value = false
-  restoreFocus()
+  closeDialog()
 }
 
 function syncDialog(): void {
-  if (model.value) {
+  if (isOpen.value) {
     void openDialog()
   } else {
     closeDialog()
   }
 }
 
-watch(model, syncDialog)
+watch(isOpen, syncDialog)
 onMounted(syncDialog)
 </script>
 
 <template>
   <dialog
+    v-if="isOpen"
     ref="dialog"
     v-bind="attrs"
     :aria-labelledby="titleId"
-    @cancel="model = false"
+    @cancel="syncModelFromDialog"
     @close="syncModelFromDialog"
   >
-    <h2 :id="titleId">{{ title }}</h2>
-    <div v-if="model"><slot /></div>
+    <div class="ui-dialog-header">
+      <h2 :id="titleId">{{ title }}</h2>
+      <p v-if="description" class="ui-dialog-desc">{{ description }}</p>
+    </div>
+    <div class="ui-dialog-content"><slot /></div>
     <div v-if="$slots.actions" class="row"><slot name="actions" /></div>
   </dialog>
 </template>
