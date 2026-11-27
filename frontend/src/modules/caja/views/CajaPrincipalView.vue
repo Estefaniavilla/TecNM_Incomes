@@ -1781,66 +1781,109 @@ onMounted(async () => {
           </div>
         </UiCard>
 
-        <!-- 5. Barra de Acciones Principales (De la foto modernizadas) -->
+        <!-- 5. Barra de Acciones Principales -->
         <div class="caja-actions-bar">
           <div class="action-buttons-left">
-            <UiButton
-              variant="primary"
+            <button
+              type="button"
+              class="action-btn btn-registrar-cobro"
               :disabled="partidas.length === 0 || estadoRecibo === 'CANCELADO' || isGuardandoCobro"
               @click="registrarCobro"
             >
               <UiSpinner v-if="isGuardandoCobro" size="sm" class="btn-spinner" />
-              <span>{{ isGuardandoCobro ? 'Cobrando...' : '✓ Registrar Cobro' }}</span>
-            </UiButton>
+              <svg v-else class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              <span>{{ isGuardandoCobro ? 'Cobrando...' : 'Registrar Cobro' }}</span>
+            </button>
 
-            <UiButton
-              variant="secondary"
+            <button
+              type="button"
+              class="action-btn btn-secondary-action"
               :disabled="partidas.length === 0 || isGuardandoCobro"
               @click="generarReciboPrevio"
             >
-              📄 Recibo Previo
-            </UiButton>
+              <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+              </svg>
+              <span>Recibo Previo</span>
+            </button>
 
-            <UiButton
-              variant="secondary"
+            <button
+              type="button"
+              class="action-btn btn-secondary-action"
               :disabled="(partidas.length === 0 && historialTurno.length === 0) || isGuardandoCobro"
               @click="handleImprimirClick"
             >
-              🖨️ Imprimir
-            </UiButton>
+              <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 6 2 18 2 18 9" />
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                <rect x="6" y="14" width="12" height="8" />
+              </svg>
+              <span>Imprimir</span>
+            </button>
 
-            <div class="export-inline-group">
-              <select
-                v-model="formatoExportacionRecibo"
-                class="export-format-select"
-                title="Formato de exportación del recibo"
-              >
-                <option value="pdf">PDF (.pdf)</option>
-                <option value="csv">CSV (.csv)</option>
-                <option value="word">Word (.doc)</option>
-              </select>
-              <UiButton
-                variant="secondary"
+            <!-- Grupo Unificado de Exportación -->
+            <div class="export-unified-group">
+              <div class="export-select-wrapper">
+                <select
+                  v-model="formatoExportacionRecibo"
+                  class="export-format-select"
+                  title="Formato de exportación del recibo"
+                >
+                  <option value="pdf">PDF (.pdf)</option>
+                  <option value="csv">CSV (.csv)</option>
+                  <option value="word">Word (.doc)</option>
+                </select>
+                <svg class="select-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </div>
+              <button
+                type="button"
+                class="action-btn btn-export-action"
                 :disabled="!numeroRecibo || isExportando || isGuardandoCobro"
                 @click="handleExportarClick"
               >
-                {{ isExportando ? 'Exportando...' : '⬇️ Exportar' }}
-              </UiButton>
+                <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                <span>{{ isExportando ? 'Exportando...' : 'Exportar' }}</span>
+              </button>
             </div>
 
-            <UiButton
-              variant="danger"
+            <button
+              type="button"
+              class="action-btn btn-cancelar-action"
               :disabled="estadoRecibo === 'CANCELADO' || isGuardandoCobro"
               @click="abrirModalCancelar"
             >
-              🚫 Cancelar Recibo
-            </UiButton>
+              <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+              </svg>
+              <span>Cancelar Recibo</span>
+            </button>
           </div>
 
           <div class="action-buttons-right">
-            <UiButton variant="secondary" :disabled="isGuardandoCobro" @click="limpiarFormulario">
-              Limpiar
-            </UiButton>
+            <button
+              type="button"
+              class="action-btn btn-limpiar-action"
+              :disabled="isGuardandoCobro"
+              @click="limpiarFormulario"
+            >
+              <svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+              </svg>
+              <span>Limpiar</span>
+            </button>
           </div>
         </div>
       </main>
@@ -3576,17 +3619,338 @@ button.menubar-title-tag:active {
   align-items: center;
   flex-wrap: wrap;
   gap: 12px;
-  padding: 14px 20px;
+  padding: 12px 18px;
   background: var(--color-surface-white, #FFFFFF);
   border: 1px solid var(--color-border, #E2E8F0);
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(15, 37, 72, 0.05);
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(15, 37, 72, 0.04);
+  transition: background-color 0.2s, border-color 0.2s;
 }
 
 .action-buttons-left {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
   flex-wrap: wrap;
+}
+
+.action-buttons-right {
+  display: flex;
+  align-items: center;
+}
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 14px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.18s ease;
+  user-select: none;
+}
+
+.action-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* Botón Primario: Registrar Cobro */
+.btn-registrar-cobro {
+  background: #1B396A;
+  color: #FFFFFF;
+  border: 1px solid #1B396A;
+  box-shadow: 0 2px 4px rgba(27, 57, 106, 0.18);
+}
+
+.btn-registrar-cobro:hover:not(:disabled) {
+  background: #152C53;
+  border-color: #C5A059;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(27, 57, 106, 0.25);
+}
+
+.btn-registrar-cobro:disabled {
+  background: #E2E8F0;
+  color: #94A3B8;
+  border-color: #CBD5E1;
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Botones Secundarios: Recibo Previo, Imprimir */
+.btn-secondary-action {
+  background: #FFFFFF;
+  color: #1E3A5F;
+  border: 1px solid #CBD5E1;
+}
+
+.btn-secondary-action:hover:not(:disabled) {
+  background: #F8FAFC;
+  border-color: #1B396A;
+  color: #1B396A;
+  transform: translateY(-1px);
+}
+
+.btn-secondary-action:disabled {
+  background: #F8FAFC;
+  color: #CBD5E1;
+  border-color: #E2E8F0;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Grupo Unificado de Exportación */
+.export-unified-group {
+  display: inline-flex;
+  align-items: center;
+  height: 38px;
+  border: 1px solid #CBD5E1;
+  border-radius: 6px;
+  background: #FFFFFF;
+  transition: border-color 0.18s ease;
+}
+
+.export-unified-group:focus-within {
+  border-color: #1B396A;
+}
+
+.export-select-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+}
+
+.export-unified-group .export-format-select {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 100%;
+  padding: 0 26px 0 10px;
+  background: transparent;
+  border: none;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1E293B;
+  cursor: pointer;
+  outline: none;
+}
+
+.export-select-wrapper .select-chevron {
+  position: absolute;
+  right: 8px;
+  width: 12px;
+  height: 12px;
+  color: #64748B;
+  pointer-events: none;
+}
+
+.btn-export-action {
+  height: 100%;
+  padding: 0 12px;
+  background: #F8FAFC;
+  border: none;
+  border-left: 1px solid #CBD5E1;
+  border-radius: 0 5px 5px 0;
+  color: #1E3A5F;
+}
+
+.btn-export-action:hover:not(:disabled) {
+  background: #EEF4FF;
+  color: #1B396A;
+}
+
+.btn-export-action:disabled {
+  color: #CBD5E1;
+  background: #F8FAFC;
+  cursor: not-allowed;
+}
+
+/* Botón Cancelar */
+.btn-cancelar-action {
+  background: #FEF2F2;
+  color: #DC2626;
+  border: 1px solid rgba(220, 38, 38, 0.28);
+}
+
+.btn-cancelar-action:hover:not(:disabled) {
+  background: #FEE2E2;
+  border-color: #DC2626;
+  color: #B91C1C;
+  transform: translateY(-1px);
+}
+
+.btn-cancelar-action:disabled {
+  background: #F8FAFC;
+  color: #CBD5E1;
+  border-color: #E2E8F0;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Botón Limpiar */
+.btn-limpiar-action {
+  background: #FFFFFF;
+  color: #64748B;
+  border: 1px solid #CBD5E1;
+}
+
+.btn-limpiar-action:hover:not(:disabled) {
+  background: #F1F5F9;
+  color: #1E293B;
+  border-color: #94A3B8;
+  transform: translateY(-1px);
+}
+
+.btn-limpiar-action:disabled {
+  color: #CBD5E1;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Modo oscuro para Barra de Acciones */
+.dark-theme .caja-actions-bar,
+:global([data-theme="dark"]) .caja-actions-bar {
+  background: #0B192C;
+  border-color: #1E3A5F;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+
+.dark-theme .btn-registrar-cobro,
+:global([data-theme="dark"]) .btn-registrar-cobro {
+  background: #1E3A8A;
+  border-color: #3B82F6;
+  color: #FFFFFF;
+}
+
+.dark-theme .btn-registrar-cobro:hover:not(:disabled),
+:global([data-theme="dark"]) .btn-registrar-cobro:hover:not(:disabled) {
+  background: #2563EB;
+  border-color: #C5A059;
+}
+
+.dark-theme .btn-registrar-cobro:disabled,
+:global([data-theme="dark"]) .btn-registrar-cobro:disabled {
+  background: #162B4D;
+  border-color: #1E3A5F;
+  color: #475569;
+}
+
+.dark-theme .btn-secondary-action,
+:global([data-theme="dark"]) .btn-secondary-action {
+  background: #112240;
+  border-color: #233554;
+  color: #E2E8F0;
+}
+
+.dark-theme .btn-secondary-action:hover:not(:disabled),
+:global([data-theme="dark"]) .btn-secondary-action:hover:not(:disabled) {
+  background: #162B4D;
+  border-color: #3B82F6;
+  color: #60A5FA;
+}
+
+.dark-theme .btn-secondary-action:disabled,
+:global([data-theme="dark"]) .btn-secondary-action:disabled {
+  background: #0B192C;
+  border-color: #162B4D;
+  color: #475569;
+}
+
+.dark-theme .export-unified-group,
+:global([data-theme="dark"]) .export-unified-group {
+  background: #112240;
+  border-color: #233554;
+}
+
+.dark-theme .export-unified-group:focus-within,
+:global([data-theme="dark"]) .export-unified-group:focus-within {
+  border-color: #3B82F6;
+}
+
+.dark-theme .export-unified-group .export-format-select,
+:global([data-theme="dark"]) .export-unified-group .export-format-select {
+  color: #E2E8F0;
+  background: #112240;
+}
+
+.dark-theme .export-unified-group .export-format-select option,
+:global([data-theme="dark"]) .export-unified-group .export-format-select option {
+  background: #112240;
+  color: #E2E8F0;
+}
+
+.dark-theme .export-select-wrapper .select-chevron,
+:global([data-theme="dark"]) .export-select-wrapper .select-chevron {
+  color: #94A3B8;
+}
+
+.dark-theme .btn-export-action,
+:global([data-theme="dark"]) .btn-export-action {
+  background: #162B4D;
+  border-left-color: #233554;
+  color: #60A5FA;
+}
+
+.dark-theme .btn-export-action:hover:not(:disabled),
+:global([data-theme="dark"]) .btn-export-action:hover:not(:disabled) {
+  background: #1E3A8A;
+  color: #93C5FD;
+}
+
+.dark-theme .btn-export-action:disabled,
+:global([data-theme="dark"]) .btn-export-action:disabled {
+  background: #112240;
+  color: #475569;
+}
+
+.dark-theme .btn-cancelar-action,
+:global([data-theme="dark"]) .btn-cancelar-action {
+  background: rgba(220, 38, 38, 0.12);
+  border-color: rgba(220, 38, 38, 0.38);
+  color: #F87171;
+}
+
+.dark-theme .btn-cancelar-action:hover:not(:disabled),
+:global([data-theme="dark"]) .btn-cancelar-action:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.22);
+  border-color: #EF4444;
+  color: #FCA5A5;
+}
+
+.dark-theme .btn-cancelar-action:disabled,
+:global([data-theme="dark"]) .btn-cancelar-action:disabled {
+  background: #0B192C;
+  border-color: #162B4D;
+  color: #475569;
+}
+
+.dark-theme .btn-limpiar-action,
+:global([data-theme="dark"]) .btn-limpiar-action {
+  background: #112240;
+  border-color: #233554;
+  color: #94A3B8;
+}
+
+.dark-theme .btn-limpiar-action:hover:not(:disabled),
+:global([data-theme="dark"]) .btn-limpiar-action:hover:not(:disabled) {
+  background: #162B4D;
+  border-color: #64748B;
+  color: #F1F5F9;
+}
+
+.dark-theme .btn-limpiar-action:disabled,
+:global([data-theme="dark"]) .btn-limpiar-action:disabled {
+  background: #0B192C;
+  border-color: #162B4D;
+  color: #475569;
 }
 
 /* 9. Historial lateral de recibos */
